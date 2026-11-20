@@ -23,7 +23,7 @@ Open PowerShell and paste this single command:
 irm https://raw.githubusercontent.com/AmrAdeldotcom/DCP/main/platform/Install-DCP-Online.ps1 | iex
 ```
 
-No Git installation is required. The bootstrap downloads the official Windows x64 package from this repository, installs it under `%LOCALAPPDATA%\\DCP`, checks the bundled PHP runtime and WebView2 prerequisites, and launches DCP. The source repository itself is not cloned onto the user's machine.
+No Git installation is required. The bootstrap downloads the latest published `DCP-Windows-x64.zip` GitHub Release asset, installs it under `%LOCALAPPDATA%\\DCP`, checks the bundled PHP runtime and WebView2 prerequisites, creates a desktop shortcut, and launches DCP. Git is not required and the source repository is not cloned onto the user's machine.
 
 For developers who want a source checkout, Git-based installation remains available below.
 

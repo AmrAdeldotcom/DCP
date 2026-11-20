@@ -1,0 +1,42 @@
+name: Build and publish DCP Windows release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows-x64:
+    runs-on: windows-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Build portable Windows package
+        shell: pwsh
+        run: ./platform/scripts/build-windows.ps1
+
+      - name: Verify package
+        shell: pwsh
+        run: |
+          if (!(Test-Path 'platform/dist/windows/DCP.exe')) { throw 'DCP.exe missing' }
+          if (!(Test-Path 'platform/dist/windows/runtime/php/php.exe')) { throw 'Private PHP runtime missing' }
+          if (!(Test-Path 'platform/dist/windows/platform/public/router.php')) { throw 'DCP platform payload missing' }
+          Compress-Archive -Path 'platform/dist/windows' -DestinationPath 'DCP-Windows-x64.zip' -CompressionLevel Optimal
+          if (!(Test-Path 'DCP-Windows-x64.zip')) { throw 'Windows archive was not created' }
+
+      - name: Publish Windows package to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: DCP ${{ github.ref_name }}
+          generate_release_notes: true
+          files: DCP-Windows-x64.zip

@@ -1,22 +1,26 @@
-# DCP one-command Windows installer. No Git installation is required.
+# DCP one-command Windows installer. Downloads the published Windows release; Git is not required.
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
 $InstallRoot = Join-Path $env:LOCALAPPDATA 'DCP'
 $WorkRoot = Join-Path $env:TEMP ('DCP-Install-' + [guid]::NewGuid().ToString('N'))
-$Archive = Join-Path $WorkRoot 'dcp-source.zip'
-$ExtractRoot = Join-Path $WorkRoot 'source'
-$ArchiveUrl = 'https://github.com/AmrAdeldotcom/DCP/archive/refs/heads/feature/dcp-cloud-signaling.zip'
+$Archive = Join-Path $WorkRoot 'DCP-Windows-x64.zip'
+$ExtractRoot = Join-Path $WorkRoot 'extract'
+$ReleaseUrl = 'https://github.com/AmrAdeldotcom/DCP/releases/latest/download/DCP-Windows-x64.zip'
 
 try {
-    Write-Host 'DCP setup: downloading the official Windows package...' -ForegroundColor Cyan
     New-Item -ItemType Directory -Force -Path $WorkRoot, $ExtractRoot | Out-Null
-    Invoke-WebRequest -Uri $ArchiveUrl -OutFile $Archive
+    Write-Host 'Downloading the latest official DCP for Windows...' -ForegroundColor Cyan
+    Invoke-WebRequest -Uri $ReleaseUrl -OutFile $Archive
     Expand-Archive -LiteralPath $Archive -DestinationPath $ExtractRoot -Force
 
-    $Package = Join-Path $ExtractRoot 'DCP-feature-dcp-cloud-signaling\platform\dist\windows'
-    if (-not (Test-Path (Join-Path $Package 'DCP.exe'))) {
-        throw 'The downloaded repository does not contain the ready-to-run Windows package (platform/dist/windows/DCP.exe).'
+    $Package = Join-Path $ExtractRoot 'windows'
+    $AppInPackage = Join-Path $Package 'DCP.exe'
+    if (-not (Test-Path $AppInPackage)) {
+        throw 'The downloaded release is invalid: windows/DCP.exe is missing.'
+    }
+    if (-not (Test-Path (Join-Path $Package 'platform\scripts\install-runtime-windows.ps1'))) {
+        throw 'The downloaded release is incomplete: the private PHP runtime installer is missing.'
     }
 
     Write-Host "Installing DCP into $InstallRoot ..." -ForegroundColor Cyan
@@ -32,24 +36,19 @@ try {
     New-Item -ItemType Directory -Force -Path $InstallRoot | Out-Null
     Copy-Item -Path (Join-Path $Package '*') -Destination $InstallRoot -Recurse -Force
 
-    # Never ship the build machine's database or stale server PID to an end user.
-    $FreshData = Join-Path $InstallRoot 'platform\data'
-    New-Item -ItemType Directory -Force -Path $FreshData | Out-Null
-    $BundledDatabase = Join-Path $FreshData 'dcp.sqlite'
+    $DataDir = Join-Path $InstallRoot 'platform\data'
+    New-Item -ItemType Directory -Force -Path $DataDir | Out-Null
+    $BundledDatabase = Join-Path $DataDir 'dcp.sqlite'
     if (Test-Path $BundledDatabase) { Remove-Item -LiteralPath $BundledDatabase -Force }
     if (Test-Path $SavedDatabase) { Copy-Item -LiteralPath $SavedDatabase -Destination $BundledDatabase -Force }
     $StalePid = Join-Path $InstallRoot 'platform\storage\php-server.pid'
     if (Test-Path $StalePid) { Remove-Item -LiteralPath $StalePid -Force }
 
-    $Installer = Join-Path $InstallRoot 'Install-DCP.ps1'
-    if (Test-Path $Installer) {
-        & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $Installer
-        if ($LASTEXITCODE -ne 0) { throw 'DCP prerequisite setup failed.' }
-    }
+    $Prerequisites = Join-Path $InstallRoot 'Install-DCP.ps1'
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $Prerequisites
+    if ($LASTEXITCODE -ne 0) { throw 'DCP prerequisite setup failed.' }
 
     $App = Join-Path $InstallRoot 'DCP.exe'
-    if (-not (Test-Path $App)) { throw 'DCP.exe was not found after installation.' }
-    Write-Host 'DCP has been installed successfully. Launching...' -ForegroundColor Green
     $ShortcutPath = Join-Path ([Environment]::GetFolderPath('Desktop')) 'DCP.lnk'
     $Shell = New-Object -ComObject WScript.Shell
     $Shortcut = $Shell.CreateShortcut($ShortcutPath)
@@ -57,6 +56,8 @@ try {
     $Shortcut.WorkingDirectory = $InstallRoot
     $Shortcut.Description = 'DCP — Desktop Connector Platform'
     $Shortcut.Save()
+
+    Write-Host 'DCP installed. Launching the application...' -ForegroundColor Green
     Start-Process -FilePath $App -WorkingDirectory $InstallRoot
 }
 catch {
