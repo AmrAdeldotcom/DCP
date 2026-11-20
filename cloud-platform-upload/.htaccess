@@ -1,0 +1,9 @@
+Options -Indexes
+DirectoryIndex index.php
+<FilesMatch "^(\.env|schema\.mysql\.sql|README\.txt|\.htaccess)$">
+  Require all denied
+</FilesMatch>
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.php [QSA,L]
