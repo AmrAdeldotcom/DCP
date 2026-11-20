@@ -16,7 +16,7 @@ Open PowerShell in the extracted package and run:
 
 This installs a private PHP CLI runtime under runtime/php/ (not into PATH and not as a Windows service), enables DCP's required extensions, verifies them, and installs the Microsoft Edge WebView2 Evergreen Runtime only if missing. Then run DCP.exe. Keep DCP.exe, runtime/, and platform/ together.
 
-## Linux (Ubuntu 22.04 build target)
+## Linux (Ubuntu 24.04 build target)
 
 Install/build prerequisites and PHP CLI extensions with:
 
@@ -24,7 +24,7 @@ Install/build prerequisites and PHP CLI extensions with:
     platform/scripts/install-runtime-linux.sh
     platform/scripts/build-linux.sh
 
-The runtime installer uses only PHP CLI packages; it does not install Apache or start database services. The WebView build needs GTK3, WebKit2GTK 4.0, libsoup 2 and a C compiler. The GitHub Actions workflow builds the Linux x64 artifact on Ubuntu 22.04.
+The runtime installer uses only PHP CLI packages; it does not install Apache or start database services. The WebView build needs GTK3, WebKit2GTK 4.1, libsoup 3, pkg-config and a C compiler. The GitHub Actions workflow builds and publishes the Linux x64 artifact on Ubuntu 24.04. PHP 8.2+ with curl, intl, mbstring, PDO_SQLite, sodium and fileinfo is required at runtime.
 
 ## Isolation and safety
 
