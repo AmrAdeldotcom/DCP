@@ -11,6 +11,7 @@ pkg-config --exists gtk+-3.0 webkit2gtk-4.1 || {
 OUT="$ROOT/dist/linux"
 rm -rf "$OUT"
 mkdir -p "$OUT/platform/data" "$OUT/platform/storage"
+touch "$OUT/platform/data/.keep" "$OUT/platform/storage/.keep"
 cc "$ROOT/wrappers/linux/dcp-webview.c" -o "$OUT/DCP" $(pkg-config --cflags --libs gtk+-3.0 webkit2gtk-4.1)
 chmod +x "$OUT/DCP"
 for item in app bootstrap config data locales plugins public storage docs integrations scripts; do
@@ -24,9 +25,12 @@ cat > "$OUT/Run-DCP.sh" <<'RUNNER'
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 cd "$ROOT"
+mkdir -p "$ROOT/platform/data" "$ROOT/platform/storage"
+chmod u+rwx "$ROOT/platform/data" "$ROOT/platform/storage"
 PHP_BIN="${DCP_PHP_BIN:-php}"
 "$PHP_BIN" "$ROOT/platform/scripts/install-runtime-linux.sh"
 "$PHP_BIN" "$ROOT/platform/scripts/verify-runtime.php"
+"$ROOT/Install-DCP-Launcher.sh"
 exec "$ROOT/DCP"
 RUNNER
 chmod +x "$OUT/Run-DCP.sh"
