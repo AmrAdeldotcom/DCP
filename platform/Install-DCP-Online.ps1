@@ -65,6 +65,7 @@ try {
     $Shortcut.TargetPath = $App
     $Shortcut.WorkingDirectory = $InstallRoot
     $Shortcut.Description = 'DCP — Desktop Connector Platform'
+    $Shortcut.IconLocation = (Join-Path $InstallRoot 'DCP.exe')
     $Shortcut.Save()
 
     Write-Host 'DCP installed. Launching the application...' -ForegroundColor Green
