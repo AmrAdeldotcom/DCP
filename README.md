@@ -15,25 +15,29 @@ DCP runs its own PHP CLI server on `127.0.0.1:18765`, stores application data in
 
 Git is the source of truth for development installs. These commands clone the current `main` branch; subsequent updates are performed with `git pull --ff-only`. Review the scripts in the repository before running them.
 
-### Windows 10/11 (PowerShell)
+## Install on Windows 10/11 (one command)
+
+Open PowerShell and paste this single command:
+
+```powershell
+irm https://raw.githubusercontent.com/AmrAdeldotcom/DCP/main/platform/Install-DCP-Online.ps1 | iex
+```
+
+No Git installation is required. The bootstrap downloads the official Windows x64 package from this repository, installs it under `%LOCALAPPDATA%\\DCP`, checks the bundled PHP runtime and WebView2 prerequisites, and launches DCP. The source repository itself is not cloned onto the user's machine.
+
+For developers who want a source checkout, Git-based installation remains available below.
+
+### Developer install (optional)
 
 Install Git for Windows first, then run:
 
 ```powershell
-git clone https://github.com/AmrAdeldotcom/DCP.git "$env:LOCALAPPDATA\DCP"
-Set-Location "$env:LOCALAPPDATA\DCP"
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\platform\Install-DCP.ps1
+git clone https://github.com/AmrAdeldotcom/DCP.git "$env:LOCALAPPDATA\\DCP-source"
+Set-Location "$env:LOCALAPPDATA\\DCP-source"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\platform\\Install-DCP.ps1
 ```
 
-The script provisions DCP's private PHP CLI runtime and required Windows components. The desktop wrapper must be built/published separately with the .NET SDK using `platform\scripts\build-windows.ps1`. For a ready-made desktop executable, use the Windows x64 release package and keep its `DCP.exe`, `runtime\`, and `platform\` folders together.
-
-To update a Git-based source checkout:
-
-```powershell
-Set-Location "$env:LOCALAPPDATA\DCP"
-git pull --ff-only origin main
-```
-
+The developer script provisions DCP's private PHP CLI runtime. Building the desktop wrapper from source requires the .NET SDK; end users should use the one-command installer above.
 ### macOS
 
 ```bash
