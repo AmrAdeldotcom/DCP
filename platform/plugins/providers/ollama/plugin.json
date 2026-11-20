@@ -1,0 +1,1 @@
+{"id":"ollama","name":"Ollama","type":"provider","driver":"ollama","version":"1.0.0","builtin":true,"capabilities":["chat","models","health"],"default_base_url":"http://127.0.0.1:11434","requires_api_key":false}

@@ -1,0 +1,7 @@
+<?php
+declare(strict_types=1);
+return new class implements ProviderAdapter {
+ private function call(array $p,string $path,array $payload=[]):array{$url=rtrim($p['base_url'],'/').$path;$ch=curl_init($url);$headers=['Accept: application/json'];if(($p['api_key']??'')!=='')$headers[]='Authorization: Bearer '.$p['api_key'];if($payload){$headers[]='Content-Type: application/json';curl_setopt($ch,CURLOPT_POST,true);curl_setopt($ch,CURLOPT_POSTFIELDS,json_encode($payload,JSON_UNESCAPED_UNICODE));}curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_HTTPHEADER=>$headers,CURLOPT_CONNECTTIMEOUT=>8,CURLOPT_TIMEOUT=>120,CURLOPT_SSL_VERIFYPEER=>true,CURLOPT_SSL_VERIFYHOST=>2]);$raw=curl_exec($ch);$err=curl_error($ch);$code=(int)curl_getinfo($ch,CURLINFO_RESPONSE_CODE);curl_close($ch);if($raw===false)throw new RuntimeException('Provider connection failed: '.$err);$d=json_decode($raw,true)?:[];if($code<200||$code>=300)throw new RuntimeException('Provider HTTP '.$code.': '.substr((string)($d['error']['message']??$raw),0,500));return $d;}
+ public function models(array $p):array{$d=$this->call($p,'/models');return array_map(fn($m)=>['id'=>$m['id'],'name'=>$m['id']],$d['data']??[]);}
+ public function chat(array $p,string $model,array $messages):string{$d=$this->call($p,'/chat/completions',['model'=>$model,'messages'=>$messages,'stream'=>false]);return (string)($d['choices'][0]['message']['content']??'');}
+};

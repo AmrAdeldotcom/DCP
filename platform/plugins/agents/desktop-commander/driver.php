@@ -1,0 +1,3 @@
+<?php
+declare(strict_types=1);
+return new class implements AgentAdapter {public function status():array{$out=[];exec('/usr/bin/pgrep -fl '.escapeshellarg('desktop-commander remote').' 2>/dev/null',$out);$found=false;foreach($out as $line){if(str_contains($line,'desktop-commander remote')&&!str_contains($line,'pgrep')){$found=true;break;}}return ['id'=>'desktop-commander','name'=>'Desktop Commander Remote','installed'=>true,'running'=>$found,'connected'=>false,'detail'=>$found?'Remote process detected; authenticated DCP task session is not configured.':'Remote process not detected.','capabilities'=>['remote-files','remote-process'],'integration'=>'process-detection-only'];}};

@@ -1,0 +1,1 @@
+{"id":"deepseek-harness","name":"DeepSeek Harness","type":"agent","version":"1.0.0","builtin":true,"capabilities":["agent.tasks"],"status":"adapter-required"}

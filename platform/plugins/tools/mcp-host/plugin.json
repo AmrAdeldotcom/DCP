@@ -1,0 +1,1 @@
+{"id":"dcp-mcp-host","name":"DCP MCP Host","type":"tool","driver":"mcp-stdio","version":"1.0.0","builtin":true,"capabilities":["mcp.initialize","mcp.tools-list","mcp.tools-call"],"transport":"stdio","command":"php plugins/tools/mcp-host/server.php"}

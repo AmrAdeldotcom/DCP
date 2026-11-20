@@ -1,0 +1,30 @@
+
+/* MonkeyCode-inspired workspace shell and task composer */
+.sidebar-toggle{font-size:15px;border:1px solid var(--border);border-radius:8px;width:32px;height:32px;display:grid;place-items:center;color:var(--muted);margin-right:2px}
+body.sidebar-collapsed{--sidebar:76px}
+body.sidebar-collapsed .sidebar{padding-left:10px;padding-right:10px}
+body.sidebar-collapsed .brand{justify-content:center;padding-left:0;padding-right:0}
+body.sidebar-collapsed .brand>div,body.sidebar-collapsed .nav-label,body.sidebar-collapsed .nav-link b,body.sidebar-collapsed .sidebar-foot span:not(.online-dot),body.sidebar-collapsed .sidebar-foot small{display:none}
+body.sidebar-collapsed .nav-link{justify-content:center;padding:0}
+body.sidebar-collapsed .sidebar-foot{text-align:center;padding-left:0;padding-right:0}
+body.sidebar-collapsed .sidebar-foot .online-dot{margin:0}
+[dir=rtl] .sidebar-toggle{margin-right:0;margin-left:2px}
+.composer{border-radius:20px;padding:13px 14px 10px;box-shadow:0 6px 24px rgba(15,42,62,.07)}
+.composer textarea{min-height:76px;line-height:1.65;padding:9px 8px}
+.composer-bottom{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.composer-tools,.composer-send{display:flex;align-items:center;gap:8px;min-width:0}
+.composer-select{max-width:170px;min-width:110px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:8px 10px;color:var(--text);font-size:11px}
+.composer-select.model-select{max-width:190px}
+.composer-tool{border:1px solid var(--border);border-radius:10px;background:var(--surface2);color:var(--muted);font-size:11px;padding:8px 12px;white-space:nowrap}
+.composer-tool:hover{border-color:var(--blue);color:var(--text)}
+.attachment-chip{margin:9px 4px 2px;padding:7px 10px;border-radius:9px;background:var(--surface2);border:1px solid var(--border);font-size:10px;color:var(--muted)}
+.markdown-body{white-space:normal;overflow-wrap:anywhere}
+.markdown-body h2,.markdown-body h3,.markdown-body h4{margin:13px 0 7px;font-weight:750;color:var(--text)}
+.markdown-body h2{font-size:19px}.markdown-body h3{font-size:16px}.markdown-body h4{font-size:14px}
+.markdown-body strong{font-weight:750}
+.markdown-body code{font:12px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:2px 5px;color:var(--blue)}
+.markdown-body pre{white-space:pre;overflow:auto;padding:14px 16px;border-radius:10px;background:#0d1721;color:#d6e3ec;border:1px solid #263a4b;margin:12px 0}
+.markdown-body pre code{background:transparent;border:0;padding:0;color:inherit;font-size:11px}
+.markdown-body .md-list-item{display:block;padding-left:13px;margin:3px 0}
+.message-body{line-height:1.75}
+@media(max-width:720px){body.sidebar-collapsed .main-shell{margin-left:66px}[dir=rtl] body.sidebar-collapsed .main-shell{margin-right:66px}.composer-bottom{align-items:flex-start}.composer-tools{width:100%;flex-wrap:wrap}.composer-send{width:100%;justify-content:space-between}.composer-select{flex:1;max-width:none}.composer-select.model-select{max-width:none}}

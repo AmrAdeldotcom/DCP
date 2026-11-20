@@ -1,0 +1,17 @@
+{
+  "id": "gemini-openai",
+  "name": "Google Gemini (OpenAI-compatible)",
+  "type": "provider",
+  "driver": "openai-compatible",
+  "version": "1.0.0",
+  "builtin": true,
+  "capabilities": [
+    "chat",
+    "models",
+    "health"
+  ],
+  "default_base_url": "https://generativelanguage.googleapis.com/v1beta/openai/",
+  "default_model": "",
+  "requires_api_key": true,
+  "model_discovery": "live"
+}

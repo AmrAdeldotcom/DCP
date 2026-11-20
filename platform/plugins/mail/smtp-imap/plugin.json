@@ -1,0 +1,1 @@
+{"id":"smtp-imap","name":"SMTP / IMAP Mail","type":"mail","version":"1.0.0","builtin":true,"capabilities":["smtp.send","imap.inbox","invites","reports"]}

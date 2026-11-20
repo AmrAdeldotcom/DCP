@@ -1,0 +1,17 @@
+{
+  "id": "deepseek",
+  "name": "DeepSeek",
+  "type": "provider",
+  "driver": "openai-compatible",
+  "version": "1.0.0",
+  "builtin": true,
+  "capabilities": [
+    "chat",
+    "models",
+    "health"
+  ],
+  "default_base_url": "https://api.deepseek.com",
+  "requires_api_key": true,
+  "default_model": "deepseek-flash",
+  "model_discovery": "live"
+}

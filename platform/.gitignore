@@ -1,0 +1,13 @@
+/data/*
+!/data/.gitkeep
+/storage/keys/*
+!/storage/keys/.gitkeep
+/storage/logs/*
+/storage/reports/*
+/storage/cache/*
+/wrappers/windows/bin/
+/wrappers/windows/obj/
+/runtime/
+/vendor/
+/.DS_Store
+*.log

@@ -1,0 +1,1 @@
+{"id":"desktop-commander","name":"Desktop Commander Remote","type":"agent","version":"1.0.0","builtin":true,"capabilities":["remote.files","remote.process"],"status":"adapter-required"}

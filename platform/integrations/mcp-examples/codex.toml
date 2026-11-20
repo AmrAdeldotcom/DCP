@@ -1,0 +1,3 @@
+[mcp_servers.dcp]
+command = "/usr/local/bin/php"
+args = ["/Volumes/Data/ChatGPT/DCP/platform/plugins/tools/mcp-host/server.php"]
