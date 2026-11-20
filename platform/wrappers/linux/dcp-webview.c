@@ -27,7 +27,8 @@ static void shutdown_app(GtkWidget *w,gpointer d){if(php_pid>0){kill(php_pid,SIG
 int main(int argc,char **argv){
  gtk_init(&argc,&argv);const char *root=g_getenv("DCP_ROOT");gchar *exe_dir=NULL;if(!root){char exe[PATH_MAX];ssize_t n=readlink("/proc/self/exe",exe,sizeof(exe)-1);if(n>0){exe[n]=0;exe_dir=g_path_get_dirname(exe);root=exe_dir;}else root=".";}
  gchar *platform=g_build_filename(root,"platform",NULL);gchar *pub=g_build_filename(platform,"public",NULL);gchar *router=g_build_filename(pub,"router.php",NULL);gchar *php=g_build_filename(root,"runtime","php","bin","php",NULL);
- if(!g_file_test(php,G_FILE_TEST_IS_EXECUTABLE)){g_free(php);php=g_strdup("php");}
+ if(!g_file_test(php,G_FILE_TEST_IS_EXECUTABLE)){g_free(php);php=g_find_program_in_path("php");}
+ if(!php){g_printerr("DCP requires PHP CLI. Run Run-DCP.sh to install runtime dependencies.\n");return 1;}
  gchar *args[]={php,"-S","127.0.0.1:" PORT,"-t",pub,router,NULL};GError *error=NULL;
  if(!g_spawn_async(platform,args,NULL,G_SPAWN_DO_NOT_REAP_CHILD,NULL,NULL,&php_pid,&error)){g_printerr("DCP PHP start failed: %s\n",error->message);return 1;}
  GtkWidget *window=gtk_window_new(GTK_WINDOW_TOPLEVEL);gtk_window_set_title(GTK_WINDOW(window),"DCP — Desktop Connector Platform");gtk_window_set_default_size(GTK_WINDOW(window),1280,840);gtk_window_set_position(GTK_WINDOW(window),GTK_WIN_POS_CENTER);
