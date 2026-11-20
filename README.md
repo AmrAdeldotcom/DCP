@@ -4,33 +4,86 @@ The active product is the PHP + SQLite platform in `platform/`. The macOS deskto
 
 Start here:
 - `platform/README.md` — quick start
-- `platform/PROJECT-ARCHITECTURE.md` — complete architecture, database schema, plugin/adapter contracts and API routes
+- `platform/PROJECT-ARCHITECTURE.md` — architecture, database schema, plugins and API routes
+- `platform/INSTALL.md` — platform installation commands
 - `platform/USER-GUIDE.md` — user documentation
 - `platform/wrappers/README.md` — desktop builds
 
-The former Python prototype and old launcher files have been removed from the active project tree. Verified recovery archives are maintained separately from the source repository. DCP 1.x does not start or depend on the old prototype.
+DCP runs its own PHP CLI server on `127.0.0.1:18765`, stores application data in its own SQLite database, and does not alter Apache, MySQL, PostgreSQL, Node.js, Python or C# services.
 
-DCP runs its own PHP CLI server on `127.0.0.1:18765`, stores its data in its own SQLite database, and does not alter Apache, MySQL, PostgreSQL, Node.js, Python or C# services.
+## Install from Git
 
+Git is the source of truth for development installs. These commands clone the current `main` branch; subsequent updates are performed with `git pull --ff-only`. Review the scripts in the repository before running them.
+
+### Windows 10/11 (PowerShell)
+
+Install Git for Windows first, then run:
+
+```powershell
+git clone https://github.com/AmrAdeldotcom/DCP.git "$env:LOCALAPPDATA\DCP"
+Set-Location "$env:LOCALAPPDATA\DCP"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\platform\Install-DCP.ps1
+```
+
+The script provisions DCP's private PHP CLI runtime and required Windows components. The desktop wrapper must be built/published separately with the .NET SDK using `platform\scripts\build-windows.ps1`. For a ready-made desktop executable, use the Windows x64 release package and keep its `DCP.exe`, `runtime\`, and `platform\` folders together.
+
+To update a Git-based source checkout:
+
+```powershell
+Set-Location "$env:LOCALAPPDATA\DCP"
+git pull --ff-only origin main
+```
+
+### macOS
+
+```bash
+git clone https://github.com/AmrAdeldotcom/DCP.git "$HOME/DCP"
+cd "$HOME/DCP"
+chmod +x platform/scripts/*.sh
+./platform/scripts/install-runtime-macos.sh
+```
+
+To update: `git -C "$HOME/DCP" pull --ff-only origin main`.
+
+### Linux (Ubuntu/Debian)
+
+```bash
+git clone https://github.com/AmrAdeldotcom/DCP.git "$HOME/DCP"
+cd "$HOME/DCP"
+chmod +x platform/scripts/*.sh
+./platform/scripts/install-runtime-linux.sh
+```
+
+To build the Linux desktop wrapper, run `./platform/scripts/build-linux.sh` after the documented GTK3, WebKit2GTK 4.1, pkg-config and compiler prerequisites are installed.
 
 ## Desktop browser security policy
 
-DCP's desktop shell keeps its own UI embedded. External web links are opened using the operating system's default browser, never navigated inside the DCP WebView. DCP backend integrations (for example, a user-configured DeepSeek API provider) may still make their required Internet connections. The desktop shell itself uses the loopback PHP service on `127.0.0.1:18765`.
+The desktop shell keeps the DCP UI embedded. External web links open in the operating system's default browser, never inside the DCP WebView. The desktop shell communicates with its private PHP service on loopback only.
 
-See `platform/wrappers/README.md` for platform wrapper details.
+## Desktop distributions
 
-## Desktop distributions and first-run setup
+- macOS x64: `DCP-macOS-x64.zip` (DCP.app + platform payload).
+- Windows x64: `DCP-Windows-x64.zip` (self-contained .NET WebView shell + private PHP CLI runtime).
+- Linux x64: the Ubuntu 24.04 GitHub Actions workflow builds and publishes a Linux x64 artifact.
 
-- macOS x64: DCP-macOS-x64.zip (DCP.app + platform payload). Run platform/scripts/install-runtime-macos.sh once if PHP prerequisites are missing.
-- Windows x64: DCP-Windows-x64.zip (self-contained .NET WebView shell + private PHP CLI runtime). Run Install-DCP.ps1 from PowerShell before launching DCP.exe; it provisions VC++ and WebView2 prerequisites when needed.
-- Linux x64: source wrapper and build/install scripts are in platform/wrappers/linux and platform/scripts. The Ubuntu 24.04 build workflow is `.github/workflows/build-linux.yml`; it publishes a downloadable Linux x64 build artifact.
+All wrappers use the same PHP application and SQLite data model. Setup does not start, stop, or reconfigure Apache, MySQL, PostgreSQL, Node.js or Python services.
 
-All wrappers use the same PHP application and SQLite data model. The desktop PHP server binds to loopback only. Setup does not start, stop, or reconfigure Apache, MySQL, PostgreSQL, Node.js or Python services.
+## Device pairing and network architecture
 
-## Local AI manager and refreshed workspace design
+The current pairing implementation stores invitations and paired-device credentials in the local SQLite database of the DCP instance that creates the invitation. A reachable HTTPS pairing URL and a trusted network path are required; the application binds to loopback by default. The current implementation is not yet a cloud device directory or a general-purpose cross-network relay.
 
-DCP now includes a Local AI manager that detects the local OS, architecture, RAM and GPU, checks Ollama / llama.cpp availability, recommends a suitable free-to-download model, and offers one-click engine installation and model downloads. Ollama models are connected to the existing chat provider automatically; selected llama.cpp GGUF models are started as a loopback OpenAI-compatible server and registered as a DCP provider.
+The planned multi-device service separates the **control plane** from **device-to-device data transport**:
 
-The alpha.3 UI refinement fixes the Bootstrap modal-backdrop collision, gives native select controls a consistent custom treatment, restructures the chat composer, and makes translation variables searchable and readable.
+1. A cloud control plane stores user accounts, device public identities, invitation state, accepted trust relationships, capabilities, revocation state and last-seen metadata.
+2. Devices authenticate using unique per-device credentials (preferably public-key based), rotate short-lived access tokens and send outbound HTTPS/WebSocket heartbeats. No inbound router port-forwarding is required for basic online presence.
+3. The control plane authorizes task delivery. Each device independently validates the sender, scope, expiry and approval policy before executing a task.
+4. Direct WebRTC or WireGuard connectivity can be added for large transfers and low-latency sessions. An authenticated relay is the fallback when NAT/firewalls prevent a direct path.
+5. Each device keeps its own SQLite application data. The cloud stores coordination metadata, not users' local databases or private keys.
 
-Linux WebKitGTK source/build scripts and an Ubuntu 24.04 GitHub Actions workflow are included. The Kali Linux VM can also build the application directly after GTK3, WebKit2GTK 4.1, and PHP 8.2+ dependencies are installed.
+**Security rules:** invitation acceptance only establishes a trust relationship; it does not grant unrestricted remote shell access. Use least-privilege capabilities, explicit approval for sensitive actions, encrypted transport, hashed/revocable device credentials, replay protection, audit events and per-device revocation.
+
+The cloud control plane is a planned component. Do not treat the current local SQLite pairing implementation as cloud-ready until the hosted API, database migrations, WebSocket gateway and relay are implemented and tested.
+
+## Local AI manager
+
+DCP detects the current device's OS, architecture, memory and graphics adapter, checks Ollama / llama.cpp availability, recommends a model and offers explicit engine installation and model downloads. Model licences apply; check free disk space before downloading large models.
