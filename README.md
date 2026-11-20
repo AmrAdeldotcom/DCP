@@ -33,4 +33,4 @@ DCP now includes a Local AI manager that detects the local OS, architecture, RAM
 
 The alpha.3 UI refinement fixes the Bootstrap modal-backdrop collision, gives native select controls a consistent custom treatment, restructures the chat composer, and makes translation variables searchable and readable.
 
-Linux WebKitGTK source/build scripts and an Ubuntu 24.04 GitHub Actions workflow are included. The Kali Linux VM can also build the application directly after GTK3, WebKit2GTK 4.1, libsoup 3, and PHP 8.2+ dependencies are installed.
+Linux WebKitGTK source/build scripts and an Ubuntu 24.04 GitHub Actions workflow are included. The Kali Linux VM can also build the application directly after GTK3, WebKit2GTK 4.1, and PHP 8.2+ dependencies are installed.

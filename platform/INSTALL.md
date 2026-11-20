@@ -24,7 +24,7 @@ Install/build prerequisites and PHP CLI extensions with:
     platform/scripts/install-runtime-linux.sh
     platform/scripts/build-linux.sh
 
-The runtime installer uses only PHP CLI packages; it does not install Apache or start database services. The WebView build needs GTK3, WebKit2GTK 4.1, libsoup 3, pkg-config and a C compiler. The GitHub Actions workflow builds and publishes the Linux x64 artifact on Ubuntu 24.04. PHP 8.2+ with curl, intl, mbstring, PDO_SQLite, sodium and fileinfo is required at runtime.
+The runtime installer uses only PHP CLI packages; it does not install Apache or start database services. The WebView build needs GTK3, WebKit2GTK 4.1, pkg-config and a C compiler. The GitHub Actions workflow builds and publishes the Linux x64 artifact on Ubuntu 24.04. PHP 8.2+ with curl, intl, mbstring, PDO_SQLite, sodium and fileinfo is required at runtime.
 
 ## Isolation and safety
 

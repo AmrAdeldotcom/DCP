@@ -1,6 +1,5 @@
 #include <gtk/gtk.h>
 #include <webkit2/webkit2.h>
-#include <libsoup/soup.h>
 #include <glib/gstdio.h>
 #include <signal.h>
 #include <unistd.h>
@@ -12,11 +11,15 @@
 #define PORT "18765"
 static GPid php_pid=0;
 static gboolean ready(gpointer data){
- WebKitWebView *view=WEBKIT_WEB_VIEW(data);gchar *url=g_strdup("http://127.0.0.1:" PORT "/api/status");
- SoupSession *session=soup_session_new();SoupMessage *msg=soup_message_new("GET",url);GError *err=NULL;
- guint status=soup_session_send_message(session,msg);
- if(status==200){webkit_web_view_load_uri(view,"http://127.0.0.1:" PORT "/");g_object_unref(msg);g_object_unref(session);g_free(url);return G_SOURCE_REMOVE;}
- g_object_unref(msg);g_object_unref(session);g_free(url);return G_SOURCE_CONTINUE;
+ WebKitWebView *view=WEBKIT_WEB_VIEW(data);GError *error=NULL;
+ GSocketClient *client=g_socket_client_new();
+ GSocketConnection *connection=g_socket_client_connect_to_host(client,"127.0.0.1",18765,NULL,&error);
+ if(connection){
+  g_object_unref(connection);g_object_unref(client);
+  webkit_web_view_load_uri(view,"http://127.0.0.1:" PORT "/");
+  return G_SOURCE_REMOVE;
+ }
+ g_clear_error(&error);g_object_unref(client);return G_SOURCE_CONTINUE;
 }
 static gboolean is_internal_uri(const gchar *uri){GUri *u=g_uri_parse(uri,G_URI_FLAGS_NONE,NULL);if(!u)return FALSE;const gchar *scheme=g_uri_get_scheme(u),*host=g_uri_get_host(u);gboolean ok=scheme&&host&&(!g_ascii_strcasecmp(scheme,"http")||!g_ascii_strcasecmp(scheme,"https"))&&(!g_ascii_strcasecmp(host,"127.0.0.1")||!g_ascii_strcasecmp(host,"localhost"));g_uri_unref(u);return ok;}
 static gboolean navigation_policy(WebKitWebView *view,WebKitPolicyDecision *decision,WebKitPolicyDecisionType type,gpointer data){if(type!=WEBKIT_POLICY_DECISION_TYPE_NAVIGATION_ACTION&&type!=WEBKIT_POLICY_DECISION_TYPE_NEW_WINDOW_ACTION)return FALSE;WebKitNavigationPolicyDecision *nav=WEBKIT_NAVIGATION_POLICY_DECISION(decision);WebKitURIRequest *req=webkit_navigation_policy_decision_get_request(nav);const gchar *uri=webkit_uri_request_get_uri(req);if(is_internal_uri(uri)){webkit_policy_decision_use(decision);return TRUE;}webkit_policy_decision_ignore(decision);if(uri&&*uri)g_app_info_launch_default_for_uri(uri,NULL,NULL);return TRUE;}
