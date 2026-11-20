@@ -31,3 +31,9 @@ platform/storage/reports/*
 platform/storage/php-server.pid
 DCP.app/
 DCP-*.zip
+
+# Local AI installers and runtime scripts
+platform/storage/local-ai-install.*
+platform/storage/launch-local-ai-install.ps1
+platform/storage/start-llama-server.ps1
+platform/storage/local-ai-pull.ps1

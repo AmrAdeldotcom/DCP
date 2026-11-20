@@ -33,6 +33,7 @@ require dirname(__DIR__).'/app/Services/DeviceService.php';
 require dirname(__DIR__).'/app/Services/ReportService.php';
 require dirname(__DIR__).'/app/Services/ChatService.php';
 require dirname(__DIR__).'/app/Services/LocalAIService.php';
+require dirname(__DIR__).'/app/Services/GitUpdateService.php';
 require dirname(__DIR__).'/app/Controllers/ApiController.php';
 require dirname(__DIR__).'/app/Controllers/PageController.php';
 $db=Database::connect($config);

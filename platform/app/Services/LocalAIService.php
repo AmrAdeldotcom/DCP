@@ -35,27 +35,43 @@ final class LocalAIService {
  public function start(string $engine):array{if($engine==='ollama'){if($this->binary('ollama')==='')throw new RuntimeException('Ollama is not installed.');$os=PHP_OS_FAMILY;if($os==='Darwin')exec('nohup ollama serve >/dev/null 2>&1 < /dev/null &');elseif($os==='Windows')pclose(popen('start /B ollama serve','r'));else exec('nohup ollama serve >/dev/null 2>&1 < /dev/null &');return ['ok'=>true,'message'=>'Ollama start requested.'];}throw new InvalidArgumentException('Unsupported engine start action.');}
  public function install(string $engine):array{
   if(!in_array($engine,['ollama','llama.cpp'],true))throw new InvalidArgumentException('Unsupported local AI engine.');
-  if(!is_dir($this->storage.'/logs'))mkdir($this->storage.'/logs',0700,true);
-  $log=$this->storage.'/logs/local-ai-install.log';$os=PHP_OS_FAMILY;
-  if($engine==='ollama'){
-   if($this->binary('ollama')!=='')return ['ok'=>true,'message'=>'Ollama is already installed.'];
-   if($os==='Darwin')$cmd='brew install --cask ollama && open -a Ollama';
-   elseif($os==='Linux')$cmd='curl -fsSL https://ollama.com/install.sh | sh';
-   elseif($os==='Windows')$cmd='powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://ollama.com/install.ps1 | iex"';
-   else throw new RuntimeException('Unsupported operating system.');
-  }else{
-   if($this->llamaBinary()!=='')return ['ok'=>true,'message'=>'llama.cpp is already installed.'];
-   if($os==='Darwin')$cmd='brew install llama.cpp';
-   elseif($os==='Linux')$cmd='if command -v x-terminal-emulator >/dev/null 2>&1; then x-terminal-emulator -e bash '.escapeshellarg($this->root.'/scripts/install-llama-cpp-linux.sh').'; elif command -v gnome-terminal >/dev/null 2>&1; then gnome-terminal -- bash '.escapeshellarg($this->root.'/scripts/install-llama-cpp-linux.sh').'; elif command -v konsole >/dev/null 2>&1; then konsole -e bash '.escapeshellarg($this->root.'/scripts/install-llama-cpp-linux.sh').'; else echo "No terminal emulator found. Open a terminal and run: '.escapeshellarg($this->root.'/scripts/install-llama-cpp-linux.sh').'"; fi';
-   elseif($os==='Windows')$cmd='winget install llama.cpp --accept-package-agreements --accept-source-agreements';
-   else throw new RuntimeException('Unsupported operating system.');
-  }
-  $script=$this->storage.'/local-ai-install.'.($os==='Windows'?'ps1':'sh');
-  if($os==='Windows')file_put_contents($script,chr(36).'ErrorActionPreference = "Stop"'."\n".$cmd."\n");
-  if($os==='Windows')$launch='powershell -NoProfile -ExecutionPolicy Bypass -File '.escapeshellarg($script).' >> '.escapeshellarg($log).' 2>&1';
-  else{$launch='nohup /bin/bash '.escapeshellarg($script).' >> '.escapeshellarg($log).' 2>&1 < /dev/null &';}
-  if($os==='Windows')pclose(popen('start /B '.$launch,'r'));else exec($launch);
-  return ['ok'=>true,'message'=>'Installation started. Keep DCP open and refresh engine status.'];
+  $logs=$this->storage.'/logs';if(!is_dir($logs)&&!mkdir($logs,0700,true)&&!is_dir($logs))throw new RuntimeException('Cannot create local AI log directory.');
+  $log=$logs.'/local-ai-install.log';$os=PHP_OS_FAMILY;
+  if($engine==='llama.cpp' && $this->llamaBinary()!=='')return ['ok'=>true,'installed'=>true,'message'=>'llama.cpp is already installed: '.$this->llamaBinary()];
+  if($engine==='ollama' && $this->binary('ollama')!=='')return ['ok'=>true,'installed'=>true,'message'=>'Ollama is already installed.'];
+  if($os==='Darwin'){
+   $brew=$this->binary('brew')?:'/usr/local/bin/brew';
+   if(!is_executable($brew))throw new RuntimeException('Homebrew is required. Install it from https://brew.sh, then retry.');
+   $script=$this->storage.'/local-ai-install.sh';
+   $body="#!/bin/bash\nset -Eeuo pipefail\nexport PATH=/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin\nexec >> ".escapeshellarg($log)." 2>&1\necho \"[$(date)] Installing ".($engine==='llama.cpp'?'llama.cpp':'Ollama')."\"\n";
+   if($engine==='llama.cpp')$body.='"'.addslashes($brew).'" install llama.cpp'."\n".'BIN="$("'.addslashes($brew).'" --prefix llama.cpp)/bin/llama-server"'."\n".'test -x "$BIN"'."\n".'echo "Installed llama-server: $BIN"'."\n";
+   else $body.='"'.addslashes($brew).'" install --cask ollama'."\n".'open -a Ollama'."\n";
+   $body.="echo \"[$(date)] Installation completed successfully\"\n";
+   file_put_contents($script,$body);chmod($script,0700);
+   $launch='nohup /bin/bash '.escapeshellarg($script).' >/dev/null 2>&1 < /dev/null & echo $!';
+   $pid=$this->run($launch);if($pid==='')throw new RuntimeException('Could not start the installer. Check write permissions for DCP storage.');
+  }elseif($os==='Linux'){
+   $script=$this->root.'/platform/scripts/install-llama-cpp-linux.sh';
+   if($engine==='ollama')$body='#!/usr/bin/env bash'."\nset -Eeuo pipefail\nexport PATH=/usr/local/bin:/usr/bin:/bin:$HOME/.local/bin\ncurl -fsSL https://ollama.com/install.sh | sh\n";
+   else $body=is_file($script)?file_get_contents($script):'';
+   if(!$body)throw new RuntimeException('Linux llama.cpp installer script is missing.');
+   $target=$this->storage.'/local-ai-install.sh';file_put_contents($target,$body);chmod($target,0700);
+   $sudo=$this->binary('sudo');$pkexec=$this->binary('pkexec');
+   if($this->run('id -u')==='0')$launch='nohup /bin/bash '.escapeshellarg($target).' >> '.escapeshellarg($log).' 2>&1 < /dev/null & echo $!';
+   elseif($pkexec!=='')$launch='nohup pkexec /bin/bash '.escapeshellarg($target).' >> '.escapeshellarg($log).' 2>&1 < /dev/null & echo $!';
+   else throw new RuntimeException('Linux installation needs administrator approval. Install from a terminal using: '.$target);
+   $this->run($launch);
+  }elseif($os==='Windows'){
+   $script=$this->storage.'/local-ai-install.ps1';
+   $body='$ErrorActionPreference = "Stop"'."\n";
+   if($engine==='llama.cpp')$body.="winget install --id ggml.llamacpp --exact --accept-package-agreements --accept-source-agreements\n";
+   else $body.='irm https://ollama.com/install.ps1 | iex'."\n";
+   file_put_contents($script,$body);
+   $cmd='Start-Process -FilePath powershell.exe -ArgumentList '.(chr(39).'-NoProfile -ExecutionPolicy Bypass -File '.str_replace(chr(39),"''",$script).chr(39)).' -WindowStyle Hidden -Wait';
+   $launcher=$this->storage.'/launch-local-ai-install.ps1';file_put_contents($launcher,$cmd."\n");
+   pclose(popen('start /B powershell -NoProfile -ExecutionPolicy Bypass -File '.escapeshellarg($launcher),'r'));
+  }else throw new RuntimeException('Unsupported operating system: '.$os);
+  return ['ok'=>true,'started'=>true,'message'=>'Installer launched. Progress and any errors will appear in Engine activity.'];
  }
 
  public function startLlama(string $model):array{
