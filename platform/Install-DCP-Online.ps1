@@ -6,7 +6,7 @@ $InstallRoot = Join-Path $env:LOCALAPPDATA 'DCP'
 $WorkRoot = Join-Path $env:TEMP ('DCP-Install-' + [guid]::NewGuid().ToString('N'))
 $Archive = Join-Path $WorkRoot 'dcp-source.zip'
 $ExtractRoot = Join-Path $WorkRoot 'source'
-$ArchiveUrl = 'https://github.com/AmrAdeldotcom/DCP/archive/refs/heads/main.zip'
+$ArchiveUrl = 'https://github.com/AmrAdeldotcom/DCP/archive/refs/heads/feature/dcp-cloud-signaling.zip'
 
 try {
     Write-Host 'DCP setup: downloading the official Windows package...' -ForegroundColor Cyan
@@ -14,7 +14,7 @@ try {
     Invoke-WebRequest -Uri $ArchiveUrl -OutFile $Archive
     Expand-Archive -LiteralPath $Archive -DestinationPath $ExtractRoot -Force
 
-    $Package = Join-Path $ExtractRoot 'DCP-main\platform\dist\windows'
+    $Package = Join-Path $ExtractRoot 'DCP-feature-dcp-cloud-signaling\platform\dist\windows'
     if (-not (Test-Path (Join-Path $Package 'DCP.exe'))) {
         throw 'The downloaded repository does not contain the ready-to-run Windows package (platform/dist/windows/DCP.exe).'
     }
