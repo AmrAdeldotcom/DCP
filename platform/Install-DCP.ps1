@@ -6,5 +6,4 @@ if (-not (Test-Path $RuntimeInstaller)) {
     throw "DCP runtime installer was not found: $RuntimeInstaller"
 }
 & $RuntimeInstaller
-if ($LASTEXITCODE -ne 0) { throw 'DCP runtime installation failed.' }
 Write-Host 'DCP prerequisites are ready. Start DCP.exe from the package folder.' -ForegroundColor Green

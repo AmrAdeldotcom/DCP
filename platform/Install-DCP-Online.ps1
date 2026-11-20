@@ -19,8 +19,17 @@ try {
     if (-not (Test-Path $AppInPackage)) {
         throw 'The downloaded release is invalid: windows/DCP.exe is missing.'
     }
-    if (-not (Test-Path (Join-Path $Package 'platform\scripts\install-runtime-windows.ps1'))) {
-        throw 'The downloaded release is incomplete: the private PHP runtime installer is missing.'
+    $RuntimeInstaller = Join-Path $Package 'platform\scripts\install-runtime-windows.ps1'
+    $RuntimeVerifier = Join-Path $Package 'platform\scripts\verify-runtime.php'
+    $PrerequisiteLauncher = Join-Path $Package 'Install-DCP.ps1'
+    if (-not (Test-Path $RuntimeInstaller)) {
+        throw 'The downloaded release is incomplete: platform/scripts/install-runtime-windows.ps1 is missing.'
+    }
+    if (-not (Test-Path $RuntimeVerifier)) {
+        throw 'The downloaded release is incomplete: platform/scripts/verify-runtime.php is missing.'
+    }
+    if (-not (Test-Path $PrerequisiteLauncher)) {
+        throw 'The downloaded release is incomplete: Install-DCP.ps1 is missing.'
     }
 
     Write-Host "Installing DCP into $InstallRoot ..." -ForegroundColor Cyan
@@ -45,6 +54,7 @@ try {
     if (Test-Path $StalePid) { Remove-Item -LiteralPath $StalePid -Force }
 
     $Prerequisites = Join-Path $InstallRoot 'Install-DCP.ps1'
+    Write-Host 'Installing and verifying PHP, Visual C++ Runtime, and WebView2...' -ForegroundColor Cyan
     & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $Prerequisites
     if ($LASTEXITCODE -ne 0) { throw 'DCP prerequisite setup failed.' }
 
