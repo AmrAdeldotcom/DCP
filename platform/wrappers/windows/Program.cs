@@ -387,7 +387,12 @@ internal sealed class MainWindow : Form
     {
         try
         {
-            using var client = new HttpClient { Timeout = TimeSpan.FromMilliseconds(800) };
+            using var handler = new SocketsHttpHandler
+            {
+                UseProxy = false,
+                ConnectTimeout = TimeSpan.FromMilliseconds(500)
+            };
+            using var client = new HttpClient(handler) { Timeout = TimeSpan.FromMilliseconds(900) };
             using var response = await client.GetAsync($"http://127.0.0.1:{Port}/api/bootstrap");
             return response.IsSuccessStatusCode;
         }
