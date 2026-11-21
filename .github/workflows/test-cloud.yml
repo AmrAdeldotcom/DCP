@@ -1,0 +1,33 @@
+name: Test DCP Cloud PHP
+
+on:
+  pull_request:
+    paths:
+      - 'cloud-platform-upload/**'
+      - '.github/workflows/test-cloud.yml'
+      - 'README.md'
+  push:
+    branches: ['**']
+    paths:
+      - 'cloud-platform-upload/**'
+      - '.github/workflows/**'
+      - 'README.md'
+
+permissions:
+  contents: read
+
+jobs:
+  php-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+      - name: Validate Cloud PHP source
+        run: |
+          php -l cloud-platform-upload/index.php
+          php -l cloud-platform-upload/site.php
+          grep -q '^DB_HOST=localhost$' cloud-platform-upload/.env.example
+          test ! -e cloud-platform-upload/.env

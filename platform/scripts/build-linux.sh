@@ -14,9 +14,12 @@ mkdir -p "$OUT/platform/data" "$OUT/platform/storage"
 touch "$OUT/platform/data/.keep" "$OUT/platform/storage/.keep"
 cc "$ROOT/wrappers/linux/dcp-webview.c" -o "$OUT/DCP" $(pkg-config --cflags --libs gtk+-3.0 webkit2gtk-4.1)
 chmod +x "$OUT/DCP"
-for item in app bootstrap config data locales plugins public storage docs integrations scripts; do
+for item in app bootstrap config locales plugins public docs integrations scripts; do
  [ ! -e "$ROOT/$item" ] || cp -R "$ROOT/$item" "$OUT/platform/"
 done
+# Never ship the developer machine SQLite database, encryption keys or local logs.
+mkdir -p "$OUT/platform/data" "$OUT/platform/storage"
+touch "$OUT/platform/data/.keep" "$OUT/platform/storage/.keep"
 cp "$ROOT/README.md" "$OUT/platform/README-DCP.md"
 cp "$ROOT/INSTALL.md" "$OUT/platform/INSTALL.md"
 cp "$ROOT/public/assets/dcp-logo.png" "$OUT/DCP.png"

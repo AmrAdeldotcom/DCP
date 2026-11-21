@@ -29,7 +29,8 @@ final class LocalAIService {
    $cpu=$this->run('lscpu | grep -m1 "Model name" | cut -d: -f2')?:php_uname('m');
   }elseif($os==='Windows'){
    $ps='[Console]::OutputEncoding=[System.Text.Encoding]::UTF8; $c=Get-CimInstance Win32_ComputerSystem; $p=Get-CimInstance Win32_Processor | Select-Object -First 1; $g=Get-CimInstance Win32_VideoController | Select-Object -First 3 Name,AdapterRAM; [pscustomobject]@{RamBytes=[int64]$c.TotalPhysicalMemory;Cpu=[string]$p.Name;Gpu=(@($g | ForEach-Object { if ($_.Name) { if ($_.AdapterRAM) { $_.Name + " (" + [math]::Round($_.AdapterRAM/1GB,1) + " GB)" } else { $_.Name } } }) -join "; ")} | ConvertTo-Json -Compress';
-   $raw=$this->run('powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command '.escapeshellarg($ps));
+   $encoded=base64_encode(mb_convert_encoding($ps,'UTF-16LE','UTF-8'));
+   $raw=$this->run('powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -EncodedCommand '.escapeshellarg($encoded));
    $info=json_decode($raw,true);if(is_array($info)){$ram=(int)($info['RamBytes']??0);$cpu=(string)($info['Cpu']??'Unknown CPU');$gpu=(string)($info['Gpu']??'GPU not detected');}
   }
   $gb=$ram>0?round($ram/1073741824,1):0;$vram=0;if(preg_match('/([0-9]+(?:\.[0-9]+)?)\s*GB/i',$gpu,$vm))$vram=(float)$vm[1];$accelerated=$vram>=8||in_array(strtolower($arch),['arm64','aarch64'],true);$recommended=$gb>=24&&$accelerated?'qwen3:8b':($gb>=12?'qwen3:4b':($gb>=8?'qwen3:1.7b':'qwen3:0.6b'));
@@ -75,7 +76,7 @@ final class LocalAIService {
   }elseif($os==='Windows'){
    $script=$this->storage.'/local-ai-install.ps1';
    $body='$ErrorActionPreference = "Stop"'."\n";
-   if($engine==='llama.cpp')$body.="winget install --id llama.cpp --exact --silent --accept-package-agreements --accept-source-agreements\nif (\$LASTEXITCODE -ne 0) { throw 'winget could not install llama.cpp. Update App Installer or install winget, then retry.' }\nif (-not (Get-Command llama-server.exe -ErrorAction SilentlyContinue) -and -not (Test-Path (Join-Path $env:LOCALAPPDATA 'Microsoft\WinGet\Links\llama-server.exe'))) { throw 'llama.cpp installation completed but llama-server.exe was not found. Check Engine activity and retry after updating PATH.' }\n";
+   if($engine==='llama.cpp')$body.="winget install --exact --id ggml.llamacpp --silent --accept-package-agreements --accept-source-agreements\nif (\$LASTEXITCODE -ne 0) { throw 'WinGet could not install ggml.llamacpp. Update App Installer or install WinGet, then retry.' }\nif (-not (Get-Command llama-server.exe -ErrorAction SilentlyContinue) -and -not (Test-Path (Join-Path $env:LOCALAPPDATA 'Microsoft\WinGet\Links\llama-server.exe'))) { throw 'llama.cpp installation completed but llama-server.exe was not found. Check Engine activity and retry after updating PATH.' }\n";
    else $body.='irm https://ollama.com/install.ps1 | iex'."\n";
    file_put_contents($script,$body);
    $launcher=$this->storage.'/launch-local-ai-install.ps1';

@@ -17,7 +17,7 @@ The current build is `DCP.app`. It starts PHP if the health endpoint is not alre
 Build: `clang -fobjc-arc -framework Cocoa -framework WebKit platform/wrappers/macos/main.m -o DCP.app/Contents/MacOS/DCP`.
 
 ## Windows
-Build `windows/DCP.WebView.csproj` on Windows with .NET 10 SDK and Microsoft Edge WebView2 Runtime. Place a private PHP distribution at `runtime/php/php.exe` and copy `platform/` beside the wrapper executable. Publish with `dotnet publish -c Release -r win-x64 --self-contained true`.
+Build `windows/DCP.WebView.csproj` with the .NET 10 SDK and `EnableWindowsTargeting` (the source can be cross-compiled from macOS). The release script bundles a private PHP distribution and the platform payload. On startup, the installed Windows shell checks the latest GitHub Release, stages a newer package, then applies it after the running process exits. `platform/data` and `platform/storage` are preserved during updates. Native runtime acceptance still requires a Windows device.
 
 ## Linux
 Requires GTK3, WebKit2GTK 4.1, libsoup 3, and PHP CLI with PDO_SQLite, cURL, OpenSSL, Sodium, mbstring and intl. Build: `cc dcp-webview.c -o dcp-webview $(pkg-config --cflags --libs gtk+-3.0 webkit2gtk-4.1 libsoup-3.0)`. Set `DCP_ROOT` to the directory containing `platform/`.

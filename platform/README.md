@@ -1,5 +1,5 @@
 # DCP — Desktop Connector Platform
-Version 1.0.0-alpha.2
+Version 1.0.0-alpha.6
 
 DCP is a local-first PHP platform with SQLite, encrypted credentials, JSON locales, provider/agent plugins and thin desktop WebView wrappers.
 
@@ -29,4 +29,4 @@ DCP uses a separate PHP CLI process and SQLite database. It does not change Apac
 - `wrappers/README.md` — macOS, Windows and Linux WebView wrapper builds.
 
 ## Current alpha limits
-Cross-device transport and remote task execution are not implemented. DCP can create and approve tasks but will not claim an agent executed them. See the architecture document for the complete list of verified features and remaining work.
+Cloud account sign-in, device registration and presence are implemented. Cross-device WebRTC data transport and remote task execution are not implemented. DCP can create and approve tasks but will not claim an agent executed them. See the architecture document for the complete list of verified features and remaining work.
