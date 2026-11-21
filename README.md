@@ -29,7 +29,7 @@ This downloads the newest published `DCP-Windows-x64.zip`, installs it under `%L
 curl -fsSL https://raw.githubusercontent.com/AmrAdeldotcom/DCP/main/platform/Install-DCP-Online.sh | bash
 ```
 
-This downloads `DCP-macOS-universal.zip`, installs `DCP.app` and its `platform/` folder under `~/Applications/DCP`, preserves local data and encryption keys on upgrades, checks PHP CLI requirements (installing PHP with Homebrew only if needed), and opens DCP. It supports Apple Silicon and Intel Macs.
+This downloads `DCP-macOS-universal.zip`, installs `DCP.app` and its `platform/` folder under `~/Applications/DCP`, preserves local data and encryption keys on upgrades, checks PHP CLI requirements (installing PHP with Homebrew only if needed), and opens DCP. It supports Intel Macs from macOS Catalina 10.15 and Apple Silicon from macOS Big Sur 11.0.
 
 ### Install from Download
 
