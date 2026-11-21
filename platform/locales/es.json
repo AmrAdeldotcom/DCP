@@ -106,5 +106,8 @@
   "about_version": "DCP v1.0.0-alpha.1 · PHP · SQLite · Arquitectura de plugins",
   "attach_file": "＋ Adjuntar archivo",
   "notifications": "Notificaciones",
-  "mark_all_read": "Marcar todo como leído"
+  "mark_all_read": "Marcar todo como leído",
+  "agent_adapter_hint": "Los agentes también son complementos. Conectado significa que existe una sesión de adaptador verificada.",
+  "smtp_outgoing": "SMTP — invitaciones e informes salientes",
+  "imap_incoming": "IMAP — leer respuestas a invitaciones y la bandeja de entrada"
 }

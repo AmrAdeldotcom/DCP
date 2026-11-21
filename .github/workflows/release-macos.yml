@@ -30,6 +30,10 @@ jobs:
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${GITHUB_RUN_NUMBER}" DCP.app/Contents/Info.plist
           codesign --force --deep --sign - DCP.app
           codesign --verify --deep --strict DCP.app
+          test -s DCP.app/Contents/Resources/AppIcon.icns
+          /usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' DCP.app/Contents/Info.plist
+          file DCP.app/Contents/MacOS/DCP
+          lipo -info DCP.app/Contents/MacOS/DCP
 
       - name: Assemble clean portable package
         run: |

@@ -6,6 +6,8 @@
     <string>DCP — Desktop Connector Platform</string>
     <key>CFBundleExecutable</key>
     <string>DCP</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
     <key>CFBundleIdentifier</key>
     <string>com.amradel.dcp.desktop</string>
     <key>CFBundleName</key>

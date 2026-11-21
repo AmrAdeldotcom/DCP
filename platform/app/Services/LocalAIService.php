@@ -26,11 +26,13 @@ final class LocalAIService {
  private function llamaBinary():string{$names=PHP_OS_FAMILY==='Windows'?['llama-server.exe','llama-server']:['llama-server'];$bin='';foreach($names as $name){$bin=$this->binary($name);if($bin!=='')break;}if($bin===''){ $local=(PHP_OS_FAMILY==='Windows'?(getenv('LOCALAPPDATA')?:'').'\\Microsoft\\WinGet\\Links\\llama-server.exe':(getenv('HOME')?:'').'/.local/bin/llama-server');if(is_executable($local))$bin=$local;}return $bin;}
  private function ollama():array{$ch=curl_init('http://127.0.0.1:11434/api/tags');curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_CONNECTTIMEOUT=>1,CURLOPT_TIMEOUT=>3]);$raw=curl_exec($ch);$code=(int)curl_getinfo($ch,CURLINFO_RESPONSE_CODE);curl_close($ch);$data=$raw!==false&&$code===200?json_decode($raw,true):[];return ['online'=>is_array($data),'models'=>array_map(fn($m)=>['id'=>$m['name'],'size'=>$m['size']??0],$data['models']??[])];}
  private function hardware():array{
+  $cacheFile=$this->storage.'/cache/hardware.json';
+  if(is_file($cacheFile)&&filemtime($cacheFile)>=time()-300){$cached=json_decode((string)file_get_contents($cacheFile),true);if(is_array($cached)&&($cached['version']??0)===2&&is_array($cached['data']??null))return $cached['data'];}
   $os=PHP_OS_FAMILY;$arch=php_uname('m');$ram=0;$gpu='Not detected';$cpu=php_uname('v');
   if($os==='Darwin'){
    $ram=(int)$this->run('/usr/sbin/sysctl -n hw.memsize');
    $gpu=$this->run('/usr/sbin/system_profiler SPDisplaysDataType | /usr/bin/grep -E "Chipset Model|VRAM \(Total\)" | /usr/bin/head -4')?:'Integrated / CPU inference';
-   $cpu=php_uname('m').' · '.php_uname('s');
+   $cpu=$this->run('/usr/sbin/sysctl -n machdep.cpu.brand_string',3)?:$this->run('/usr/sbin/sysctl -n hw.model',3)?:php_uname('m').' · '.php_uname('s');
   }elseif($os==='Linux'){
    $m=@file_get_contents('/proc/meminfo');if($m&&preg_match('/^MemTotal:\s+(\d+)/m',$m,$x))$ram=(int)$x[1]*1024;
    $gpu=$this->run('nvidia-smi --query-gpu=name,memory.total --format=csv,noheader')?:($this->run('lspci | grep -Ei "VGA|3D controller|Display controller" | head -3')?:'CPU inference / GPU not detected');
@@ -42,7 +44,9 @@ final class LocalAIService {
    $info=json_decode($raw,true);if(is_array($info)){$ram=(int)($info['RamBytes']??0);$cpu=(string)($info['Cpu']??'Unknown CPU');$gpu=(string)($info['Gpu']??'GPU not detected');}
   }
   $gb=$ram>0?round($ram/1073741824,1):0;$vram=0;if(preg_match('/([0-9]+(?:\.[0-9]+)?)\s*GB/i',$gpu,$vm))$vram=(float)$vm[1];$accelerated=$vram>=8||in_array(strtolower($arch),['arm64','aarch64'],true);$recommended=$gb>=24&&$accelerated?'qwen3:8b':($gb>=12?'qwen3:4b':($gb>=8?'qwen3:1.7b':'qwen3:0.6b'));
-  return ['os'=>$os,'architecture'=>$arch,'cpu'=>$cpu,'ram_bytes'=>$ram,'ram_gb'=>$gb,'gpu'=>$gpu,'recommended'=>$recommended,'models'=>array_values(array_filter($this->catalog,fn($m)=>$gb>0&&$m['ram']<=$gb-2))];
+  $result=['os'=>$os,'architecture'=>$arch,'cpu'=>$cpu,'ram_bytes'=>$ram,'ram_gb'=>$gb,'gpu'=>$gpu,'recommended'=>$recommended,'models'=>array_values(array_filter($this->catalog,fn($m)=>$gb>0&&$m['ram']<=$gb-2))];
+  $cacheDir=dirname($cacheFile);if(!is_dir($cacheDir))@mkdir($cacheDir,0700,true);@file_put_contents($cacheFile,json_encode(['version'=>2,'data'=>$result],JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),LOCK_EX);
+  return $result;
  }
 
  public function status():array{

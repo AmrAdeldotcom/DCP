@@ -106,5 +106,8 @@
   "about_version": "DCP v1.0.0-alpha.1 · PHP · SQLite · Pluginarchitectuur",
   "attach_file": "＋ Bestand toevoegen",
   "notifications": "Meldingen",
-  "mark_all_read": "Alles als gelezen markeren"
+  "mark_all_read": "Alles als gelezen markeren",
+  "agent_adapter_hint": "Agents zijn ook plug-ins. Verbonden betekent dat er een geverifieerde adaptersessie bestaat.",
+  "smtp_outgoing": "SMTP — uitgaande uitnodigingen en rapporten",
+  "imap_incoming": "IMAP — uitnodigingsreacties en inbox lezen"
 }

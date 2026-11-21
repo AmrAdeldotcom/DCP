@@ -106,5 +106,8 @@
   "about_version": "DCP v1.0.0-alpha.1 · PHP · SQLite · プラグインアーキテクチャ",
   "attach_file": "＋ ファイルを添付",
   "notifications": "通知",
-  "mark_all_read": "すべて既読にする"
+  "mark_all_read": "すべて既読にする",
+  "agent_adapter_hint": "エージェントもプラグインです。「接続済み」は、検証済みのアダプターセッションが存在することを意味します。",
+  "smtp_outgoing": "SMTP — 招待とレポートの送信",
+  "imap_incoming": "IMAP — 招待への返信と受信トレイの読み取り"
 }

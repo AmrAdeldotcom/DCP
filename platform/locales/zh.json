@@ -106,5 +106,8 @@
   "about_version": "DCP v1.0.0-alpha.1 · PHP · SQLite · 插件架构",
   "attach_file": "＋ 附加文件",
   "notifications": "通知",
-  "mark_all_read": "全部标记为已读"
+  "mark_all_read": "全部标记为已读",
+  "agent_adapter_hint": "智能体也是插件。已连接表示存在经过验证的适配器会话。",
+  "smtp_outgoing": "SMTP — 发送邀请和报告",
+  "imap_incoming": "IMAP — 读取邀请回复和收件箱"
 }
