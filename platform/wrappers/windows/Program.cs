@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using System.Net;
+using System.Net.Sockets;
 using System.IO.Compression;
 using System.Reflection;
 using System.Security.Cryptography;
@@ -21,7 +23,7 @@ internal static class Program
 
 internal sealed class MainWindow : Form
 {
-    private const int Port = 18765;
+    private int Port { get; set; }
     private const string Repository = "AmrAdeldotcom/DCP";
     private readonly WebView2 view = new() { Dock = DockStyle.Fill };
     private readonly string root = AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar);
@@ -45,7 +47,8 @@ internal sealed class MainWindow : Form
     private async void StartDcp(object? sender, EventArgs e)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(LogPath)!);
-        AppendLog("DCP startup: checking local PHP service and loading UI. Remote update check is deferred to background.");
+        Port = FindAvailablePort();
+        AppendLog($"DCP startup: launching an isolated local PHP service on 127.0.0.1:{Port}. Remote update check is deferred to background.");
 
         var platform = Path.Combine(root, "platform");
         var publicDir = Path.Combine(platform, "public");
@@ -58,49 +61,46 @@ internal sealed class MainWindow : Form
             return;
         }
 
-        if (!await IsServerReadyAsync())
+        if (!File.Exists(phpPath))
         {
-            if (!File.Exists(phpPath))
+            ShowStartupError("DCP's private PHP runtime is missing. Run the official DCP installer again; DCP will not silently use a different system PHP installation.");
+            return;
+        }
+
+        var start = new ProcessStartInfo
+        {
+            FileName = phpPath,
+            WorkingDirectory = platform,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true
+        };
+        start.ArgumentList.Add("-S");
+        start.ArgumentList.Add($"127.0.0.1:{Port}");
+        start.ArgumentList.Add("-t");
+        start.ArgumentList.Add(publicDir);
+        start.ArgumentList.Add(router);
+
+        try
+        {
+            php = Process.Start(start);
+            if (php is null)
             {
-                ShowStartupError("DCP's private PHP runtime is missing. Run the official DCP installer again; DCP will not silently use a different system PHP installation.");
+                ShowStartupError("Windows could not start DCP's private PHP service. Check the desktop-wrapper log.");
                 return;
             }
-
-            var start = new ProcessStartInfo
-            {
-                FileName = phpPath,
-                WorkingDirectory = platform,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true
-            };
-            start.ArgumentList.Add("-S");
-            start.ArgumentList.Add($"127.0.0.1:{Port}");
-            start.ArgumentList.Add("-t");
-            start.ArgumentList.Add(publicDir);
-            start.ArgumentList.Add(router);
-
-            try
-            {
-                php = Process.Start(start);
-                if (php is null)
-                {
-                    ShowStartupError("Windows could not start DCP's private PHP service. Check the desktop-wrapper log.");
-                    return;
-                }
-                php.OutputDataReceived += (_, args) => { if (args.Data is not null) AppendLog("[PHP] " + args.Data); };
-                php.ErrorDataReceived += (_, args) => { if (args.Data is not null) AppendLog("[PHP error] " + args.Data); };
-                php.BeginOutputReadLine();
-                php.BeginErrorReadLine();
-                AppendLog("Started private PHP service, PID " + php.Id);
-            }
-            catch (Exception ex)
-            {
-                AppendLog("PHP startup failed: " + ex);
-                ShowStartupError("DCP could not start its private PHP service. Details are in platform/storage/logs/desktop-wrapper.log.");
-                return;
-            }
+            php.OutputDataReceived += (_, args) => { if (args.Data is not null) AppendLog("[PHP] " + args.Data); };
+            php.ErrorDataReceived += (_, args) => { if (args.Data is not null) AppendLog("[PHP error] " + args.Data); };
+            php.BeginOutputReadLine();
+            php.BeginErrorReadLine();
+            AppendLog("Started private PHP service, PID " + php.Id);
+        }
+        catch (Exception ex)
+        {
+            AppendLog("PHP startup failed: " + ex);
+            ShowStartupError("DCP could not start its private PHP service. Details are in platform/storage/logs/desktop-wrapper.log.");
+            return;
         }
 
         for (var attempt = 0; attempt < 30; attempt++)
@@ -383,7 +383,16 @@ internal sealed class MainWindow : Form
         return a.Length.CompareTo(b.Length);
     }
 
-    private static async Task<bool> IsServerReadyAsync()
+    private static int FindAvailablePort()
+    {
+        using var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+        var port = ((IPEndPoint)listener.LocalEndpoint).Port;
+        listener.Stop();
+        return port;
+    }
+
+    private async Task<bool> IsServerReadyAsync()
     {
         try
         {

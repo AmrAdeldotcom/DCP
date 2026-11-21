@@ -1,12 +1,17 @@
 #import <Cocoa/Cocoa.h>
 #import <WebKit/WebKit.h>
 #import <unistd.h>
+#import <sys/socket.h>
+#import <netinet/in.h>
+#import <arpa/inet.h>
+#import <string.h>
 
 @interface DCPAppDelegate : NSObject <NSApplicationDelegate, WKNavigationDelegate, WKUIDelegate>
 @property(nonatomic,strong) NSWindow *window;
 @property(nonatomic,strong) WKWebView *webView;
 @property(nonatomic,strong) NSTask *phpTask;
 @property(nonatomic,assign) BOOL ownsPHP;
+@property(nonatomic,assign) NSInteger port;
 @property(nonatomic,strong) NSURL *platformURL;
 - (void)loadAttempt:(NSInteger)attempt;
 - (void)startPHPIfNeeded;
@@ -17,6 +22,7 @@
 - (void)applicationDidFinishLaunching:(NSNotification *)note {
     NSURL *root=[[[NSBundle mainBundle] bundleURL] URLByDeletingLastPathComponent];
     self.platformURL=[root URLByAppendingPathComponent:@"platform" isDirectory:YES];
+    self.port=[self availablePort];
     WKWebViewConfiguration *config=[[WKWebViewConfiguration alloc] init];
     self.webView=[[WKWebView alloc] initWithFrame:NSMakeRect(0,0,1280,820) configuration:config];
     self.webView.navigationDelegate=self;
@@ -55,19 +61,21 @@
     else if(url && url.scheme.length) { [[NSWorkspace sharedWorkspace] openURL:url]; }
     return nil;
 }
-- (BOOL)isPHPReady {
-    NSURL *url=[NSURL URLWithString:@"http://127.0.0.1:18765/api/status"];
-    dispatch_semaphore_t sem=dispatch_semaphore_create(0);
-    __block BOOL ok=NO;
-    [[[NSURLSession sharedSession] dataTaskWithURL:url completionHandler:^(NSData *data,NSURLResponse *response,NSError *error){
-        ok=[(NSHTTPURLResponse *)response statusCode]==200;
-        dispatch_semaphore_signal(sem);
-    }] resume];
-    dispatch_semaphore_wait(sem,dispatch_time(DISPATCH_TIME_NOW,(int64_t)(1.2*NSEC_PER_SEC)));
-    return ok;
+- (NSInteger)availablePort {
+    int fd=socket(AF_INET,SOCK_STREAM,0);
+    if(fd<0) return 18765;
+    struct sockaddr_in address; memset(&address,0,sizeof(address));
+    address.sin_len=sizeof(address); address.sin_family=AF_INET;
+    address.sin_addr.s_addr=htonl(INADDR_LOOPBACK); address.sin_port=0;
+    NSInteger port=18765;
+    if(bind(fd,(struct sockaddr *)&address,sizeof(address))==0){
+        socklen_t length=sizeof(address);
+        if(getsockname(fd,(struct sockaddr *)&address,&length)==0) port=ntohs(address.sin_port);
+    }
+    close(fd);
+    return port;
 }
 - (void)startPHPIfNeeded {
-    if([self isPHPReady]) return;
     NSURL *runtimeRoot=[self.platformURL URLByDeletingLastPathComponent];
     NSURL *privateRuntime=[runtimeRoot URLByAppendingPathComponent:@"runtime/php/bin/php"];
     NSURL *privateRuntimeFlat=[runtimeRoot URLByAppendingPathComponent:@"runtime/php/php"];
@@ -84,7 +92,8 @@
     NSFileHandle *handle=[NSFileHandle fileHandleForWritingAtPath:log.path];
     self.phpTask=[[NSTask alloc] init];
     self.phpTask.executableURL=[NSURL fileURLWithPath:php];
-    self.phpTask.arguments=@[@"-S",@"127.0.0.1:18765",@"-t",publicDir.path,router.path];
+    NSString *address=[NSString stringWithFormat:@"127.0.0.1:%ld",(long)self.port];
+    self.phpTask.arguments=@[@"-S",address,@"-t",publicDir.path,router.path];
     self.phpTask.currentDirectoryURL=self.platformURL;
     self.phpTask.standardOutput=handle;
     self.phpTask.standardError=handle;
@@ -94,11 +103,13 @@
 }
 - (void)loadAttempt:(NSInteger)attempt {
     if(attempt>=60){[self.webView loadHTMLString:@"<html><body style='font:16px -apple-system;padding:40px;background:#f3f6fa;color:#123'><h2>DCP service is not responding</h2><p>Check platform/storage/logs/desktop-wrapper.log.</p></body></html>" baseURL:nil];return;}
-    NSURL *url=[NSURL URLWithString:@"http://127.0.0.1:18765/api/status"];
+    NSString *statusURL=[NSString stringWithFormat:@"http://127.0.0.1:%ld/api/status",(long)self.port];
+    NSURL *url=[NSURL URLWithString:statusURL];
     [[[NSURLSession sharedSession] dataTaskWithURL:url completionHandler:^(NSData *data,NSURLResponse *response,NSError *error){
         dispatch_async(dispatch_get_main_queue(), ^{
             if([(NSHTTPURLResponse *)response statusCode]==200){
-                [self.webView loadRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:@"http://127.0.0.1:18765/"]]];
+                NSString *homeURL=[NSString stringWithFormat:@"http://127.0.0.1:%ld/",(long)self.port];
+                [self.webView loadRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:homeURL]]];
                 [self.window makeKeyAndOrderFront:nil];
                 [self.window orderFrontRegardless];
                 [NSApp activateIgnoringOtherApps:YES];
