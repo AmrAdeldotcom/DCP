@@ -74,7 +74,7 @@ All wrappers use the same PHP application and SQLite data model. Setup does not 
 
 ## Device pairing and network architecture
 
-The local pairing implementation stores invitations and paired-device credentials in the SQLite database of the DCP instance that creates the invitation. The hosted DCP Cloud control-plane MVP is deployed at `https://dcp.amradel.com`; its health endpoint is live and its API supports account/device registration, same-account device discovery, online presence, connection requests and short-lived signaling.
+The local pairing implementation stores invitations and paired-device credentials in the SQLite database of the DCP instance that creates the invitation. The hosted DCP Cloud control-plane MVP is deployed at `https://dcp.amradel.com`; its API source supports account/device registration, same-account device discovery, online presence, connection requests and short-lived signaling. The health endpoint must verify `SELECT 1` against MySQL and return HTTP 503 when the database is unavailable; a simple PHP 200 is not sufficient.
 
 The hosted control plane is separate from **device-to-device data transport**:
 
