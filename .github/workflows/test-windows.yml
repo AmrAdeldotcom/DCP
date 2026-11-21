@@ -7,7 +7,7 @@ on:
       - '.github/workflows/test-windows.yml'
       - '.github/workflows/release-windows.yml'
   push:
-    branches: [main]
+    branches: ['**']
     paths:
       - 'platform/**'
       - '.github/workflows/test-windows.yml'
@@ -26,7 +26,7 @@ jobs:
           dotnet-version: '10.0.x'
       - name: Build Windows application
         shell: pwsh
-        run: ./platform/scripts/build-windows.ps1 -DCPVersion 'ci-1.0.0'
+        run: ./platform/scripts/build-windows.ps1 -DCPVersion 'v1.0.0-alpha.6'
       - name: Verify Windows package and exclude developer data
         shell: pwsh
         run: |
