@@ -4,14 +4,12 @@ on:
   pull_request:
     paths:
       - 'platform/**'
-      - '.github/workflows/test-windows.yml'
-      - '.github/workflows/release-windows.yml'
+      - '.github/workflows/**'
   push:
     branches: ['**']
     paths:
       - 'platform/**'
-      - '.github/workflows/test-windows.yml'
-      - '.github/workflows/release-windows.yml'
+      - '.github/workflows/**'
 
 permissions:
   contents: read
@@ -40,7 +38,7 @@ jobs:
             $tokens = $null
             $errors = $null
             [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $file).Path, [ref]$tokens, [ref]$errors) | Out-Null
-            if ($errors.Count -gt 0) { throw "PowerShell syntax errors in $file: $($errors | Out-String)" }
+            if ($errors.Count -gt 0) { throw ("PowerShell syntax errors in {0}: {1}" -f $file, ($errors | Out-String)) }
             Write-Host "PASS PowerShell syntax: $file"
           }
       - name: Verify Windows package and exclude developer data
