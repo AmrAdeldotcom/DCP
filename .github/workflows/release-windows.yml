@@ -14,6 +14,8 @@ jobs:
     steps:
       - name: Check out source
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up .NET SDK
         uses: actions/setup-dotnet@v4
@@ -34,6 +36,8 @@ jobs:
           if (!(Test-Path 'platform/dist/windows/platform/scripts/update-windows.ps1')) { throw 'Windows self-updater missing from package' }
           if (!(Test-Path 'platform/dist/windows/platform/scripts/verify-runtime.php')) { throw 'PHP runtime verifier missing from package' }
           if (!(Test-Path 'platform/dist/windows/Install-DCP.ps1')) { throw 'Top-level prerequisite launcher missing from package' }
+          if (!(Test-Path 'platform/dist/windows/DCP-Windows-update.json')) { throw 'Delta update manifest missing from package' }
+          if (!(Test-Path 'platform/dist/windows/payload')) { throw 'Delta update payload missing from package' }
           if (Test-Path 'platform/dist/windows/platform/storage/keys/master.key') { throw 'Developer encryption key leaked into release package' }
           if (Test-Path 'platform/dist/windows/platform/data/dcp.sqlite') { throw 'Developer SQLite database leaked into release package' }
           Compress-Archive -Path 'platform/dist/windows' -DestinationPath 'DCP-Windows-x64.zip' -CompressionLevel Optimal
@@ -44,4 +48,6 @@ jobs:
         with:
           name: DCP ${{ github.ref_name }}
           generate_release_notes: true
-          files: DCP-Windows-x64.zip
+          files: |
+            DCP-Windows-x64.zip
+            platform/dist/windows/DCP-Windows-update.json

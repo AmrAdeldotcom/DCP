@@ -1,5 +1,6 @@
 #import <Cocoa/Cocoa.h>
 #import <WebKit/WebKit.h>
+#import <unistd.h>
 
 @interface DCPAppDelegate : NSObject <NSApplicationDelegate, WKNavigationDelegate, WKUIDelegate>
 @property(nonatomic,strong) NSWindow *window;
@@ -9,6 +10,7 @@
 @property(nonatomic,strong) NSURL *platformURL;
 - (void)loadAttempt:(NSInteger)attempt;
 - (void)startPHPIfNeeded;
+- (void)checkForUpdates;
 @end
 
 @implementation DCPAppDelegate
@@ -100,9 +102,61 @@
                 [self.window makeKeyAndOrderFront:nil];
                 [self.window orderFrontRegardless];
                 [NSApp activateIgnoringOtherApps:YES];
+                [self checkForUpdates];
             } else {
                 dispatch_after(dispatch_time(DISPATCH_TIME_NOW,(int64_t)(0.3*NSEC_PER_SEC)),dispatch_get_main_queue(),^{[self loadAttempt:attempt+1];});
             }
+        });
+    }] resume];
+}
+- (void)checkForUpdates {
+    NSURL *url=[NSURL URLWithString:@"https://api.github.com/repos/AmrAdeldotcom/DCP/releases?per_page=10"];
+    NSMutableURLRequest *request=[NSMutableURLRequest requestWithURL:url cachePolicy:NSURLRequestReloadIgnoringLocalCacheData timeoutInterval:8.0];
+    [request setValue:@"application/vnd.github+json" forHTTPHeaderField:@"Accept"];
+    [request setValue:@"DCP-macOS-Updater/1.0" forHTTPHeaderField:@"User-Agent"];
+    [[[NSURLSession sharedSession] dataTaskWithRequest:request completionHandler:^(NSData *data,NSURLResponse *response,NSError *error){
+        if(error || !data || [(NSHTTPURLResponse *)response statusCode]!=200) return;
+        NSError *jsonError=nil;
+        id json=[NSJSONSerialization JSONObjectWithData:data options:0 error:&jsonError];
+        if(jsonError || ![json isKindOfClass:[NSArray class]]) return;
+        NSDictionary *release=nil;
+        for(id item in (NSArray *)json){
+            if(![item isKindOfClass:[NSDictionary class]] || [item[@"draft"] boolValue]) continue;
+            for(NSDictionary *asset in item[@"assets"] ?: @[]){
+                if([asset[@"name"] isEqualToString:@"DCP-macOS-universal.zip"]){ release=item; break; }
+            }
+            if(release) break;
+        }
+        if(!release) return;
+        NSString *tag=[release[@"tag_name"] isKindOfClass:[NSString class]]?release[@"tag_name"]:@"";
+        NSString *latest=[tag hasPrefix:@"v"]?[tag substringFromIndex:1]:tag;
+        NSString *current=[[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleShortVersionString"] ?: @"0.0.0";
+        if([latest compare:current options:NSNumericSearch]!=NSOrderedDescending) return;
+        dispatch_async(dispatch_get_main_queue(), ^{
+            NSAlert *alert=[NSAlert new];
+            alert.messageText=[NSString stringWithFormat:@"DCP %@ is available",tag];
+            alert.informativeText=@"A verified update package is available. DCP will close, update only its application package, preserve your local database and encryption keys, then reopen.";
+            [alert addButtonWithTitle:@"Update now"];
+            [alert addButtonWithTitle:@"Later"];
+            if([alert runModal]!=NSAlertFirstButtonReturn) return;
+
+            NSString *root=self.platformURL.URLByDeletingLastPathComponent.path;
+            NSString *installer=[root stringByAppendingPathComponent:@"platform/Install-DCP-Online.sh"];
+            if(![[NSFileManager defaultManager] isExecutableFileAtPath:installer]){
+                installer=[root stringByAppendingPathComponent:@"platform/Install-DCP-Online.sh"];
+                [[NSFileManager defaultManager] setAttributes:@{NSFilePosixPermissions:@0700} ofItemAtPath:installer error:nil];
+            }
+            if(![[NSFileManager defaultManager] fileExistsAtPath:installer]){
+                NSAlert *failure=[NSAlert new]; failure.messageText=@"DCP updater is missing"; failure.informativeText=@"Run the official DCP Terminal installer to repair this installation."; [failure runModal]; return;
+            }
+            NSString *waitScript=@"pid=\"$1\"; installer=\"$2\"; install_root=\"$3\"; while kill -0 \"$pid\" 2>/dev/null; do sleep 1; done; DCP_INSTALL_DIR=\"$install_root\" /bin/bash \"$installer\" || open \"$install_root/DCP.app\"";
+            NSTask *updater=[NSTask new]; updater.executableURL=[NSURL fileURLWithPath:@"/bin/bash"];
+            updater.arguments=@[@"-c",waitScript,@"dcp-updater",[NSString stringWithFormat:@"%d",getpid()],installer,root];
+            NSError *launchError=nil;
+            if(![updater launchAndReturnError:&launchError]){
+                NSAlert *failure=[NSAlert new]; failure.messageText=@"Could not start the DCP updater"; failure.informativeText=launchError.localizedDescription ?: @"Unknown error"; [failure runModal]; return;
+            }
+            [NSApp terminate:nil];
         });
     }] resume];
 }

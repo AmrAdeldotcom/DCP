@@ -1,0 +1,61 @@
+name: Build and publish DCP macOS release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  macos-universal:
+    runs-on: macos-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up PHP CLI
+        run: |
+          brew install php
+          php -v
+
+      - name: Build universal macOS application
+        run: |
+          chmod +x platform/scripts/*.sh platform/wrappers/build-macos.sh
+          ./platform/scripts/build-macos.sh
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString ${GITHUB_REF_NAME#v}" DCP.app/Contents/Info.plist
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${GITHUB_RUN_NUMBER}" DCP.app/Contents/Info.plist
+          codesign --force --deep --sign - DCP.app
+          codesign --verify --deep --strict DCP.app
+
+      - name: Assemble clean portable package
+        run: |
+          set -euo pipefail
+          STAGE="$RUNNER_TEMP/dcp-macos-package"
+          OUT="$GITHUB_WORKSPACE/DCP-macOS-universal.zip"
+          rm -rf "$STAGE"
+          mkdir -p "$STAGE/platform/data" "$STAGE/platform/storage"
+          ditto DCP.app "$STAGE/DCP.app"
+          rsync -a platform/ "$STAGE/platform/" \
+            --exclude '/data/***' \
+            --exclude '/storage/***' \
+            --exclude '/dist/***' \
+            --exclude '/wrappers/***' \
+            --exclude '/tests/***' \
+            --exclude '/.env' \
+            --exclude '/.env.*' \
+            --exclude '/vendor/***'
+          touch "$STAGE/platform/data/.gitkeep" "$STAGE/platform/storage/.gitkeep"
+          (cd "$STAGE" && zip -qry "$OUT" DCP.app platform)
+          test -s "$OUT"
+          shasum -a 256 "$OUT"
+
+      - name: Publish macOS package to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: DCP ${{ github.ref_name }}
+          generate_release_notes: true
+          files: DCP-macOS-universal.zip

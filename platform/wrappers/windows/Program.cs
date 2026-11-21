@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.IO.Compression;
 using System.Reflection;
+using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Web.WebView2.Core;
@@ -22,10 +23,11 @@ internal sealed class MainWindow : Form
 {
     private const int Port = 18765;
     private const string Repository = "AmrAdeldotcom/DCP";
-    private const string ReleaseAsset = "DCP-Windows-x64.zip";
     private readonly WebView2 view = new() { Dock = DockStyle.Fill };
     private readonly string root = AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar);
     private Process? php;
+    private readonly HttpClient updaterClient = new() { Timeout = TimeSpan.FromSeconds(8) };
+    private CancellationTokenSource? updaterCancellation;
     private string LogPath => Path.Combine(root, "platform", "storage", "logs", "desktop-wrapper.log");
 
     public MainWindow()
@@ -43,11 +45,7 @@ internal sealed class MainWindow : Form
     private async void StartDcp(object? sender, EventArgs e)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(LogPath)!);
-
-        // Installed builds update from the official GitHub Release before PHP starts.
-        // Source checkouts continue to use GitUpdateService inside the PHP application.
-        if (await CheckAndStageUpdateAsync())
-            return;
+        AppendLog("DCP startup: checking local PHP service and loading UI. Remote update check is deferred to background.");
 
         var platform = Path.Combine(root, "platform");
         var publicDir = Path.Combine(platform, "public");
@@ -105,7 +103,7 @@ internal sealed class MainWindow : Form
             }
         }
 
-        for (var attempt = 0; attempt < 60; attempt++)
+        for (var attempt = 0; attempt < 30; attempt++)
         {
             if (await IsServerReadyAsync())
             {
@@ -134,6 +132,8 @@ internal sealed class MainWindow : Form
                     };
                     view.CoreWebView2.Navigate($"http://127.0.0.1:{Port}/");
                     AppendLog("DCP desktop UI loaded.");
+                    updaterCancellation = new CancellationTokenSource();
+                    _ = CheckAndApplyUpdateInBackgroundAsync(updaterCancellation.Token);
                     return;
                 }
                 catch (Exception ex)
@@ -149,100 +149,186 @@ internal sealed class MainWindow : Form
                 AppendLog("PHP exited unexpectedly with code " + php.ExitCode);
                 break;
             }
-            await Task.Delay(300);
+            await Task.Delay(200);
         }
 
         ShowStartupError("DCP PHP service did not become ready. Check platform/storage/logs/desktop-wrapper.log.");
     }
 
-    private async Task<bool> CheckAndStageUpdateAsync()
+    private async Task CheckAndApplyUpdateInBackgroundAsync(CancellationToken cancellationToken)
     {
         string? workRoot = null;
         string? runnerPath = null;
         try
         {
-            using var apiClient = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
-            apiClient.DefaultRequestHeaders.UserAgent.ParseAdd("DCP-Desktop-Updater/1.0");
-            apiClient.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
-
-            using var response = await apiClient.GetAsync($"https://api.github.com/repos/{Repository}/releases/latest");
+            using var request = new HttpRequestMessage(HttpMethod.Get, $"https://api.github.com/repos/{Repository}/releases?per_page=10");
+            request.Headers.UserAgent.ParseAdd("DCP-Desktop-Updater/1.1");
+            request.Headers.Accept.ParseAdd("application/vnd.github+json");
+            using var response = await updaterClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
             response.EnsureSuccessStatusCode();
-            using var release = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-            var tag = release.RootElement.GetProperty("tag_name").GetString() ?? "";
-            var assembly = Assembly.GetExecutingAssembly();
-            // Older alpha builds did not stamp their release tag into the assembly.
-            // Treat an untagged legacy binary as 0.0.0 so it can self-update from GitHub.
-            var current = assembly.GetCustomAttributes<AssemblyMetadataAttribute>()
-                .FirstOrDefault(x => string.Equals(x.Key, "DCPVersion", StringComparison.OrdinalIgnoreCase))?.Value
-                ?? "0.0.0";
-
+            using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+            using var releases = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
+            if (releases.RootElement.ValueKind != JsonValueKind.Array)
+                throw new InvalidOperationException("GitHub returned an invalid releases list.");
+            var release = releases.RootElement.EnumerateArray().FirstOrDefault(item =>
+                (!item.TryGetProperty("draft", out var draft) || !draft.GetBoolean()) &&
+                item.TryGetProperty("assets", out var assets) && assets.ValueKind == JsonValueKind.Array &&
+                assets.EnumerateArray().Any(asset => string.Equals(
+                    asset.GetProperty("name").GetString(), "DCP-Windows-update.json", StringComparison.OrdinalIgnoreCase)));
+            if (release.ValueKind == JsonValueKind.Undefined)
+            {
+                AppendLog("Background release check: no published compatible delta manifest was found; keeping installed version.");
+                return;
+            }
+            var tag = release.GetProperty("tag_name").GetString() ?? "";
+            var current = Assembly.GetExecutingAssembly().GetCustomAttributes<AssemblyMetadataAttribute>()
+                .FirstOrDefault(x => string.Equals(x.Key, "DCPVersion", StringComparison.OrdinalIgnoreCase))?.Value ?? "0.0.0";
             if (!IsNewerRelease(tag, current))
             {
-                AppendLog($"Release check: installed {current}; latest {tag}; no update required.");
-                return false;
+                AppendLog($"Background release check: installed {current}; latest compatible release {tag}; up to date.");
+                return;
             }
 
-            var asset = release.RootElement.GetProperty("assets").EnumerateArray()
-                .FirstOrDefault(x => string.Equals(x.GetProperty("name").GetString(), ReleaseAsset, StringComparison.OrdinalIgnoreCase));
-            if (asset.ValueKind == JsonValueKind.Undefined)
-                throw new InvalidOperationException($"GitHub release {tag} does not contain {ReleaseAsset}.");
+            var manifestAsset = release.GetProperty("assets").EnumerateArray()
+                .FirstOrDefault(x => string.Equals(x.GetProperty("name").GetString(), "DCP-Windows-update.json", StringComparison.OrdinalIgnoreCase));
+            if (manifestAsset.ValueKind == JsonValueKind.Undefined)
+                throw new InvalidOperationException($"Release {tag} does not include DCP-Windows-update.json; full-package fallback is not configured in this updater.");
 
-            var downloadUrl = asset.GetProperty("browser_download_url").GetString();
-            if (string.IsNullOrWhiteSpace(downloadUrl))
-                throw new InvalidOperationException("The latest Windows release has no download URL.");
+            var manifestUrl = manifestAsset.GetProperty("browser_download_url").GetString()
+                ?? throw new InvalidOperationException("Update manifest URL is empty.");
+            using var manifestResponse = await updaterClient.GetAsync(manifestUrl, cancellationToken);
+            manifestResponse.EnsureSuccessStatusCode();
+            using var manifestStream = await manifestResponse.Content.ReadAsStreamAsync(cancellationToken);
+            using var manifest = await JsonDocument.ParseAsync(manifestStream, cancellationToken: cancellationToken);
+            if (manifest.RootElement.GetProperty("schema").GetInt32() != 1)
+                throw new InvalidOperationException("Unsupported update manifest schema.");
+
+            var files = manifest.RootElement.GetProperty("files").EnumerateArray().ToArray();
+            if (files.Length == 0 || files.Length > 5000)
+                throw new InvalidOperationException("Update manifest file count is invalid.");
+
+            // Merge every delta after the installed version. The newest manifest wins
+            // for paths changed more than once; all URLs point at the latest source tag.
+            var requiredFiles = new Dictionary<string, (string Hash, long Size)>(StringComparer.OrdinalIgnoreCase);
+            foreach (var item in files)
+            {
+                var path = item.GetProperty("path").GetString() ?? "";
+                var hash = item.GetProperty("sha256").GetString() ?? "";
+                var size = item.GetProperty("size").GetInt64();
+                if (!requiredFiles.TryAdd(path, (hash.ToLowerInvariant(), size)))
+                    throw new InvalidOperationException("Duplicate path in latest update manifest: " + path);
+            }
+
+            var installedTag = current.StartsWith("v", StringComparison.OrdinalIgnoreCase) ? current : "v" + current;
+            var expectedParent = manifest.RootElement.TryGetProperty("previous_manifest_url", out var previousUrl)
+                ? previousUrl.GetString() : null;
+            var processedManifests = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var reachedInstalledVersion = false;
+            var parentCount = 0;
+            while (!string.IsNullOrWhiteSpace(expectedParent) && parentCount < 10)
+            {
+                if (!Uri.TryCreate(expectedParent, UriKind.Absolute, out var parentUri) ||
+                    parentUri.Host != "github.com" || !parentUri.AbsolutePath.StartsWith($"/{Repository}/releases/download/", StringComparison.Ordinal))
+                    throw new InvalidOperationException("Previous update manifest URL is not an official DCP release URL.");
+                if (!processedManifests.Add(expectedParent))
+                    throw new InvalidOperationException("A cycle was found in the release delta manifest chain.");
+                using var parentResponse = await updaterClient.GetAsync(expectedParent, cancellationToken);
+                parentResponse.EnsureSuccessStatusCode();
+                using var parentStream = await parentResponse.Content.ReadAsStreamAsync(cancellationToken);
+                using var parentManifest = await JsonDocument.ParseAsync(parentStream, cancellationToken: cancellationToken);
+                var parentTag = parentManifest.RootElement.GetProperty("version").GetString() ?? "";
+                if (string.Equals(parentTag.TrimStart('v'), installedTag.TrimStart('v'), StringComparison.OrdinalIgnoreCase))
+                {
+                    reachedInstalledVersion = true;
+                    break;
+                }
+                foreach (var parentFile in parentManifest.RootElement.GetProperty("files").EnumerateArray())
+                {
+                    var path = parentFile.GetProperty("path").GetString() ?? "";
+                    if (string.IsNullOrWhiteSpace(path) || !IsSafeRelativePath(path))
+                        throw new InvalidOperationException("Unsafe path in a previous update manifest: " + path);
+                    if (!requiredFiles.ContainsKey(path))
+                    {
+                        var hash = parentFile.GetProperty("sha256").GetString() ?? "";
+                        var size = parentFile.GetProperty("size").GetInt64();
+                        requiredFiles.Add(path, (hash.ToLowerInvariant(), size));
+                    }
+                }
+                expectedParent = parentManifest.RootElement.TryGetProperty("previous_manifest_url", out var olderUrl)
+                    ? olderUrl.GetString() : null;
+                parentCount++;
+            }
+            if (!reachedInstalledVersion)
+                throw new InvalidOperationException("This installation is too far behind the available delta chain. A full package refresh is required.");
 
             workRoot = Path.Combine(Path.GetTempPath(), "DCP-update-" + Guid.NewGuid().ToString("N"));
-            var extractRoot = Path.Combine(workRoot, "extract");
-            Directory.CreateDirectory(extractRoot);
-            var archive = Path.Combine(workRoot, ReleaseAsset);
-            using var downloadClient = new HttpClient { Timeout = TimeSpan.FromMinutes(10) };
-            downloadClient.DefaultRequestHeaders.UserAgent.ParseAdd("DCP-Desktop-Updater/1.0");
-            await using (var input = await downloadClient.GetStreamAsync(downloadUrl))
-            await using (var output = File.Create(archive))
-                await input.CopyToAsync(output);
-
-            ZipFile.ExtractToDirectory(archive, extractRoot);
-            var sourceRoot = Path.Combine(extractRoot, "windows");
-            var sourceApp = Path.Combine(sourceRoot, "DCP.exe");
-            var updater = Path.Combine(sourceRoot, "platform", "scripts", "update-windows.ps1");
-            if (!File.Exists(sourceApp) || !File.Exists(updater))
-                throw new InvalidOperationException("The downloaded release is incomplete; DCP.exe or update-windows.ps1 is missing.");
-
-            runnerPath = Path.Combine(Path.GetTempPath(), "DCP-Update-" + Guid.NewGuid().ToString("N") + ".ps1");
-            File.Copy(updater, runnerPath, true);
-
-            var launch = new ProcessStartInfo
+            var payloadRoot = Path.Combine(workRoot, "payload");
+            Directory.CreateDirectory(payloadRoot);
+            var downloadRoot = $"https://raw.githubusercontent.com/{Repository}/{Uri.EscapeDataString(tag)}/";
+            var safe = new List<(string Path, string Hash, long Size, string FileUrl)>();
+            foreach (var file in requiredFiles)
             {
-                FileName = "powershell.exe",
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
-            launch.ArgumentList.Add("-NoProfile");
-            launch.ArgumentList.Add("-ExecutionPolicy");
-            launch.ArgumentList.Add("Bypass");
-            launch.ArgumentList.Add("-File");
-            launch.ArgumentList.Add(runnerPath);
-            launch.ArgumentList.Add("-ProcessId");
-            launch.ArgumentList.Add(Environment.ProcessId.ToString());
-            launch.ArgumentList.Add("-SourceRoot");
-            launch.ArgumentList.Add(sourceRoot);
-            launch.ArgumentList.Add("-InstallRoot");
-            launch.ArgumentList.Add(root);
-            launch.ArgumentList.Add("-WorkRoot");
-            launch.ArgumentList.Add(workRoot);
+                var relative = file.Key;
+                if (!IsSafeRelativePath(relative))
+                    throw new InvalidOperationException("Unsafe path in update manifest: " + relative);
+                if (relative.StartsWith("platform/data/", StringComparison.OrdinalIgnoreCase) ||
+                    relative.StartsWith("platform/storage/", StringComparison.OrdinalIgnoreCase))
+                    throw new InvalidOperationException("Update manifest attempted to include user data.");
+                var url = downloadRoot + string.Join("/", relative.Split('/').Select(Uri.EscapeDataString));
+                safe.Add((relative, file.Value.Hash, file.Value.Size, url));
+            }
 
+            AppendLog($"Background update: {tag} contains {safe.Count} changed files. Downloading delta payload.");
+            using var semaphore = new SemaphoreSlim(4);
+            var tasks = safe.Select(async file =>
+            {
+                await semaphore.WaitAsync(cancellationToken);
+                try
+                {
+                    var target = Path.Combine(payloadRoot, file.Path.Replace('/', Path.DirectorySeparatorChar));
+                    Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+                    using var res = await updaterClient.GetAsync(file.FileUrl, cancellationToken);
+                    res.EnsureSuccessStatusCode();
+                    await using var input = await res.Content.ReadAsStreamAsync(cancellationToken);
+                    await using var output = File.Create(target);
+                    await input.CopyToAsync(output, cancellationToken);
+                    var info = new FileInfo(target);
+                    if (info.Length != file.Size)
+                        throw new InvalidOperationException("File size mismatch: " + file.Path);
+                    await using var check = File.OpenRead(target);
+                    var digest = await SHA256.HashDataAsync(check, cancellationToken);
+                    var actual = Convert.ToHexString(digest).ToLowerInvariant();
+                    if (!string.Equals(actual, file.Hash, StringComparison.OrdinalIgnoreCase))
+                        throw new InvalidOperationException("SHA-256 mismatch: " + file.Path);
+                }
+                finally { semaphore.Release(); }
+            }).ToArray();
+            await Task.WhenAll(tasks);
+
+            var manifestCopy = Path.Combine(workRoot, "update-manifest.json");
+            await File.WriteAllTextAsync(manifestCopy, manifest.RootElement.GetRawText(), cancellationToken);
+            var runnerSource = Path.Combine(root, "platform", "scripts", "update-windows.ps1");
+            if (!File.Exists(runnerSource))
+                throw new InvalidOperationException("The local delta update script is missing.");
+            runnerPath = Path.Combine(Path.GetTempPath(), "DCP-Update-" + Guid.NewGuid().ToString("N") + ".ps1");
+            File.Copy(runnerSource, runnerPath, true);
+            var launch = new ProcessStartInfo { FileName = "powershell.exe", UseShellExecute = false, CreateNoWindow = true };
+            foreach (var arg in new[] { "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", runnerPath,
+                "-ProcessId", Environment.ProcessId.ToString(), "-SourceRoot", workRoot, "-InstallRoot", root, "-WorkRoot", workRoot })
+                launch.ArgumentList.Add(arg);
             Process.Start(launch);
-            MessageBox.Show(
-                $"A new official DCP release ({tag}) is ready. DCP will close, update safely, preserve your local data and reopen.",
-                "DCP update",
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Information);
-            Application.Exit();
-            return true;
+            AppendLog($"Downloaded and verified the {tag} delta update. Closing to apply {safe.Count} changed files.");
+            BeginInvoke(() =>
+            {
+                MessageBox.Show($"DCP update {tag} is ready. The application will restart to apply {safe.Count} changed files.",
+                    "DCP update", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                Close();
+            });
         }
+        catch (OperationCanceledException) { }
         catch (Exception ex)
         {
-            AppendLog("Automatic GitHub update check/stage failed; continuing with installed version. " + ex);
+            AppendLog("Background update check failed; continuing with installed version. " + ex);
             if (workRoot is not null)
             {
                 try { if (Directory.Exists(workRoot)) Directory.Delete(workRoot, true); } catch { }
@@ -251,8 +337,15 @@ internal sealed class MainWindow : Form
             {
                 try { if (File.Exists(runnerPath)) File.Delete(runnerPath); } catch { }
             }
-            return false;
         }
+    }
+
+    private static bool IsSafeRelativePath(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path) || Path.IsPathRooted(path) || path.Contains('\\') ||
+            path.StartsWith("/", StringComparison.Ordinal) || path.Contains(':'))
+            return false;
+        return path.Split('/').All(part => part.Length > 0 && part != "." && part != "..");
     }
 
     private static bool IsNewerRelease(string latestTag, string currentVersion)
@@ -294,7 +387,7 @@ internal sealed class MainWindow : Form
     {
         try
         {
-            using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(1) };
+            using var client = new HttpClient { Timeout = TimeSpan.FromMilliseconds(800) };
             using var response = await client.GetAsync($"http://127.0.0.1:{Port}/api/bootstrap");
             return response.IsSuccessStatusCode;
         }
@@ -334,6 +427,8 @@ internal sealed class MainWindow : Form
 
     private void StopDcp(object? sender, FormClosingEventArgs e)
     {
+        updaterCancellation?.Cancel();
+        updaterClient.Dispose();
         try
         {
             if (php is { HasExited: false })

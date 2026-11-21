@@ -11,43 +11,33 @@ Start here:
 
 DCP runs its own PHP CLI server on `127.0.0.1:18765`, stores application data in its own SQLite database, and does not alter Apache, MySQL, PostgreSQL, Node.js, Python or C# services.
 
-## Install from Git
+## Install for end users (ZIP package, no Git required)
 
-Git is the source of truth for development installs. These commands clone the current `main` branch; subsequent updates are performed with `git pull --ff-only`. Review the scripts in the repository before running them.
+DCP can be installed either by downloading the ZIP from GitHub Releases or by running one terminal command. Both methods use the same published package and keep the local database and encryption keys during upgrades.
 
-## Install on Windows 10/11 (one command)
-
-Open PowerShell and paste this single command:
+### Windows 10/11 — PowerShell
 
 ```powershell
 irm https://raw.githubusercontent.com/AmrAdeldotcom/DCP/main/platform/Install-DCP-Online.ps1 | iex
 ```
 
-No Git installation is required. The bootstrap downloads the latest published `DCP-Windows-x64.zip` GitHub Release asset, installs it under `%LOCALAPPDATA%\\DCP`, checks the bundled PHP runtime and WebView2 prerequisites, creates a desktop shortcut, and launches DCP. Git is not required and the source repository is not cloned onto the user's machine.
+This downloads the newest published `DCP-Windows-x64.zip`, installs it under `%LOCALAPPDATA%\DCP`, verifies the private PHP runtime and WebView2 prerequisites, creates a desktop shortcut, and launches DCP. No Git or .NET SDK is needed.
 
-For developers who want a source checkout, Git-based installation remains available below.
+### macOS — Terminal
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/AmrAdeldotcom/DCP/main/platform/Install-DCP-Online.sh | bash
+```
+
+This downloads `DCP-macOS-universal.zip`, installs `DCP.app` and its `platform/` folder under `~/Applications/DCP`, preserves local data and encryption keys on upgrades, checks PHP CLI requirements (installing PHP with Homebrew only if needed), and opens DCP. It supports Apple Silicon and Intel Macs.
+
+### Install from Download
+
+Open the repository's **Releases** page, download the ZIP for your operating system, extract it, and keep the app/executable beside the `platform/` directory. On Windows run `Install-DCP.ps1` once to provision the private PHP and WebView2 prerequisites, then launch `DCP.exe`. On macOS run `platform/scripts/install-runtime-macos.sh`, then open `DCP.app`. After the interface opens, macOS checks GitHub in the background and offers the latest universal ZIP update without blocking startup.
 
 ### Developer install (optional)
 
-Install Git for Windows first, then run:
-
-```powershell
-git clone https://github.com/AmrAdeldotcom/DCP.git "$env:LOCALAPPDATA\\DCP-source"
-Set-Location "$env:LOCALAPPDATA\\DCP-source"
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\platform\\Install-DCP.ps1
-```
-
-The developer script provisions DCP's private PHP CLI runtime. Building the desktop wrapper from source requires the .NET SDK; end users should use the one-command installer above. Installed Windows builds check the latest official GitHub Release before starting the local PHP service. When a newer release is available, DCP stages it, closes, applies the update and reopens. The updater preserves `platform/data` and `platform/storage` (including the SQLite database and encryption key), and does not require Git on the user's PC.
-### macOS
-
-```bash
-git clone https://github.com/AmrAdeldotcom/DCP.git "$HOME/DCP"
-cd "$HOME/DCP"
-chmod +x platform/scripts/*.sh
-./platform/scripts/install-runtime-macos.sh
-```
-
-To update: `git -C "$HOME/DCP" pull --ff-only origin main`.
+Developers can still clone the repository and build from source. This is not required for normal installation or updates.
 
 ### Linux (Ubuntu/Debian)
 
@@ -66,8 +56,8 @@ The desktop shell keeps the DCP UI embedded. External web links open in the oper
 
 ## Desktop distributions
 
-- macOS x64: `DCP-macOS-x64.zip` (DCP.app + platform payload).
-- Windows x64: `DCP-Windows-x64.zip` (self-contained .NET WebView shell + private PHP CLI runtime + startup GitHub Release updater).
+- macOS universal: `DCP-macOS-universal.zip` (Apple Silicon + Intel DCP.app and platform payload).
+- Windows x64: `DCP-Windows-x64.zip` (self-contained .NET WebView shell + private PHP CLI runtime + background GitHub Release updater).
 - Linux x64: the Ubuntu 24.04 GitHub Actions workflow builds and publishes a Linux x64 artifact.
 
 All wrappers use the same PHP application and SQLite data model. Setup does not start, stop, or reconfigure Apache, MySQL, PostgreSQL, Node.js or Python services.

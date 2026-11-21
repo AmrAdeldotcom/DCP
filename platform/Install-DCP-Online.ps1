@@ -6,11 +6,19 @@ $InstallRoot = Join-Path $env:LOCALAPPDATA 'DCP'
 $WorkRoot = Join-Path $env:TEMP ('DCP-Install-' + [guid]::NewGuid().ToString('N'))
 $Archive = Join-Path $WorkRoot 'DCP-Windows-x64.zip'
 $ExtractRoot = Join-Path $WorkRoot 'extract'
-$ReleaseUrl = 'https://github.com/AmrAdeldotcom/DCP/releases/latest/download/DCP-Windows-x64.zip'
+$ReleaseApi = 'https://api.github.com/repos/AmrAdeldotcom/DCP/releases?per_page=10'
+$ReleaseUrl = $null
 
 try {
     New-Item -ItemType Directory -Force -Path $WorkRoot, $ExtractRoot | Out-Null
-    Write-Host 'Downloading the latest official DCP for Windows...' -ForegroundColor Cyan
+    Write-Host 'Finding the latest official DCP for Windows...' -ForegroundColor Cyan
+    $Releases = Invoke-RestMethod -Uri $ReleaseApi -Headers @{ 'Accept' = 'application/vnd.github+json'; 'User-Agent' = 'DCP-Windows-Installer' }
+    $Release = $Releases | Where-Object { -not $_.draft -and $_.assets.name -contains 'DCP-Windows-x64.zip' } | Select-Object -First 1
+    if (-not $Release) { throw 'No published Windows package was found in the latest GitHub releases.' }
+    $Asset = $Release.assets | Where-Object { $_.name -eq 'DCP-Windows-x64.zip' } | Select-Object -First 1
+    $ReleaseUrl = $Asset.browser_download_url
+    if ([string]::IsNullOrWhiteSpace($ReleaseUrl)) { throw 'The Windows release download URL is missing.' }
+    Write-Host "Downloading DCP $($Release.tag_name)..." -ForegroundColor Cyan
     Invoke-WebRequest -Uri $ReleaseUrl -OutFile $Archive
     Expand-Archive -LiteralPath $Archive -DestinationPath $ExtractRoot -Force
 
