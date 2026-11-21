@@ -169,8 +169,12 @@ internal sealed class MainWindow : Form
             response.EnsureSuccessStatusCode();
             using var release = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
             var tag = release.RootElement.GetProperty("tag_name").GetString() ?? "";
-            var current = Assembly.GetExecutingAssembly()
-                .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "0.0.0";
+            var assembly = Assembly.GetExecutingAssembly();
+            // Older alpha builds did not stamp their release tag into the assembly.
+            // Treat an untagged legacy binary as 0.0.0 so it can self-update from GitHub.
+            var current = assembly.GetCustomAttributes<AssemblyMetadataAttribute>()
+                .FirstOrDefault(x => string.Equals(x.Key, "DCPVersion", StringComparison.OrdinalIgnoreCase))?.Value
+                ?? "0.0.0";
 
             if (!IsNewerRelease(tag, current))
             {
