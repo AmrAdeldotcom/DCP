@@ -2,7 +2,7 @@
 declare(strict_types=1);
 return [
  'name'=>'DCP',
- 'version'=>'1.0.0-alpha.6',
+ 'version'=>'1.0.0-alpha.7',
  'bind'=>'127.0.0.1',
  'port'=>18765,
  'database'=>dirname(__DIR__).'/data/dcp.sqlite',

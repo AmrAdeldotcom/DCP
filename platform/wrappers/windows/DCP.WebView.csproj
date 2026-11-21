@@ -10,7 +10,7 @@
     <ApplicationIcon>../../public/assets/dcp.ico</ApplicationIcon>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <InformationalVersion Condition="'$(DCPVersion)' != ''">$(DCPVersion)</InformationalVersion>
-    <InformationalVersion Condition="'$(DCPVersion)' == ''">1.0.0-alpha.6</InformationalVersion>
+    <InformationalVersion Condition="'$(DCPVersion)' == ''">1.0.0-alpha.7</InformationalVersion>
   </PropertyGroup>
   <ItemGroup>
     <AssemblyMetadata Include="DCPVersion" Value="$(DCPVersion)" Condition="'$(DCPVersion)' != ''" />

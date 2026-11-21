@@ -295,7 +295,7 @@ internal sealed class MainWindow : Form
         try
         {
             using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(1) };
-            using var response = await client.GetAsync($"http://127.0.0.1:{Port}/api/status");
+            using var response = await client.GetAsync($"http://127.0.0.1:{Port}/api/bootstrap");
             return response.IsSuccessStatusCode;
         }
         catch { return false; }

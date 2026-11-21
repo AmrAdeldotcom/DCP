@@ -8,7 +8,7 @@ $Out = Join-Path $Platform 'dist\windows'
 if ([string]::IsNullOrWhiteSpace($DCPVersion) -or $DCPVersion -notmatch '^v?\d+\.\d+\.\d+') {
     $DCPVersion = (& git -C (Split-Path -Parent $Platform) describe --tags --abbrev=0 2>$null)
 }
-if ([string]::IsNullOrWhiteSpace($DCPVersion)) { $DCPVersion = 'v1.0.0-alpha.6' }
+if ([string]::IsNullOrWhiteSpace($DCPVersion)) { $DCPVersion = 'v1.0.0-alpha.7' }
 
 dotnet publish $Project -c Release -r win-x64 --self-contained true -p:EnableWindowsTargeting=true -p:DCPVersion="$DCPVersion" -o $Out
 if ($LASTEXITCODE -ne 0) { throw 'The DCP Windows application build failed.' }

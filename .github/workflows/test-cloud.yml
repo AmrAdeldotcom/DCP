@@ -4,12 +4,18 @@ on:
   pull_request:
     paths:
       - 'cloud-platform-upload/**'
+      - 'platform/app/Services/CloudService.php'
+      - 'platform/app/Controllers/ApiController.php'
+      - 'platform/tests/run.php'
       - '.github/workflows/test-cloud.yml'
       - 'README.md'
   push:
     branches: ['**']
     paths:
       - 'cloud-platform-upload/**'
+      - 'platform/app/Services/CloudService.php'
+      - 'platform/app/Controllers/ApiController.php'
+      - 'platform/tests/run.php'
       - '.github/workflows/**'
       - 'README.md'
 
@@ -29,5 +35,12 @@ jobs:
         run: |
           php -l cloud-platform-upload/index.php
           php -l cloud-platform-upload/site.php
+          php -l platform/app/Services/CloudService.php
+          php -l platform/app/Controllers/ApiController.php
+          php -l platform/tests/run.php
           grep -q '^DB_HOST=localhost$' cloud-platform-upload/.env.example
           test ! -e cloud-platform-upload/.env
+          grep -q 'pairing_codes' cloud-platform-upload/schema.migrate.sql
+          grep -q 'device_pairings' cloud-platform-upload/schema.migrate.sql
+          grep -q 'devices/anonymous/register' cloud-platform-upload/index.php
+          grep -q 'pairing-requests' cloud-platform-upload/index.php
