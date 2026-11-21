@@ -4,7 +4,6 @@ on:
   push:
     tags:
       - 'v*'
-  workflow_dispatch:
 
 permissions:
   contents: write
@@ -23,17 +22,20 @@ jobs:
 
       - name: Build portable Windows package
         shell: pwsh
-        run: ./platform/scripts/build-windows.ps1
+        run: ./platform/scripts/build-windows.ps1 -DCPVersion "${{ github.ref_name }}"
 
-      - name: Verify package
+      - name: Verify package and protect user data boundaries
         shell: pwsh
         run: |
           if (!(Test-Path 'platform/dist/windows/DCP.exe')) { throw 'DCP.exe missing' }
           if (!(Test-Path 'platform/dist/windows/runtime/php/php.exe')) { throw 'Private PHP runtime missing' }
           if (!(Test-Path 'platform/dist/windows/platform/public/router.php')) { throw 'DCP platform payload missing' }
           if (!(Test-Path 'platform/dist/windows/platform/scripts/install-runtime-windows.ps1')) { throw 'Windows prerequisite installer missing from package' }
+          if (!(Test-Path 'platform/dist/windows/platform/scripts/update-windows.ps1')) { throw 'Windows self-updater missing from package' }
           if (!(Test-Path 'platform/dist/windows/platform/scripts/verify-runtime.php')) { throw 'PHP runtime verifier missing from package' }
           if (!(Test-Path 'platform/dist/windows/Install-DCP.ps1')) { throw 'Top-level prerequisite launcher missing from package' }
+          if (Test-Path 'platform/dist/windows/platform/storage/keys/master.key') { throw 'Developer encryption key leaked into release package' }
+          if (Test-Path 'platform/dist/windows/platform/data/dcp.sqlite') { throw 'Developer SQLite database leaked into release package' }
           Compress-Archive -Path 'platform/dist/windows' -DestinationPath 'DCP-Windows-x64.zip' -CompressionLevel Optimal
           if (!(Test-Path 'DCP-Windows-x64.zip')) { throw 'Windows archive was not created' }
 

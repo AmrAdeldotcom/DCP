@@ -37,7 +37,7 @@ Set-Location "$env:LOCALAPPDATA\\DCP-source"
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\platform\\Install-DCP.ps1
 ```
 
-The developer script provisions DCP's private PHP CLI runtime. Building the desktop wrapper from source requires the .NET SDK; end users should use the one-command installer above.
+The developer script provisions DCP's private PHP CLI runtime. Building the desktop wrapper from source requires the .NET SDK; end users should use the one-command installer above. Installed Windows builds check the latest official GitHub Release before starting the local PHP service. When a newer release is available, DCP stages it, closes, applies the update and reopens. The updater preserves `platform/data` and `platform/storage` (including the SQLite database and encryption key), and does not require Git on the user's PC.
 ### macOS
 
 ```bash
@@ -67,16 +67,16 @@ The desktop shell keeps the DCP UI embedded. External web links open in the oper
 ## Desktop distributions
 
 - macOS x64: `DCP-macOS-x64.zip` (DCP.app + platform payload).
-- Windows x64: `DCP-Windows-x64.zip` (self-contained .NET WebView shell + private PHP CLI runtime).
+- Windows x64: `DCP-Windows-x64.zip` (self-contained .NET WebView shell + private PHP CLI runtime + startup GitHub Release updater).
 - Linux x64: the Ubuntu 24.04 GitHub Actions workflow builds and publishes a Linux x64 artifact.
 
 All wrappers use the same PHP application and SQLite data model. Setup does not start, stop, or reconfigure Apache, MySQL, PostgreSQL, Node.js or Python services.
 
 ## Device pairing and network architecture
 
-The current pairing implementation stores invitations and paired-device credentials in the local SQLite database of the DCP instance that creates the invitation. A reachable HTTPS pairing URL and a trusted network path are required; the application binds to loopback by default. The current implementation is not yet a cloud device directory or a general-purpose cross-network relay.
+The local pairing implementation stores invitations and paired-device credentials in the SQLite database of the DCP instance that creates the invitation. The hosted DCP Cloud control-plane MVP is deployed at `https://dcp.amradel.com`; its health endpoint is live and its API supports account/device registration, same-account device discovery, online presence, connection requests and short-lived signaling.
 
-The planned multi-device service separates the **control plane** from **device-to-device data transport**:
+The hosted control plane is separate from **device-to-device data transport**:
 
 1. A cloud control plane stores user accounts, device public identities, invitation state, accepted trust relationships, capabilities, revocation state and last-seen metadata.
 2. Devices authenticate using unique per-device credentials (preferably public-key based), rotate short-lived access tokens and send outbound HTTPS/WebSocket heartbeats. No inbound router port-forwarding is required for basic online presence.
@@ -86,7 +86,7 @@ The planned multi-device service separates the **control plane** from **device-t
 
 **Security rules:** invitation acceptance only establishes a trust relationship; it does not grant unrestricted remote shell access. Use least-privilege capabilities, explicit approval for sensitive actions, encrypted transport, hashed/revocable device credentials, replay protection, audit events and per-device revocation.
 
-The cloud control plane is a planned component. Do not treat the current local SQLite pairing implementation as cloud-ready until the hosted API, database migrations, WebSocket gateway and relay are implemented and tested.
+The Cloud MVP is not yet fully integrated into the desktop clients. The current API is signaling-only: it does not provide a WebRTC data-channel client, payload relay, remote task transport or remote command execution. Do not represent two devices as connected for task execution until authenticated peer transport and task authorization are implemented and tested.
 
 ## Local AI manager
 

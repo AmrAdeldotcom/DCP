@@ -34,6 +34,8 @@ jobs:
           test -f platform/dist/linux/platform/public/router.php
           test -d platform/dist/linux/platform/data
           test -d platform/dist/linux/platform/storage
+          test ! -f platform/dist/linux/platform/storage/keys/master.key
+          test ! -f platform/dist/linux/platform/data/dcp.sqlite
       - name: Upload Linux x64 artifact
         uses: actions/upload-artifact@v4
         with:

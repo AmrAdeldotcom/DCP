@@ -1,0 +1,37 @@
+name: Test DCP Windows build
+
+on:
+  pull_request:
+    paths:
+      - 'platform/**'
+      - '.github/workflows/test-windows.yml'
+      - '.github/workflows/release-windows.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'platform/**'
+      - '.github/workflows/test-windows.yml'
+      - '.github/workflows/release-windows.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  windows-x64:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Build Windows application
+        shell: pwsh
+        run: ./platform/scripts/build-windows.ps1 -DCPVersion 'ci-1.0.0'
+      - name: Verify Windows package and exclude developer data
+        shell: pwsh
+        run: |
+          if (!(Test-Path 'platform/dist/windows/DCP.exe')) { throw 'DCP.exe missing' }
+          if (!(Test-Path 'platform/dist/windows/runtime/php/php.exe')) { throw 'Private PHP runtime missing' }
+          if (!(Test-Path 'platform/dist/windows/platform/scripts/update-windows.ps1')) { throw 'Self-updater missing' }
+          if (Test-Path 'platform/dist/windows/platform/storage/keys/master.key') { throw 'Developer encryption key leaked into package' }
+          if (Test-Path 'platform/dist/windows/platform/data/dcp.sqlite') { throw 'Developer SQLite database leaked into package' }

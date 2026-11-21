@@ -1,5 +1,5 @@
 # DCP — Desktop Connector Platform
-Version 1.0.0-alpha.2
+Version 1.0.0-alpha.6
 
 DCP is a local-first PHP platform with SQLite, encrypted credentials, JSON locales, provider/agent plugins and thin desktop WebView wrappers.
 
