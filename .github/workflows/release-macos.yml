@@ -58,4 +58,5 @@ jobs:
         with:
           name: DCP ${{ github.ref_name }}
           generate_release_notes: true
+          overwrite_files: true
           files: DCP-macOS-universal.zip

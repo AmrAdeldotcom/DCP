@@ -48,6 +48,7 @@ jobs:
         with:
           name: DCP ${{ github.ref_name }}
           generate_release_notes: true
+          overwrite_files: true
           files: |
             DCP-Windows-x64.zip
             platform/dist/windows/DCP-Windows-update.json
