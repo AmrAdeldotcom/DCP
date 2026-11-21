@@ -25,7 +25,7 @@ DCP is a local-first desktop platform that connects AI providers, agent runtimes
 ## Directory map
 - app/Core: database, encryption, plugin discovery, adapter contracts.
 - app/Controllers: page and JSON API controllers.
-- app/Services: chat, provider, mail, terminal, device, report and agent services.
+- app/Services: chat, provider, mail, terminal, device, report, cloud identity/presence and agent services.
 - bootstrap: application bootstrap and dependency wiring.
 - config: runtime configuration.
 - data: SQLite database and WAL files.
@@ -89,6 +89,11 @@ GET /api/chat/messages?id=... — read conversation messages.
 GET /api/plugins — discover installed plugins.
 MCP STDIO server: plugins/tools/mcp-host/server.php (initialize, tools/list, tools/call). Example configurations for Codex, VS Code and Antigravity-compatible clients are under integrations/mcp-examples/.
 GET /api/agents — get truthful adapter status.
+GET /api/cloud/status — verify encrypted Cloud account session, device heartbeat and same-account device discovery.
+GET /api/cloud/signals — poll short-lived signaling envelopes for a connection request.
+POST /api/cloud/register and POST /api/cloud/login — register/sign in to the hosted DCP Cloud control plane; account and device tokens are encrypted in local SQLite settings.
+POST /api/cloud/logout — revoke this device and clear its local Cloud credentials.
+POST /api/cloud/connect and POST /api/cloud/signal — create same-account connection requests and exchange signaling envelopes.
 GET/POST /api/settings — read/save preferences.
 GET /api/locales?locale=ar — load merged JSON + database translations.
 POST /api/locales/save — edit a translation variable.
@@ -133,7 +138,7 @@ All POST API requests require the session CSRF token except the device heartbeat
 - Windows WebView2 and Linux WebKit2GTK wrapper source templates.
 
 ## Known limitations — do not present as completed
-- Cloud control-plane MVP is deployed and supports accounts, device registration, presence, same-account discovery, connection requests and short-lived signaling. Desktop-client registration, WebRTC data-channel transport and remote task execution are not yet complete. No payload relay is provided.
+- Cloud control-plane MVP is deployed. Desktop clients support account registration/sign-in, encrypted token storage, device registration, heartbeats and same-account device discovery. WebRTC data-channel transport and remote task execution are not yet complete. No payload relay is provided.
 - Paired-device task transport and remote execution are not implemented yet.
 - Desktop Commander and DeepSeek Harness are detected by adapters, but authenticated task submission is not implemented.
 - Tasks can be created and approved, but no remote agent executes them yet.

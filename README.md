@@ -86,7 +86,7 @@ The hosted control plane is separate from **device-to-device data transport**:
 
 **Security rules:** invitation acceptance only establishes a trust relationship; it does not grant unrestricted remote shell access. Use least-privilege capabilities, explicit approval for sensitive actions, encrypted transport, hashed/revocable device credentials, replay protection, audit events and per-device revocation.
 
-The Cloud MVP is not yet fully integrated into the desktop clients. The current API is signaling-only: it does not provide a WebRTC data-channel client, payload relay, remote task transport or remote command execution. Do not represent two devices as connected for task execution until authenticated peer transport and task authorization are implemented and tested.
+The desktop clients now support DCP Cloud account registration/sign-in, encrypted local token storage, device registration, heartbeats and same-account device discovery. The current API remains signaling-only: the WebRTC data-channel client, payload relay, remote task transport and remote command execution are not yet complete. Do not represent two devices as connected for task execution until authenticated peer transport and task authorization are implemented and tested.
 
 ## Local AI manager
 
