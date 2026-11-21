@@ -27,6 +27,22 @@ jobs:
       - name: Build Windows application
         shell: pwsh
         run: ./platform/scripts/build-windows.ps1 -DCPVersion 'v1.0.0-alpha.6'
+      - name: Parse PowerShell installer and updater scripts
+        shell: pwsh
+        run: |
+          $files = @(
+            'platform/scripts/build-windows.ps1',
+            'platform/scripts/install-runtime-windows.ps1',
+            'platform/scripts/update-windows.ps1',
+            'platform/Install-DCP-Online.ps1'
+          )
+          foreach ($file in $files) {
+            $tokens = $null
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $file).Path, [ref]$tokens, [ref]$errors) | Out-Null
+            if ($errors.Count -gt 0) { throw "PowerShell syntax errors in $file: $($errors | Out-String)" }
+            Write-Host "PASS PowerShell syntax: $file"
+          }
       - name: Verify Windows package and exclude developer data
         shell: pwsh
         run: |
