@@ -8,6 +8,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: dcp-release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   managed-php-runtime:
     uses: ./.github/workflows/build-php-runtime-macos.yml

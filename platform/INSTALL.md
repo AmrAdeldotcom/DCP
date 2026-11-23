@@ -1,5 +1,23 @@
 # DCP installation and first-run requirements
 
+## One-command GitHub installation
+
+After a verified GitHub Release is published, use the platform-specific command below. Each installer downloads the matching release asset, verifies the Linux SHA-256 where supplied, preserves existing user data and keeps a rollback copy of the previous installation.
+
+### Windows PowerShell
+
+```powershell
+irm https://raw.githubusercontent.com/AmrAdeldotcom/DCP/main/platform/Install-DCP-Online.ps1 | iex
+```
+
+### macOS and Ubuntu 24.04 (x86_64)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/AmrAdeldotcom/DCP/main/platform/Install-DCP-Online.sh | bash
+```
+
+The shell installer detects macOS or Linux. Linux installs the published `DCP-Linux-x64.tar.gz` package and required Ubuntu GTK/WebKit/PHP runtime packages. The Linux release is not considered available until its tagged GitHub Actions release workflow has published both the archive and checksum.
+
 ## Package layout
 
 Keep the desktop executable, runtime/, and platform/ together in one writable folder. Do not install the portable package under a protected system folder such as Program Files unless you separately configure a writable per-user data directory.

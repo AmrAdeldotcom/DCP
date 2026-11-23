@@ -8,6 +8,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: dcp-release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   windows-x64:
     runs-on: windows-latest

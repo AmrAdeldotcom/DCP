@@ -3,7 +3,7 @@ name: Build DCP Linux WebView
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: ['**']
     paths:
       - 'platform/**'
       - '.github/workflows/build-linux.yml'

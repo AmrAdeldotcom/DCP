@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
-  "project": "DCP \u2014 Desktop Connector Platform",
-  "updatedAt": "2026-11-23T23:59:59+02:00",
-  "session": "DC03",
+  "project": "DCP — Desktop Connector Platform",
+  "updatedAt": "2026-11-24T01:30:00+02:00",
+  "session": "DC05",
   "repository": "/Volumes/Data/ChatGPT/DCP",
   "branch": "fix/alpha7-localai-cloud-pairing",
-  "headCommit": "64eaf1c2da99b1b582bb8b3b7fb0c4826c64462a",
+  "headCommit": "e3b8bf2db2e827c07a227f39ec2b4cbb33682a23",
   "latestReleaseTag": "v1.0.0-alpha.8",
-  "workingTree": "dirty; compile-step GITHUB_TOKEN fix pending focused commit; unrelated cloud/web-entry changes remain uncommitted and preserved",
+  "workingTree": "dirty; local Q005 macOS OpenSSL license-path correction and project memory updates are uncommitted; unrelated cloud/web-entry/LocalAI changes preserved",
   "device": {
     "name": "Amrs-Mac-Pro",
     "id": "a23231bf-eabc-441c-a6e2-560e3ae7f957",
@@ -17,7 +17,7 @@
   },
   "activeTask": "Q005",
   "activeTaskStatus": "partial",
-  "nextTask": "Continue Q005: monitor native macOS Intel/ARM64 PHP builds; resolve extension/TLS/deployment-target/license/package issues; run clean-machine installs. Do not start Q006 until Q005 closes.",
+  "nextTask": "Commit and push the focused Mac/Linux/Windows installer and package changes; validate native Mac runtime/package CI and Ubuntu Linux package CI; only then publish a new synchronized GitHub Release and install it on Windows and Ubuntu.",
   "nextTaskFile": "PROJECT-MEMORY/tasks/Q005-managed-php-macos.md",
   "followingTask": "Q006",
   "knownConstraints": [
@@ -32,8 +32,8 @@
     "SSH lab configuration and dcp-lab key are on /Volumes/Data/ChatGPT/DCP-Lab-SSH/; preserve the user's external-drive SSH organization preference."
   ],
   "verifiedBaseline": {
-    "platformTests": "php platform/tests/run.php \u2014 ALL PLATFORM TESTS PASSED on 2026-11-23",
-    "runtimeInstallerTests": "bash platform/tests/runtime-macos-installer.sh \u2014 6/6 passed",
+    "platformTests": "php platform/tests/run.php — ALL PLATFORM TESTS PASSED on 2026-11-23",
+    "runtimeInstallerTests": "bash platform/tests/runtime-macos-installer.sh — 6/6 passed",
     "phpLint": "All platform PHP files linted successfully on 2026-11-23",
     "javascriptSyntax": "node --check platform/public/assets/app.js passed",
     "shellSyntax": "bash -n for macOS installer, tests and bootstrap/build scripts passed",
@@ -48,7 +48,7 @@
     "php": "/usr/local/bin/php 8.5.9, Homebrew PHP present",
     "impact": "Do not compile PHP or install large build dependencies locally; use native GitHub Actions runners."
   },
-  "connectionNote": "Remote Desktop Commander connection intermittently failed during persisted-session/device startup; device reconnected and is online. Check tool-call status before retrying pending operations.",
+  "connectionNote": "Mac Desktop Commander online. Hostinger, Windows and Ubuntu key-based SSH verified. Keep private keys on external drive. No production deployment or data changes.",
   "lastVerifiedFiles": [
     "WORK-QUEUE.md",
     "ROADMAP.md",
@@ -74,18 +74,19 @@
     "PROJECT-MEMORY/ACCESS-INVENTORY.md"
   ],
   "openIssues": [
-    "Q004 blocked: Apache AllowOverride None and mod_rewrite unavailable; public URL/shortcut must remain blocked until server security is verified.",
-    "Q005 partial: Windows and Cloud PHP CI green. macOS ARM64 run 45272657258 failed during StaticPHP craft because the prebuilt pkg-config GitHub release API request received 403; GITHUB_TOKEN was present only in the earlier download step. The same read-only token is now added to the compile step in the working tree. OpenSSL matching-version license fallback is committed but has not yet been exercised after a successful compile. Rerun Mac CI and complete package/clean-machine tests.",
-    "Q006 pending: local chat/llama.cpp lifecycle work must not start before Q005 closes.",
-    "Working tree contains many unrelated dirty files; inspect exact Q005 diffs and never stage/commit wholesale.",
-    "GitHub Actions workflow semantic validation and execution are pending; actionlint is not installed locally.",
-    "Hostinger SSH alias dcp-hostinger has an existing private key at ~/.ssh/dcp-hostinger (mode 0600); SSH offers it but the server rejects it with Permission denied (publickey,password). No cloud deployment. Lab alias windows-dcp on /Volumes/Data/ChatGPT/DCP-Lab-SSH/config times out / host down; ubuntu-dcp is a placeholder with no configured host. GitHub SSH alias github-dcp works."
+    "Q004 web-entry routing/security must be rechecked with the corrected Hostinger document-root mapping; do not expose public tunnel until private-path/auth hardening is verified.",
+    "Q005 partial: StaticPHP license dump now runs from the builder working directory; Ubuntu Linux package and GitHub installer added locally. Requires push and CI validation on both Mac architectures and Ubuntu 24.04, followed by new tagged release and clean Windows/Ubuntu installs.",
+    "Q006 local chat and llama.cpp lifecycle remains next after Q005 closure.",
+    "Q007 Cloud migration and API deployment remain pending. Hostinger live database is old schema; pairing tables are missing and devices.user_id remains NOT NULL. No production change made.",
+    "Windows old DCP install must be preserved as rollback backup while official GitHub online installer installs the new release; carry forward SQLite and master key until app verification.",
+    "Ubuntu 24.04 target has SSH access and passwordless sudo; no DCP install or system packages have been changed yet.",
+    "Working tree contains unrelated dirty cloud/web-entry/LocalAI changes; stage only reviewed paths."
   ],
   "github": {
     "sshAlias": "github-dcp",
     "authentication": "SSH succeeds for AmrAdeldotcom/DCP",
     "branch": "fix/alpha7-localai-cloud-pairing",
-    "commit": "64eaf1c2da99b1b582bb8b3b7fb0c4826c64462a",
+    "commit": "e3b8bf2db2e827c07a227f39ec2b4cbb33682a23",
     "pushVerified": true,
     "ciRuns": {
       "windows": 45270962681,
@@ -102,27 +103,66 @@
       "macosBuildInProgress": 45271261590,
       "macosRuntimeLicenseFailure": 45271261590,
       "macosLicenseFixRerun": 45272657258,
-      "windowsBuildPassLatest": 45272657220,
-      "cloudPhpPassLatest": 45272657130
+      "windowsBuildPassLatest": 45273110655,
+      "cloudPhpPassLatest": 45272657130,
+      "macosLicensePathFailure": 45273110645
     }
   },
   "cloudAccess": {
     "sshAlias": "dcp-hostinger",
-    "identityFile": "~/.ssh/dcp-hostinger",
-    "identityFileExists": true,
-    "identityFileMode": "0600",
-    "keyOfferedToServer": true,
-    "authenticationResult": "Permission denied (publickey,password)",
+    "endpoint": "145.223.105.238:65002",
+    "user": "u163155085",
+    "identityFile": "/Volumes/Data/ChatGPT/DCP-Lab-SSH/dcp-hostinger-2026",
+    "authenticationResult": "key-based SSH login succeeded",
+    "projectPath": "/home/u163155085/domains/amradel.com/public_html/dcp",
+    "health": "https://dcp.amradel.com/api/v1/health returns HTTP 200; database/schema OK",
+    "php": "8.5.13; PDO mysql,sqlite",
+    "databaseAudit": "6 tables; devices.user_id NOT NULL; pairing_codes, pairing_requests, device_pairings missing",
     "deploymentAllowed": false,
-    "note": "Key exists locally and was offered, but Hostinger did not accept it. Do not attempt password guessing or deploy."
+    "note": "Live index.php lacks anonymous registration/pairing routes and differs from local platform/cloud/index.php. No migration, file update or permission change."
   },
   "labAccess": {
     "config": "/Volumes/Data/ChatGPT/DCP-Lab-SSH/config",
-    "key": "/Volumes/Data/ChatGPT/DCP-Lab-SSH/dcp-lab",
-    "windowsAlias": "windows-dcp",
-    "windowsHost": "192.168.8.54",
-    "windowsResult": "SSH connection timed out / host down",
-    "ubuntuAlias": "ubuntu-dcp",
-    "ubuntuHost": "placeholder not configured"
+    "key": "/Volumes/Data/ChatGPT/DCP-Lab-SSH/dcp-lab-admin-2026",
+    "windows": {
+      "alias": "windows-dcp-admin",
+      "host": "192.168.8.62",
+      "user": "dcpadmin",
+      "authentication": "key-based login succeeded",
+      "hostKey": "console fingerprint matched and pinned"
+    },
+    "ubuntu": {
+      "alias": "ubuntu-dcp-admin",
+      "host": "192.168.8.56",
+      "user": "amr",
+      "authentication": "key-based login succeeded"
+    },
+    "note": "Ubuntu was inventoried read-only; Linux implementation remains deferred."
+  },
+  "devices": {
+    "windows": {
+      "os": "Windows 11 Pro 26100 x64",
+      "cpu": "Intel Xeon W3680, 4 vCPU",
+      "ram": "7.98 GiB",
+      "disk": "C: 254.6 GB, about 217.2 GB free",
+      "installedDcpCommit": "5b91bcc66a5caf7e8b06e93d8dee52ce35633aaa",
+      "installedPhp": "8.5.13",
+      "dataBoundary": "Existing installed copy stores SQLite and master.key under application platform/data and platform/storage/keys; DCP-UserData contains only WebView2. Preserve copy.",
+      "installTarget": "GitHub release asset DCP-Windows-x64.zip via platform/Install-DCP-Online.ps1; previous installation/data backed up"
+    },
+    "ubuntu": {
+      "os": "Ubuntu 24.04 LTS x86_64",
+      "cpu": "Intel Xeon W3680, 2 vCPU",
+      "ram": "7.7 GiB",
+      "disk": "64 GB, about 49 GB free",
+      "installedTools": "Python3 and OpenSSH; Git/PHP/Composer/Node/Docker/Podman/Ollama not found",
+      "installTarget": "GitHub release asset DCP-Linux-x64.tar.gz via platform/Install-DCP-Online.sh; Ubuntu 24.04 x86_64"
+    }
+  },
+  "releaseInstallers": {
+    "windows": "platform/Install-DCP-Online.ps1 downloads latest release asset DCP-Windows-x64.zip, preserves data/storage, moves old install to timestamped backup, runs prerequisite setup.",
+    "macos_linux": "platform/Install-DCP-Online.sh detects OS; Linux downloads DCP-Linux-x64.tar.gz and verifies SHA-256; macOS downloads universal ZIP.",
+    "linuxReleaseWorkflow": ".github/workflows/release-linux.yml",
+    "linuxCiWorkflow": ".github/workflows/build-linux.yml"
   }
 }

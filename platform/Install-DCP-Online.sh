@@ -2,82 +2,150 @@
 set -euo pipefail
 
 REPO="AmrAdeldotcom/DCP"
-ASSET="DCP-macOS-universal.zip"
+API="https://api.github.com/repos/$REPO/releases?per_page=10"
 INSTALL_ROOT="${DCP_INSTALL_DIR:-$HOME/Applications/DCP}"
 WORK_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/dcp-install.XXXXXX")"
-ARCHIVE="$WORK_ROOT/$ASSET"
-EXTRACT="$WORK_ROOT/extracted"
-API="https://api.github.com/repos/$REPO/releases?per_page=10"
-
-cleanup() { rm -rf "$WORK_ROOT"; }
+BACKUP=""
+INSTALL_STARTED=0
+INSTALL_COMPLETE=0
+cleanup() {
+  if [[ "$INSTALL_STARTED" == "1" && "$INSTALL_COMPLETE" != "1" ]]; then
+    rm -rf "$INSTALL_ROOT"
+    if [[ -n "$BACKUP" && -d "$BACKUP" ]]; then
+      mv "$BACKUP" "$INSTALL_ROOT"
+      echo "Previous DCP installation restored." >&2
+    fi
+  fi
+  rm -rf "$WORK_ROOT"
+}
 trap cleanup EXIT
 
-command -v curl >/dev/null 2>&1 || { echo "curl is required."; exit 1; }
-command -v ditto >/dev/null 2>&1 || { echo "macOS ditto is required."; exit 1; }
+command -v curl >/dev/null 2>&1 || { echo "curl is required." >&2; exit 1; }
+command -v python3 >/dev/null 2>&1 || { echo "Python 3 is required to read GitHub release metadata." >&2; exit 1; }
 
-echo "Finding the latest DCP macOS release..."
-RELEASE_JSON="$WORK_ROOT/releases.json"
-curl -fsSL -H "Accept: application/vnd.github+json" "$API" -o "$RELEASE_JSON"
-DOWNLOAD_URL="$(/usr/bin/python3 - "$RELEASE_JSON" "$ASSET" <<'PY'
+case "$(uname -s)" in
+  Darwin)
+    ASSET="DCP-macOS-universal.zip"
+    ARCHIVE="$WORK_ROOT/$ASSET"
+    EXTRACT="$WORK_ROOT/extracted"
+    command -v ditto >/dev/null 2>&1 || { echo "macOS ditto is required." >&2; exit 1; }
+
+    echo "Finding the latest DCP macOS release..."
+    curl -fsSL -H "Accept: application/vnd.github+json" "$API" -o "$WORK_ROOT/releases.json"
+    DOWNLOAD_URL="$(python3 - "$WORK_ROOT/releases.json" "$ASSET" <<'PY'
 import json, sys
-releases=json.load(open(sys.argv[1], encoding='utf-8'))
-asset_name=sys.argv[2]
-for release in releases:
-    if release.get('draft'):
+for release in json.load(open(sys.argv[1], encoding="utf-8")):
+    if release.get("draft"):
         continue
-    for asset in release.get('assets', []):
-        if asset.get('name') == asset_name:
-            print(asset['browser_download_url'])
+    for asset in release.get("assets", []):
+        if asset.get("name") == sys.argv[2]:
+            print(asset["browser_download_url"])
             raise SystemExit(0)
-raise SystemExit("No published macOS package was found in the latest releases.")
+raise SystemExit("No published macOS package was found in GitHub Releases.")
 PY
 )"
+    mkdir -p "$EXTRACT" "$(dirname "$INSTALL_ROOT")"
+    curl -fL --retry 3 "$DOWNLOAD_URL" -o "$ARCHIVE"
+    ditto -x -k "$ARCHIVE" "$EXTRACT"
+    PACKAGE="$EXTRACT"
+    [[ -d "$PACKAGE/DCP.app" && -d "$PACKAGE/platform" ]] || { echo "Invalid macOS package." >&2; exit 1; }
 
-mkdir -p "$EXTRACT" "$(dirname "$INSTALL_ROOT")"
-echo "Downloading $ASSET..."
-curl -fL --retry 3 "$DOWNLOAD_URL" -o "$ARCHIVE"
-ditto -x -k "$ARCHIVE" "$EXTRACT"
+    SAVED="$WORK_ROOT/user-state"
+    mkdir -p "$SAVED"
+    [[ ! -d "$INSTALL_ROOT/platform/data" ]] || ditto "$INSTALL_ROOT/platform/data" "$SAVED/data"
+    [[ ! -d "$INSTALL_ROOT/platform/storage" ]] || ditto "$INSTALL_ROOT/platform/storage" "$SAVED/storage"
+    if [[ -d "$INSTALL_ROOT" ]]; then
+      BACKUP="${INSTALL_ROOT}.backup.$(date +%Y%m%d-%H%M%S)"
+      mv "$INSTALL_ROOT" "$BACKUP"
+    fi
+    INSTALL_STARTED=1
+    mkdir -p "$INSTALL_ROOT"
+    ditto "$PACKAGE/DCP.app" "$INSTALL_ROOT/DCP.app"
+    ditto "$PACKAGE/platform" "$INSTALL_ROOT/platform"
+    mkdir -p "$INSTALL_ROOT/platform/data" "$INSTALL_ROOT/platform/storage"
+    [[ ! -d "$SAVED/data" ]] || ditto "$SAVED/data" "$INSTALL_ROOT/platform/data"
+    [[ ! -d "$SAVED/storage" ]] || ditto "$SAVED/storage" "$INSTALL_ROOT/platform/storage"
+    chmod -R u+rwX "$INSTALL_ROOT"
+    "$INSTALL_ROOT/platform/scripts/install-runtime-macos.sh"
+    INSTALL_COMPLETE=1
+    open "$INSTALL_ROOT/DCP.app"
+    echo "DCP macOS installed at: $INSTALL_ROOT"
+    ;;
 
-PACKAGE="$EXTRACT"
-if [[ ! -d "$PACKAGE/DCP.app" || ! -d "$PACKAGE/platform" ]]; then
-    echo "Invalid DCP package: DCP.app and platform/ must be at the archive root."
-    exit 1
-fi
+  Linux)
+    ASSET="DCP-Linux-x64.tar.gz"
+    ARCHIVE="$WORK_ROOT/$ASSET"
+    CHECKSUM="$WORK_ROOT/$ASSET.sha256"
+    EXTRACT="$WORK_ROOT/extracted"
+    [[ "$(uname -m)" == "x86_64" ]] || { echo "This Linux release currently supports x86_64 only." >&2; exit 1; }
+    command -v tar >/dev/null 2>&1 || { echo "tar is required." >&2; exit 1; }
+    command -v sha256sum >/dev/null 2>&1 || { echo "sha256sum is required." >&2; exit 1; }
+    command -v apt-get >/dev/null 2>&1 || { echo "Ubuntu/Debian apt-get is required for DCP Linux prerequisites." >&2; exit 1; }
 
-# Preserve user data and encryption material across upgrades.
-SAVED="$WORK_ROOT/user-state"
-mkdir -p "$SAVED"
-if [[ -d "$INSTALL_ROOT/platform/data" ]]; then
-    ditto "$INSTALL_ROOT/platform/data" "$SAVED/data"
-fi
-if [[ -d "$INSTALL_ROOT/platform/storage" ]]; then
-    ditto "$INSTALL_ROOT/platform/storage" "$SAVED/storage"
-fi
+    echo "Finding the latest DCP Linux release..."
+    curl -fsSL -H "Accept: application/vnd.github+json" "$API" -o "$WORK_ROOT/releases.json"
+    python3 - "$WORK_ROOT/releases.json" "$ASSET" "$ASSET.sha256" "$WORK_ROOT/asset-urls.txt" <<'PY'
+import json, sys
+for release in json.load(open(sys.argv[1], encoding="utf-8")):
+    if release.get("draft"):
+        continue
+    assets = {a["name"]: a["browser_download_url"] for a in release.get("assets", [])}
+    if all(name in assets for name in sys.argv[2:4]):
+        with open(sys.argv[4], "w", encoding="utf-8") as f:
+            f.write(assets[sys.argv[2]] + "\n" + assets[sys.argv[3]] + "\n")
+        break
+else:
+    raise SystemExit("No published DCP Linux release contains both the package and its SHA-256 file.")
+PY
+    mapfile -t URLS < "$WORK_ROOT/asset-urls.txt"
+    mkdir -p "$EXTRACT" "$(dirname "$INSTALL_ROOT")"
+    curl -fL --retry 3 "${URLS[0]}" -o "$ARCHIVE"
+    curl -fL --retry 3 "${URLS[1]}" -o "$CHECKSUM"
+    EXPECTED="$(awk '{print $1}' "$CHECKSUM" | head -n1)"
+    ACTUAL="$(sha256sum "$ARCHIVE" | awk '{print $1}')"
+    [[ "$EXPECTED" =~ ^[a-fA-F0-9]{64}$ && "$ACTUAL" == "$EXPECTED" ]] || { echo "Linux package SHA-256 verification failed." >&2; exit 1; }
+    tar -xzf "$ARCHIVE" -C "$EXTRACT"
+    PACKAGE="$EXTRACT"
+    [[ -x "$PACKAGE/DCP" && -x "$PACKAGE/Run-DCP.sh" && -d "$PACKAGE/platform" ]] || { echo "Invalid Linux package: DCP launcher or platform directory missing." >&2; exit 1; }
 
-BACKUP=""
-if [[ -d "$INSTALL_ROOT" ]]; then
-    BACKUP="${INSTALL_ROOT}.backup.$(date +%Y%m%d-%H%M%S)"
-    mv "$INSTALL_ROOT" "$BACKUP"
-fi
+    SAVED="$WORK_ROOT/user-state"
+    mkdir -p "$SAVED"
+    for item in data storage; do
+      [[ ! -d "$INSTALL_ROOT/platform/$item" ]] || cp -a "$INSTALL_ROOT/platform/$item" "$SAVED/$item"
+    done
+    [[ ! -d "$INSTALL_ROOT/DCP-UserData" ]] || cp -a "$INSTALL_ROOT/DCP-UserData" "$SAVED/DCP-UserData"
 
-if ! mkdir -p "$INSTALL_ROOT" || ! ditto "$PACKAGE/DCP.app" "$INSTALL_ROOT/DCP.app" || ! ditto "$PACKAGE/platform" "$INSTALL_ROOT/platform"; then
-    echo "Install copy failed; restoring the previous installation."
-    rm -rf "$INSTALL_ROOT"
-    if [[ -n "$BACKUP" && -d "$BACKUP" ]]; then mv "$BACKUP" "$INSTALL_ROOT"; fi
-    exit 1
-fi
+    if [[ -d "$INSTALL_ROOT" ]]; then
+      BACKUP="${INSTALL_ROOT}.backup.$(date +%Y%m%d-%H%M%S)"
+      mv "$INSTALL_ROOT" "$BACKUP"
+    fi
+    INSTALL_STARTED=1
+    mkdir -p "$INSTALL_ROOT"
+    cp -a "$PACKAGE/." "$INSTALL_ROOT/"
+    mkdir -p "$INSTALL_ROOT/platform/data" "$INSTALL_ROOT/platform/storage"
+    for item in data storage; do
+      [[ ! -d "$SAVED/$item" ]] || cp -a "$SAVED/$item/." "$INSTALL_ROOT/platform/$item/"
+    done
+    [[ ! -d "$SAVED/DCP-UserData" ]] || cp -a "$SAVED/DCP-UserData" "$INSTALL_ROOT/"
 
-mkdir -p "$INSTALL_ROOT/platform/data" "$INSTALL_ROOT/platform/storage"
-[[ ! -d "$SAVED/data" ]] || ditto "$SAVED/data" "$INSTALL_ROOT/platform/data"
-[[ ! -d "$SAVED/storage" ]] || ditto "$SAVED/storage" "$INSTALL_ROOT/platform/storage"
-chmod -R u+rwX "$INSTALL_ROOT"
-echo "Checking the PHP CLI runtime..."
-if ! "$INSTALL_ROOT/platform/scripts/install-runtime-macos.sh"; then
-    echo "PHP runtime setup failed. Restoring the previous installation if available."
-    rm -rf "$INSTALL_ROOT"
-    if [[ -n "$BACKUP" && -d "$BACKUP" ]]; then mv "$BACKUP" "$INSTALL_ROOT"; fi
-    exit 1
-fi
-echo "Launching DCP..."
-open "$INSTALL_ROOT/DCP.app"
-echo "DCP installed at: $INSTALL_ROOT"
+    if [[ $EUID -eq 0 ]]; then SUDO=(); else command -v sudo >/dev/null 2>&1 || { echo "sudo is required to install Ubuntu runtime libraries." >&2; exit 1; }; SUDO=(sudo); fi
+    "${SUDO[@]}" apt-get update
+    "${SUDO[@]}" apt-get install -y libgtk-3-0t64 libwebkit2gtk-4.1-0 php-cli php-curl php-intl php-mbstring php-sqlite3 php-xml php-gd php-zip
+    chmod +x "$INSTALL_ROOT/DCP" "$INSTALL_ROOT/Run-DCP.sh" "$INSTALL_ROOT/Install-DCP-Launcher.sh"
+    "$INSTALL_ROOT/platform/scripts/install-runtime-linux.sh"
+    php "$INSTALL_ROOT/platform/scripts/verify-runtime.php"
+    "$INSTALL_ROOT/Install-DCP-Launcher.sh"
+    INSTALL_COMPLETE=1
+    if [[ -n "${DISPLAY:-}" || -n "${WAYLAND_DISPLAY:-}" ]]; then
+      nohup "$INSTALL_ROOT/Run-DCP.sh" > "$INSTALL_ROOT/dcp-launch.log" 2>&1 &
+      echo "DCP launched. Log: $INSTALL_ROOT/dcp-launch.log"
+    else
+      echo "DCP installed. No graphical session detected; launch DCP from the Applications menu when logged into Ubuntu."
+    fi
+    echo "DCP Linux installed at: $INSTALL_ROOT"
+    ;;
+  *)
+    echo "Unsupported operating system: $(uname -s)" >&2
+    exit 2
+    ;;
+esac

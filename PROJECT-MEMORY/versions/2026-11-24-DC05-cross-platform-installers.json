@@ -1,0 +1,50 @@
+{
+  "date": "2026-11-24",
+  "session": "DC05",
+  "repository": "/Volumes/Data/ChatGPT/DCP",
+  "branch": "fix/alpha7-localai-cloud-pairing",
+  "lastPushedCommit": "e3b8bf2db2e827c07a227f39ec2b4cbb33682a23",
+  "activeTask": "Q005",
+  "status": "partial",
+  "scope": ["macOS Intel", "macOS Apple Silicon", "Windows x64", "Ubuntu 24.04 x64"],
+  "macosCiPriorRun": {
+    "run": 45273110645,
+    "result": "PHP compiled on both architectures; extensions, TLS, system dylibs and deployment target passed; license dump failed",
+    "rootCause": "StaticPHP SOURCE_PATH and BUILD_ROOT_PATH are relative to getcwd(); the dump step ran from GitHub Workspace instead of SPC_DIR",
+    "localFix": "cd $SPC_DIR before bin/spc dump-license; exact OpenSSL license is placed in both source and buildroot fallback paths",
+    "pushAndRerun": "pending"
+  },
+  "windowsCi": {"run": 45273110655, "result": "success"},
+  "cloudPhpCi": {"run": 45272657130, "result": "success"},
+  "localChanges": [
+    ".github/workflows/build-php-runtime-macos.yml",
+    ".github/workflows/build-linux.yml",
+    ".github/workflows/release-linux.yml",
+    ".github/workflows/release-windows.yml",
+    ".github/workflows/release-macos.yml",
+    "platform/Install-DCP-Online.sh",
+    "platform/Install-DCP-Online.ps1",
+    "platform/scripts/build-linux.sh",
+    "platform/INSTALL.md",
+    "WORK-QUEUE.md",
+    "PROJECT-MEMORY/"
+  ],
+  "validation": ["bash -n", "PowerShell parser", "YAML parse for 5 workflows", "PHP lint", "JSON parse", "git diff --check"],
+  "linuxInstall": {
+    "releaseAsset": "DCP-Linux-x64.tar.gz",
+    "checksumAsset": "DCP-Linux-x64.tar.gz.sha256",
+    "target": "Ubuntu 24.04 x86_64",
+    "workflow": ".github/workflows/release-linux.yml",
+    "installer": "platform/Install-DCP-Online.sh",
+    "notes": "Checksum verification, rollback backup, platform/data + platform/storage preservation, GTK/WebKit/PHP dependencies, launcher setup; graphical launch only when DISPLAY or WAYLAND_DISPLAY exists."
+  },
+  "windowsInstall": {
+    "releaseAsset": "DCP-Windows-x64.zip",
+    "installer": "platform/Install-DCP-Online.ps1",
+    "notes": "Official online installer preserves user data, moves previous install to timestamped backup and installs VC++/WebView2 only if missing."
+  },
+  "userClarification": "amradel.com/dcp is the document-root path serving dcp.amradel.com; treat it as one cloud deployment.",
+  "userAuthorization": "Replace old Windows app via GitHub setup after verified release; add Ubuntu 24.04 GitHub online installation; preserve user data and rollback backup.",
+  "noLiveChanges": true,
+  "nextAction": "Focused commit/push of reviewed packaging changes, verify Mac/Linux CI, publish synchronized new release, then install and verify Windows and Ubuntu."
+}

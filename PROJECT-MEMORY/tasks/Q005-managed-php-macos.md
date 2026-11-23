@@ -135,3 +135,26 @@ Result: **6/6 passed**
 - OpenSSL/cURL CA handling must pass the HTTPS smoke test.
 - GitHub Actions workflow semantic validation and execution are pending.
 - Existing working tree contains many unrelated modified, renamed and untracked files; never stage/commit wholesale.
+
+
+## DC04 — 2026-11-24 update
+- Windows build CI `45273110655` passed; Cloud PHP CI `45272657130` passed.
+- macOS runtime CI `45273110645` built PHP 8.4.28 for Intel and ARM64 and passed extension, HTTPS/TLS, dylib and minimum deployment-target checks. Both jobs failed at license dumping.
+- Reviewed the pinned StaticPHP v2.8.5 `LicenseDumper.php` source at commit `4318ef8fa32a02460ec1554746674a7bc42b49fa`. The loader first checks `SOURCE_PATH/openssl/LICENSE.txt`; its fallback is `BUILD_ROOT_PATH/source-licenses/openssl/0.txt`.
+- Corrected local `.github/workflows/build-php-runtime-macos.yml` to install the exact version-matched OpenSSL license in both paths and assert both files exist before `spc dump-license`.
+- Validation: Ruby YAML parse passed; `git diff --check` passed; `php -l platform/cloud/index.php` and `php -l platform/index.php` passed.
+- The correction is local and uncommitted. It needs an approved focused push and fresh native Mac CI. Q005 remains partial.
+
+
+## DC05 — 2026-11-24: GitHub installer and Ubuntu target
+- User clarified that `amradel.com/dcp` is the document-root path serving `dcp.amradel.com`; treat it as one deployment, not two independent projects.
+- User authorized replacing the old Windows application using the official GitHub online setup, and added Ubuntu 24.04 as a required GitHub online-install target. Preserve old Windows installation as rollback backup and carry forward its SQLite/key data until the new app is verified.
+- Corrected macOS PHP workflow root cause: StaticPHP derives `SOURCE_PATH` and `BUILD_ROOT_PATH` from its current working directory. The previous license dump step ran from GitHub Workspace instead of `$SPC_DIR`. The workflow now changes to `$SPC_DIR` before invoking `bin/spc dump-license`; the matching OpenSSL license is populated in both supported locations.
+- Fixed Linux package launcher bug: generated `Run-DCP.sh` previously invoked `install-runtime-linux.sh` through PHP even though it is a shell script. It now executes the script directly, then runs the PHP verifier.
+- Linux package now includes managed environment manifests/installers but excludes local build caches, compiled engines and virtual environments.
+- Reworked `platform/Install-DCP-Online.sh` to detect macOS/Linux. Linux installer selects a release containing both `DCP-Linux-x64.tar.gz` and its SHA-256, verifies checksum, preserves user data, keeps a rollback backup, installs Ubuntu 24.04 GTK/WebKit/PHP dependencies, installs the desktop launcher, and only launches when a graphical session exists.
+- Added `.github/workflows/release-linux.yml` for tagged Ubuntu 24.04 x64 builds and release assets. Linux CI `.github/workflows/build-linux.yml` now runs on all branches. Serialized Windows/macOS/Linux tag release workflows with the same concurrency group.
+- Windows online installer now invokes the package prerequisite setup with `-InstallSystemPrerequisites`, installing VC++/WebView2 only when missing.
+- Local checks: bash syntax, PowerShell parser, YAML parsing for five workflows, PHP lint, runtime manifest JSON, current-state JSON, and `git diff --check` all passed.
+- Ubuntu target: key SSH works; Ubuntu 24.04 LTS x86_64, 2 vCPU/7.7 GiB RAM, 49 GiB free; passwordless sudo is available. No app or packages installed yet. The host has WebKitGTK 4.1 runtime present, and Ubuntu 24.04 GTK runtime package is `libgtk-3-0t64`.
+- Still pending: push this focused packaging change, run Mac Intel/ARM64 runtime and package CI, run Linux build/release CI, publish a new synchronized release (not alpha.8), then install/verify on Windows and Ubuntu.

@@ -151,11 +151,20 @@ jobs:
             echo "Could not determine the compiled OpenSSL version: $OPENSSL_VERSION_TEXT" >&2
             exit 1
           fi
-          mkdir -p "$SPC_DIR/buildroot/source-licenses/openssl"
+          # LicenseDumper first looks under SOURCE_PATH/<source>/<license path>.
+          # Its fallback is BUILD_ROOT_PATH/source-licenses/<source>/<index>.txt.
+          # Prebuilt OpenSSL archives omit LICENSE.txt, so populate both supported locations.
+          mkdir -p "$SPC_DIR/source/openssl" "$SPC_DIR/buildroot/source-licenses/openssl"
           OPENSSL_LICENSE_URL="https://raw.githubusercontent.com/openssl/openssl/openssl-$OPENSSL_VERSION/LICENSE.txt"
-          curl --fail --location --retry 3 --retry-all-errors "$OPENSSL_LICENSE_URL" --output "$SPC_DIR/buildroot/source-licenses/openssl/0.txt"
-          grep -q 'Apache License' "$SPC_DIR/buildroot/source-licenses/openssl/0.txt"
-          "$SPC_DIR/bin/spc" dump-license --for-extensions="$EXTENSIONS" --dump-dir="$OUT/licenses"
+          curl --fail --location --retry 3 --retry-all-errors "$OPENSSL_LICENSE_URL" --output "$SPC_DIR/source/openssl/LICENSE.txt"
+          grep -q 'Apache License' "$SPC_DIR/source/openssl/LICENSE.txt"
+          cp "$SPC_DIR/source/openssl/LICENSE.txt" "$SPC_DIR/buildroot/source-licenses/openssl/0.txt"
+          test -s "$SPC_DIR/source/openssl/LICENSE.txt"
+          test -s "$SPC_DIR/buildroot/source-licenses/openssl/0.txt"
+          # StaticPHP resolves SOURCE_PATH and BUILD_ROOT_PATH relative to its working directory.
+          cd "$SPC_DIR"
+          test "$PWD" = "$SPC_DIR"
+          bin/spc dump-license --for-extensions="$EXTENSIONS" --dump-dir="$OUT/licenses"
           test -d "$OUT/licenses"
           test -n "$(find "$OUT/licenses" -type f -print -quit)"
           cp "$SPC_DIR/LICENSE" "$OUT/licenses/StaticPHP-MIT.txt"

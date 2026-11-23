@@ -61,7 +61,7 @@ try {
     if (Test-Path $StalePid) { Remove-Item -LiteralPath $StalePid -Force }
 
     Write-Host 'Installing and verifying PHP, Visual C++ Runtime, and WebView2...' -ForegroundColor Cyan
-    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $InstallRoot 'Install-DCP.ps1')
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $InstallRoot 'Install-DCP.ps1') -InstallSystemPrerequisites
     if ($LASTEXITCODE -ne 0) { throw 'DCP prerequisite setup failed.' }
 
     $App = Join-Path $InstallRoot 'DCP.exe'

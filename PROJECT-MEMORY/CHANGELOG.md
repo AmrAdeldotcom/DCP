@@ -69,3 +69,24 @@
 ## 2026-11-23 — StaticPHP craft token propagation fix
 - The license-fix rerun reached `spc craft` but failed to fetch the prebuilt pkg-config asset because the read-only GitHub token was scoped only to the preceding `spc download` step.
 - Added `GITHUB_TOKEN` to the separate `Compile managed PHP` step; YAML validation passed. This fix awaits a focused push and another native Mac CI run.
+
+
+## 2026-11-24 — DC04 access, cloud audit and Q005 CI correction
+- Verified key-based SSH to Hostinger, Windows 11 and Ubuntu 24.04; all private keys remain on the external drive.
+- Audited Hostinger DCP Cloud read-only: health endpoint 200, old six-table schema, nullable-device migration and pairing tables not yet deployed, .env web denial 403. No live changes.
+- Audited Windows installed DCP copy and Ubuntu node read-only; preserved installed data and kept Linux implementation deferred.
+- Reviewed StaticPHP v2.8.5 LicenseDumper and corrected local macOS workflow to place matching OpenSSL LICENSE.txt in both source and buildroot fallback locations.
+- CI: Windows build 45273110655 passed; Cloud PHP 45272657130 passed; macOS run 45273110645 built both architectures but failed license dumping before artifacts/package smoke.
+- Local YAML/PHP/diff checks passed. No commit, push, release, migration, upload or deployment.
+
+
+## 2026-11-24 — DC05: synchronized GitHub installers and Ubuntu target
+- Corrected the macOS StaticPHP license step to run from its own working directory; the prior run used GitHub Workspace, so the source/license lookup happened in the wrong directory.
+- Fixed the generated Linux launcher to execute the shell runtime installer directly rather than passing a .sh file to PHP.
+- Added dcp-env manifest/installer payload to Linux packages while excluding build caches, compiled engines and virtual environments.
+- Added Linux-aware GitHub online installer with release asset/checksum selection, SHA-256 verification, rollback and user-data preservation; added Ubuntu 24.04 runtime packages and launcher setup.
+- Added tagged Linux release workflow; expanded Linux package CI to all branches; serialized Mac/Windows/Linux release workflows to avoid competing updates to the same GitHub Release.
+- Windows online installer now requests the official prerequisite setup, installing VC++/WebView2 only if absent.
+- User authorized Windows replacement via GitHub installer and added Ubuntu 24.04 as a clean-install target. Existing Windows app data/key must be carried forward; keep the previous installation as a rollback backup.
+- Local validation passed: bash -n, PowerShell parser, YAML parse (5 workflows), PHP lint, JSON parse and git diff --check. GitHub CI and real installs remain pending.
+- Ubuntu host verified as 24.04 x86_64 with passwordless sudo; no packages or application files were changed.

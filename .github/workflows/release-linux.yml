@@ -1,0 +1,79 @@
+name: Build and publish DCP Linux release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: dcp-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  linux-x64:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install GTK/WebKit and PHP runtime dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev php-cli php-curl php-intl php-mbstring php-sqlite3 php-xml php-gd php-zip
+
+      - name: Verify PHP runtime
+        run: php platform/scripts/verify-runtime.php
+
+      - name: Build portable Linux application
+        run: |
+          chmod +x platform/scripts/*.sh
+          platform/scripts/build-linux.sh
+
+      - name: Verify package and linked runtime dependencies
+        run: |
+          set -euo pipefail
+          ROOT=platform/dist/linux
+          test -x "$ROOT/DCP"
+          test -x "$ROOT/Run-DCP.sh"
+          test -x "$ROOT/Install-DCP-Launcher.sh"
+          test -f "$ROOT/DCP.desktop"
+          test -f "$ROOT/platform/public/router.php"
+          test -f "$ROOT/platform/dcp-env/manifests/php-runtime.json"
+          test -f "$ROOT/platform/dcp-env/README.md"
+          test ! -d "$ROOT/platform/dcp-env/build"
+          test -d "$ROOT/platform/data"
+          test -d "$ROOT/platform/storage"
+          test ! -f "$ROOT/platform/storage/keys/master.key"
+          test ! -f "$ROOT/platform/data/dcp.sqlite"
+          bash -n "$ROOT/Run-DCP.sh" "$ROOT/Install-DCP-Launcher.sh" platform/Install-DCP-Online.sh
+          php "$ROOT/platform/scripts/verify-runtime.php"
+          if ldd "$ROOT/DCP" | grep -q 'not found'; then
+            echo "Linux DCP binary has unresolved shared-library dependencies." >&2
+            ldd "$ROOT/DCP"
+            exit 1
+          fi
+          if grep -F '"$PHP_BIN" "$ROOT/platform/scripts/install-runtime-linux.sh"' "$ROOT/Run-DCP.sh"; then
+            echo "Run-DCP.sh is incorrectly invoking a shell script through PHP." >&2
+            exit 1
+          fi
+
+      - name: Create Linux release archive and checksum
+        run: |
+          set -euo pipefail
+          tar -czf DCP-Linux-x64.tar.gz -C platform/dist/linux .
+          sha256sum DCP-Linux-x64.tar.gz > DCP-Linux-x64.tar.gz.sha256
+          test -s DCP-Linux-x64.tar.gz
+          test -s DCP-Linux-x64.tar.gz.sha256
+
+      - name: Publish Linux package to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: DCP ${{ github.ref_name }}
+          generate_release_notes: true
+          overwrite_files: true
+          files: |
+            DCP-Linux-x64.tar.gz
+            DCP-Linux-x64.tar.gz.sha256
