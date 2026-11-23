@@ -1,7 +1,7 @@
 {
   "checkpoint": "DC03-Q005-2026-11-23",
   "branch": "fix/alpha7-localai-cloud-pairing",
-  "head": "35d0b8c0af7ecd7a3f1a74858d9019312a6caf1f",
+  "head": "64eaf1c2da99b1b582bb8b3b7fb0c4826c64462a",
   "activeTask": "Q005",
   "installerTests": "6/6 passed",
   "platformTests": "ALL PLATFORM TESTS PASSED",
@@ -73,5 +73,14 @@
     "licenseDump": "failed: OpenSSL LICENSE.txt missing from prebuilt archive",
     "fix": "fetch exact OpenSSL LICENSE.txt from matching upstream tag into buildroot/source-licenses/openssl/0.txt; pending push"
   },
-  "macosIntelBuild": "still compiling at last check"
+  "macosIntelBuild": "still compiling at last check",
+  "macosLicenseFixCommit": "64eaf1c2da99b1b582bb8b3b7fb0c4826c64462a",
+  "macosLicenseFixRerun": {
+    "runId": 45272657258,
+    "status": "in progress",
+    "lastObserved": {
+      "macosX64": "compiling PHP 8.4.28",
+      "macosArm64": "downloading/verifying PHP source"
+    }
+  }
 }

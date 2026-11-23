@@ -108,7 +108,7 @@ Result: **6/6 passed**
 - ARM64 PHP 8.4.28 compiled successfully. The runtime verifier passed all required extensions, the real HTTPS/TLS request passed, and the binary linked only to macOS system libraries.
 - The verification step then failed only at StaticPHP's license dumper: its prebuilt OpenSSL archive (`openssl-aarch64-darwin.txz`) contains the library but not `LICENSE.txt`, while StaticPHP v2.8.5's source metadata expects that file and its dumper fallback is `buildroot/source-licenses/openssl/0.txt`.
 - Added a workflow fix to read `OPENSSL_VERSION_TEXT` from the built PHP binary, fetch the exact matching OpenSSL upstream `LICENSE.txt` from the corresponding `openssl-<version>` tag, verify it contains the Apache License notice, and place it in StaticPHP's documented license fallback path before running `spc dump-license`. The exact OpenSSL 3.5.4 upstream license URL was independently verified.
-- Intel build in run `45271261590` was still compiling at the time of this update. The license fix is in the working tree and needs a focused commit/push to rerun both architectures.
+- Intel build in run `45271261590` was still compiling at the time of this update. The license fix was committed and pushed in `64eaf1c`; fresh native macOS run `45272657258` is in progress. At last check Intel was compiling while ARM64 was downloading and verifying the PHP source.
 
 ## Remaining acceptance criteria
 - [~] Pinned StaticPHP/PHP build recipe and source checksum verification are configured; validate actual native builds in CI.
