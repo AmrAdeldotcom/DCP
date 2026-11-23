@@ -87,6 +87,11 @@ Result: **6/6 passed**
 - macOS workflow run `45270962540`: ARM64 reached StaticPHP download but received HTTP 403 from the GitHub API endpoint for `static-php-cli-hosted` releases. Added `GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}` to the `spc download` step so the API request is authenticated with the workflow's read-only token. Intel was still installing builder dependencies at last check.
 - The fixes require a follow-up commit and fresh CI runs. Neither initial run is considered passed.
 
+## Second GitHub Actions feedback — commit 41cd3d3
+- Windows clean-package run `45271261380` and existing Windows app build run `45271261254` both passed the C# compile and PHP 8.5.13 managed runtime installation, then failed at `platform/scripts/build-windows.ps1:84`: PowerShell `-replace` received a single backslash regex and rejected it. Fixed the line to use `\\` as the regex for a literal path separator; local PowerShell test converted `platform\foo\bar` to `platform/foo/bar` successfully.
+- macOS run `45271261590` is still active after the `GITHUB_TOKEN` fix; inspect both architecture jobs through source download, compilation, HTTPS/TLS and package assembly.
+- The Windows path fix is in the working tree and needs a focused commit/push to trigger fresh Windows CI.
+
 ## Remaining acceptance criteria
 - [~] Pinned StaticPHP/PHP build recipe and source checksum verification are configured; validate actual native builds in CI.
 - [ ] Build native Intel and Apple Silicon PHP archives on GitHub Actions.

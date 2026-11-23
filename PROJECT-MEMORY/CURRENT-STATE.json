@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
   "project": "DCP \u2014 Desktop Connector Platform",
-  "updatedAt": "2026-11-23T23:59:00+02:00",
+  "updatedAt": "2026-11-23T23:59:30+02:00",
   "session": "DC03",
   "repository": "/Volumes/Data/ChatGPT/DCP",
   "branch": "fix/alpha7-localai-cloud-pairing",
-  "headCommit": "4752f9d540126404572d4986b7451ea6ca6b1946",
+  "headCommit": "41cd3d3c2b5b95034bb43de883a44c455638ad88",
   "latestReleaseTag": "v1.0.0-alpha.8",
-  "workingTree": "dirty; Q005 follow-up fixes pending commit; preserve all unrelated changes",
+  "workingTree": "dirty; Windows path-normalization CI fix and access inventory pending focused commit; preserve unrelated changes",
   "device": {
     "name": "Amrs-Mac-Pro",
     "id": "a23231bf-eabc-441c-a6e2-560e3ae7f957",
@@ -28,7 +28,8 @@
     "Do not expose public tunnels until web entry authentication, rate limits and private-path protections are verified.",
     "Never put secrets, credentials, .env files, keys, SQLite databases or runtime state in Git or project Markdown.",
     "Do not commit, push, release or deploy without explicit approval and release gates.",
-    "Do not compile large runtimes on this Mac; disk has only about 8.3 GiB free."
+    "Do not compile large runtimes on this Mac; disk has only about 8.3 GiB free.",
+    "SSH lab configuration and dcp-lab key are on /Volumes/Data/ChatGPT/DCP-Lab-SSH/; preserve the user's external-drive SSH organization preference."
   ],
   "verifiedBaseline": {
     "platformTests": "php platform/tests/run.php \u2014 ALL PLATFORM TESTS PASSED on 2026-11-23",
@@ -69,35 +70,49 @@
     ".github/workflows/release-macos.yml",
     ".github/workflows/test-windows-package.yml",
     "platform/docs/IMPLEMENTATION-CHECKLIST.md",
-    ".github/workflows/test-macos-package.yml"
+    ".github/workflows/test-macos-package.yml",
+    "PROJECT-MEMORY/ACCESS-INVENTORY.md"
   ],
   "openIssues": [
     "Q004 blocked: Apache AllowOverride None and mod_rewrite unavailable; public URL/shortcut must remain blocked until server security is verified.",
-    "Q005 partial: first CI run exposed a Windows C# local-variable shadowing error and unauthenticated GitHub API 403 during StaticPHP download. Both fixes are in the working tree; push a focused follow-up and rerun CI. Clean-machine tests remain.",
+    "Q005 partial: initial CI found and follow-up fixed C# variable shadowing and unauthenticated GitHub API 403. Second CI found a PowerShell regex path-normalization error after PHP install and C# compile; fixed locally, awaiting a focused push and rerun. macOS authenticated build is still running; clean-machine tests remain.",
     "Q006 pending: local chat/llama.cpp lifecycle work must not start before Q005 closes.",
     "Working tree contains many unrelated dirty files; inspect exact Q005 diffs and never stage/commit wholesale.",
     "GitHub Actions workflow semantic validation and execution are pending; actionlint is not installed locally.",
-    "Hostinger SSH alias dcp-hostinger exists but its configured IdentityFile ~/.ssh/dcp-hostinger is missing; BatchMode SSH probe returned Permission denied (publickey,password). GitHub SSH alias github-dcp works. Do not deploy to cloud until the Hostinger key/authorized login is restored."
+    "Hostinger SSH alias dcp-hostinger has an existing private key at ~/.ssh/dcp-hostinger (mode 0600); SSH offers it but the server rejects it with Permission denied (publickey,password). No cloud deployment. Lab alias windows-dcp on /Volumes/Data/ChatGPT/DCP-Lab-SSH/config times out / host down; ubuntu-dcp is a placeholder with no configured host. GitHub SSH alias github-dcp works."
   ],
   "github": {
     "sshAlias": "github-dcp",
     "authentication": "SSH succeeds for AmrAdeldotcom/DCP",
     "branch": "fix/alpha7-localai-cloud-pairing",
-    "commit": "4752f9d540126404572d4986b7451ea6ca6b1946",
+    "commit": "41cd3d3c2b5b95034bb43de883a44c455638ad88",
     "pushVerified": true,
     "ciRuns": {
       "windows": 45270962681,
-      "macos": 45270962540
+      "macos": 45270962540,
+      "windowsCleanPackageFollowup": 45271261380,
+      "windowsBuildFollowup": 45271261254,
+      "macosFollowup": 45271261590,
+      "cloudPhpFollowup": 45271261214
     }
   },
   "cloudAccess": {
     "sshAlias": "dcp-hostinger",
-    "configuredHost": "145.223.105.238",
-    "configuredPort": 65002,
-    "configuredUser": "u163155085",
     "identityFile": "~/.ssh/dcp-hostinger",
-    "identityFileExists": false,
-    "probe": "Permission denied (publickey,password)",
-    "deploymentAllowed": false
+    "identityFileExists": true,
+    "identityFileMode": "0600",
+    "keyOfferedToServer": true,
+    "authenticationResult": "Permission denied (publickey,password)",
+    "deploymentAllowed": false,
+    "note": "Key exists locally and was offered, but Hostinger did not accept it. Do not attempt password guessing or deploy."
+  },
+  "labAccess": {
+    "config": "/Volumes/Data/ChatGPT/DCP-Lab-SSH/config",
+    "key": "/Volumes/Data/ChatGPT/DCP-Lab-SSH/dcp-lab",
+    "windowsAlias": "windows-dcp",
+    "windowsHost": "192.168.8.54",
+    "windowsResult": "SSH connection timed out / host down",
+    "ubuntuAlias": "ubuntu-dcp",
+    "ubuntuHost": "placeholder not configured"
   }
 }

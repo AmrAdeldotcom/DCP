@@ -29,3 +29,5 @@ This folder is the durable continuity layer for ChatGPT and other authorized eng
 - Never claim a task is complete without its acceptance tests and evidence.
 - Never commit, push, publish or deploy without the project’s approval gates.
 - If connection drops, do not retry a side-effecting call while it is pending. Check its call status first, then resume from CURRENT-STATE.json.
+
+- `ACCESS-INVENTORY.md` — safe inventory of configured GitHub, Hostinger and lab SSH routes; never stores secret values.

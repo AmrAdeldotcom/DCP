@@ -81,7 +81,7 @@ if (-not [string]::IsNullOrWhiteSpace($PreviousTag)) {
 }
 $Files = @()
 foreach ($Relative in $Changed) {
-  $Relative = $Relative -replace '\','/'
+  $Relative = $Relative -replace '\\','/'
   if (-not $Relative.StartsWith('platform/')) { continue }
   if ($Relative -match '^platform/(data|storage)(/|$)' -or $Relative -match '^platform/(dist|wrappers|tests)(/|$)') { continue }
   if ($Relative -match '^platform/\.git') { continue }

@@ -1,7 +1,7 @@
 {
   "checkpoint": "DC03-Q005-2026-11-23",
   "branch": "fix/alpha7-localai-cloud-pairing",
-  "head": "4752f9d540126404572d4986b7451ea6ca6b1946",
+  "head": "41cd3d3c2b5b95034bb43de883a44c455638ad88",
   "activeTask": "Q005",
   "installerTests": "6/6 passed",
   "platformTests": "ALL PLATFORM TESTS PASSED",
@@ -26,5 +26,14 @@
       "runId": 45270962540,
       "result": "ARM64 failed with GitHub API HTTP 403 in StaticPHP download; GITHUB_TOKEN added in working tree"
     }
-  }
+  },
+  "windowsSecondCI": {
+    "cleanPackageRun": 45271261380,
+    "appBuildRun": 45271261254,
+    "result": "both passed C# compile and managed PHP install; failed PowerShell regex at build-windows.ps1:84; fixed in working tree"
+  },
+  "macosFollowupRun": 45271261590,
+  "hostingerSSH": "key exists and is offered; server rejects; no deployment",
+  "windowsLabSSH": "host down / timed out",
+  "ubuntuLabSSH": "placeholder config"
 }

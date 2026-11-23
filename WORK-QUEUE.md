@@ -79,3 +79,9 @@ This file is the durable resume point. Update status, evidence and next action a
 - Windows clean-package CI exposed CS0136 in `Program.cs`: nested WebView2 local `userData` shadowed the outer DCP data directory variable. Renamed the nested variable to `webViewData`.
 - macOS ARM64 runtime CI reached StaticPHP download and failed because the unauthenticated GitHub API request for StaticPHP hosted releases returned HTTP 403. The download step now supplies the workflow's read-only `GITHUB_TOKEN`; rerun on the next push.
 - Windows fix and macOS token fix are being committed as a focused Q005 follow-up.
+
+
+## Second GitHub Actions feedback — 2026-11-23
+- Commit `41cd3d3` fixed the Windows C# CS0136 error and authenticated StaticPHP GitHub API downloads with `GITHUB_TOKEN`.
+- The clean Windows package workflow (`45271261380`) and existing Windows app build workflow (`45271261254`) then exposed a PowerShell regex error in `build-windows.ps1:84`: a single backslash was passed as the regex pattern. Corrected the expression to `-replace '\\','/'`; verified locally with PowerShell that `platform\foo\bar` normalizes to `platform/foo/bar`.
+- macOS runtime workflow `45271261590` is still running; verify the authenticated source/dependency download and subsequent build/TLS steps.

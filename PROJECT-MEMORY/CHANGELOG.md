@@ -39,3 +39,8 @@
 - Windows CI exposed CS0136 in the WebView2 initialization block; renamed the nested local to `webViewData`.
 - macOS ARM64 CI exposed an unauthenticated GitHub API 403 during StaticPHP dependency download; supplied the workflow read-only `GITHUB_TOKEN` to the download step.
 - Audited cloud access: `dcp-hostinger` SSH alias exists but its configured private-key path is missing and authentication is rejected. No cloud deployment was attempted.
+
+## 2026-11-23 — Second Windows CI feedback
+- Windows CI confirmed the C# variable-shadowing fix and successfully downloaded, verified, installed and ran managed PHP 8.5.13.
+- Both clean-package and existing Windows app build workflows then exposed a PowerShell `-replace` regex with a single backslash. Corrected it to match a literal backslash and verified the path-normalization expression locally with PowerShell.
+- Audited SSH inventory: GitHub key works; Hostinger key exists and is offered but rejected by server; Windows lab host is unreachable; Ubuntu alias is placeholder. No cloud deployment performed.
