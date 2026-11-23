@@ -17,14 +17,27 @@ function ok(bool $v,string $m):void{if(!$v)throw new RuntimeException('FAIL: '.$
 $root=sys_get_temp_dir().'/dcp-platform-test-'.bin2hex(random_bytes(4));mkdir($root,0700,true);
 $c=['database'=>$root.'/db.sqlite','key_file'=>$root.'/keys/master.key','storage'=>$root.'/storage','terminal_root'=>dirname(__DIR__)];
 $db=Database::connect($c);Database::migrate($db);$crypto=new Crypto($c['key_file']);$plugins=new PluginManager(dirname(__DIR__).'/plugins');
-$providers=new ProviderService($db,$crypto,$plugins);$secret='dcp-test-'.bin2hex(random_bytes(16));
-$p=$providers->save(['name'=>'Mock Provider','driver'=>'openai-compatible','base_url'=>'http://127.0.0.1:18766/v1','model'=>'mock-model','api_key'=>$secret]);
+$providers=new ProviderService($db,$crypto,$plugins);
+$probe=@stream_socket_server('tcp://127.0.0.1:0',$errno,$errstr);
+if(!$probe)throw new RuntimeException('Could not reserve a local mock-provider port: '.$errstr);
+$address=stream_socket_get_name($probe,false);fclose($probe);
+$mockPort=(int)substr((string)$address,strrpos((string)$address,':')+1);
+$nullDevice=PHP_OS_FAMILY==='Windows'?'NUL':'/dev/null';
+$mockServer=proc_open([PHP_BINARY,'-S','127.0.0.1:'.$mockPort,__DIR__.'/mock-provider-router.php'],[0=>['file',$nullDevice,'r'],1=>['file',$nullDevice,'a'],2=>['file',$nullDevice,'a']],$mockPipes,__DIR__);
+if(!is_resource($mockServer))throw new RuntimeException('Could not start the isolated mock provider.');
+$mockReady=false;
+for($attempt=0;$attempt<40;$attempt++){ $socket=@fsockopen('127.0.0.1',$mockPort,$connectError,$connectMessage,0.1); if($socket){fclose($socket);$mockReady=true;break;} usleep(50000); }
+if(!$mockReady){proc_terminate($mockServer);proc_close($mockServer);throw new RuntimeException('The isolated mock provider did not become ready.');}
+register_shutdown_function(static function()use($mockServer):void{if(is_resource($mockServer)){proc_terminate($mockServer);proc_close($mockServer);}});
+$mockBaseUrl='http://127.0.0.1:'.$mockPort.'/v1';
+$secret='dcp-test-'.bin2hex(random_bytes(16));
+$p=$providers->save(['name'=>'Mock Provider','driver'=>'openai-compatible','base_url'=>'' . $mockBaseUrl . '','model'=>'mock-model','api_key'=>$secret]);
 $raw=$db->query("SELECT api_key_enc FROM providers WHERE id=".$db->quote($p['id']))->fetchColumn();
 ok($raw!==$secret&&!str_contains($raw,$secret),'API key is encrypted in SQLite');
 ok($crypto->decrypt($raw)===$secret,'API key decrypts correctly');
-$emptyModel=$providers->save(['name'=>'Preset without model','driver'=>'openai-compatible','base_url'=>'http://127.0.0.1:18766/v1','model'=>'','api_key'=>'']);ok($emptyModel['model']==='','provider preset can be saved before live model discovery');
+$emptyModel=$providers->save(['name'=>'Preset without model','driver'=>'openai-compatible','base_url'=>'' . $mockBaseUrl . '','model'=>'','api_key'=>'']);ok($emptyModel['model']==='','provider preset can be saved before live model discovery');
 ok($p['api_key_masked']!==$secret&&str_contains($p['api_key_masked'],'•'),'API key is returned only as a masked preview');
-$providers->save(['id'=>$p['id'],'name'=>'Mock Provider Renamed','driver'=>'openai-compatible','base_url'=>'http://127.0.0.1:18766/v1','model'=>'mock-model','api_key'=>'']);
+$providers->save(['id'=>$p['id'],'name'=>'Mock Provider Renamed','driver'=>'openai-compatible','base_url'=>'' . $mockBaseUrl . '','model'=>'mock-model','api_key'=>'']);
 ok($providers->secret($p['id'])['api_key']===$secret,'blank key on edit preserves existing encrypted key');
 $chat=new ChatService($providers,$plugins);ok($chat->models($p['id'])[0]['id']==='mock-model','OpenAI-compatible model discovery');ok($chat->send($p['id'],'mock-model','hello',[])==='MOCK_CHAT_OK:hello','OpenAI-compatible chat adapter');
 $mail=new MailService($db,$crypto);$mail->save(['smtp_host'=>'smtp.example.test','smtp_pass'=>'smtp-secret-'.bin2hex(random_bytes(8)),'imap_host'=>'imap.example.test','imap_pass'=>'imap-secret-'.bin2hex(random_bytes(8))]);$mailRows=$db->query("SELECT key,value FROM settings WHERE key LIKE 'mail.%pass'")->fetchAll();foreach($mailRows as $row)ok(!str_contains($row['value'],'secret-'),'mail credential encrypted: '.$row['key']);

@@ -1,3 +1,5 @@
+[Reading 39 lines from start (total: 39 lines, 0 remaining)]
+
 .DS_Store
 __pycache__/
 *.py[cod]
@@ -37,3 +39,9 @@ platform/storage/local-ai-install.*
 platform/storage/launch-local-ai-install.ps1
 platform/storage/start-llama-server.ps1
 platform/storage/local-ai-pull.ps1
+
+[executed on device: Amrs-Mac-Pro (a23231bf-eabc-441c-a6e2-560e3ae7f957)]
+
+# Local-only agent skills and source checkouts
+.agent-sources/
+.agents/
