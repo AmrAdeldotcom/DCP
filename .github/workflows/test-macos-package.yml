@@ -92,6 +92,8 @@ jobs:
           codesign --force --deep --sign - DCP.app
           codesign --verify --deep --strict DCP.app
           test -s DCP.app/Contents/Resources/AppIcon.icns
+          MIN_OS="$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' DCP.app/Contents/Info.plist)"
+          test "$MIN_OS" = "12.0.0"
           file DCP.app/Contents/MacOS/DCP
           lipo -info DCP.app/Contents/MacOS/DCP
 

@@ -112,3 +112,10 @@
 - Added byte-for-byte `cmp -s` verification after macOS and Linux installers migrate legacy SQLite and master key into their OS-specific DCP-UserData directories. Mismatch triggers installer rollback.
 - Windows installer already compares SHA-256 for both files.
 - Local bash syntax passed. This is an installer-only change; native Mac runtime build is unaffected.
+
+
+## 2026-11-24 — DC10: raise macOS minimum to 12.0
+- Intel PHP link logs showed prebuilt ICU objects built for macOS 12.0 while the x64 binary declared 10.15. Do not claim Catalina compatibility.
+- Current Mac is macOS 14.7.1. Set both Intel and Apple Silicon runtime/wrapper minimums to macOS 12.0.
+- Updated build matrix, runtime manifest, universal wrapper target, Info.plist LSMinimumSystemVersion, online installer preflight, docs and CI assertions.
+- New native Mac runtime builds are required; earlier 10.15/11.0 CI results remain historical only.

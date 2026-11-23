@@ -58,7 +58,7 @@ Result: **6/6 passed**
 - v2 documentation lists PHP 8.4 as stable and PHP 8.5 as beta/partial; PHP 8.4.28 is chosen for compatibility with this pinned builder, not because it is the newest PHP branch.
 - Required and additional extensions are declared in `php-runtime.json` and `php-macos.craft.yml`.
 - Runtime ini points cURL/OpenSSL CA validation to macOS `/etc/ssl/cert.pem`; each CI runtime must pass a real HTTPS/TLS request before it is packaged.
-- Native runner matrix: `macos-15-intel` for x86_64 (10.15 minimum) and `macos-15` for arm64 (11.0 minimum).
+- Native runner matrix: `macos-15-intel` for x86_64 and `macos-15` for arm64; both require macOS 12.0 minimum because the pinned prebuilt ICU dependency contains objects built for macOS 12.0.
 - The local Mac has only ~8.3 GiB free; do not compile locally.
 
 ### CI and packaging — configured, not yet run
@@ -184,3 +184,17 @@ Result: **6/6 passed**
 - Extended the macOS and Linux online installers to byte-compare migrated `dcp.sqlite` and `keys/master.key` against the preserved source after copying into `DCP-UserData/macOS` and `DCP-UserData/Linux`. A mismatch aborts installation and triggers rollback.
 - Windows already performs SHA-256 comparisons for the same two files after migration into `DCP-UserData/Windows`.
 - Local Bash syntax check passed after adding `cmp -s` checks. This change is intentionally limited to the shared shell installer and does not alter the native PHP runtime build.
+
+
+## DC09 — release version metadata drift found
+- Source audit found inconsistent version strings: PHP config reports 1.0.0-alpha.8, About/app.js cache strings report 1.0.0-alpha.7, macOS Info.plist reports 1.0.0-alpha.9, and Windows csproj fallback is 1.0.0-alpha.7. Windows release builds override the csproj from the tag, but PHP/UI metadata remains stale.
+- Before publishing a synchronized release, introduce one version source (e.g. platform/version.json) and have Windows/macOS/Linux package builders set it from the same Git tag; PHP bootstrap, About page, asset cache keys and desktop bundle metadata must all report the same version.
+- Do not publish or install until version consistency checks pass for all three package artifacts.
+
+
+## DC10 — 2026-11-24: correct macOS minimum OS target
+- Native PHP build logs showed ICU static objects built for macOS 12.0 while the x64 runtime was linked with a 10.15 minimum. This is not safe to advertise as Catalina-compatible.
+- The development Mac reports macOS 14.7.1, so the supported minimum is now explicitly macOS 12.0 for both Intel and Apple Silicon.
+- Updated both matrix deployment targets to 12.0, both PHP runtime manifest minimumMacOS values, universal wrapper clang targets, DCP.app LSMinimumSystemVersion, macOS online installer preflight, INSTALL.md and clean/release package assertions.
+- CI now asserts vtool minos 12.0 for PHP and PlistBuddy LSMinimumSystemVersion 12.0.0 for DCP.app.
+- The old 10.15/11.0 run results remain historical only; new native builds are required after this correction.

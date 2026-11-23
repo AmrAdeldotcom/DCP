@@ -10,7 +10,7 @@ After a verified GitHub Release is published, use the platform-specific command 
 irm https://raw.githubusercontent.com/AmrAdeldotcom/DCP/main/platform/Install-DCP-Online.ps1 | iex
 ```
 
-### macOS and Ubuntu 24.04 (x86_64)
+### macOS 12+ and Ubuntu 24.04 (x86_64)
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/AmrAdeldotcom/DCP/main/platform/Install-DCP-Online.sh | bash

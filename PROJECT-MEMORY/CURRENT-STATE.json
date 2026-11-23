@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "project": "DCP — Desktop Connector Platform",
-  "updatedAt": "2026-11-24T04:00:00+02:00",
-  "session": "DC08",
+  "updatedAt": "2026-11-24T05:00:00+02:00",
+  "session": "DC10",
   "repository": "/Volumes/Data/ChatGPT/DCP",
   "branch": "fix/alpha7-localai-cloud-pairing",
   "headCommit": "e3b8bf2db2e827c07a227f39ec2b4cbb33682a23",
@@ -17,7 +17,7 @@
   },
   "activeTask": "Q005",
   "activeTaskStatus": "partial",
-  "nextTask": "Commit/push DC08 byte-level migration verification; verify Linux/Windows CI and latest Mac clean package with DCP-UserData; close Q005, then Q006 LocalAI and Q007 Cloud before final synchronized release.",
+  "nextTask": "Commit/push macOS 12.0 minimum compatibility correction; rerun native Intel/ARM64 runtime and package CI; close Q005 only after all package gates pass, then Q006 LocalAI and Q007 Cloud.",
   "nextTaskFile": "PROJECT-MEMORY/tasks/Q005-managed-php-macos.md",
   "followingTask": "Q006",
   "knownConstraints": [
@@ -74,15 +74,17 @@
     "PROJECT-MEMORY/ACCESS-INVENTORY.md"
   ],
   "openIssues": [
-    "Q004 remains blocked only for separate platform/index.php web preview; Hostinger document root is /home/u163155085/domains/amradel.com/public_html/dcp serving dcp.amradel.com, live health 200, .env/schema HTTP denied. Keep preview unexposed until auth/private-path/rate-limit/route-isolation tests pass.",
-    "Q005 partial: Mac Intel and ARM64 native PHP 8.4.28 builds and license dump both passed in run 45282359336; clean Mac package smoke passed but predates DC06 DCP-UserData layout. Linux x64 build passed on 2b41260 with DCP-UserData/Linux. Windows build/package passed on cea4075. Latest Mac package and Linux build runs still pending.",
-    "DC08 local shell installer change verifies migrated SQLite/master.key byte-for-byte on Mac/Linux; Windows already verifies SHA-256. Commit/push and rerun Linux/Windows CI.",
-    "Q006 local chat/llama.cpp lifecycle next; Linux LocalAI install branch still needs Ubuntu/sudo support and PID ownership verification before stop can be trusted.",
-    "Q007 Cloud migration/API deployment after Q006; live schema remains old (devices.user_id NOT NULL, pairing tables missing). No production changes.",
-    "Windows upgrade migrates legacy platform/data and platform/storage into DCP-UserData/Windows, verifies hashes and keeps rollback backup until successful app startup/decryption.",
-    "All installers and desktop updaters require a complete synchronized release containing Windows ZIP/update manifest, macOS ZIP, Linux tarball and SHA-256. Current alpha.8 is incomplete and intentionally refused.",
-    "Ubuntu 24.04 x86_64 has SSH and passwordless sudo; no app or system packages installed yet.",
-    "Unrelated dirty cloud/web-entry/LocalAI files remain unstaged; stage only scoped task files."
+    "Q004 blocked only for separate platform/index.php web preview. Hostinger docroot /home/u163155085/domains/amradel.com/public_html/dcp serves dcp.amradel.com; live health 200 and .env/schema direct HTTP denied. Preview remains unexposed until auth/private-path/rate-limit/route-isolation checks pass.",
+    "Q005 partial: Windows/Linux build/package CI pass. Mac Intel and ARM64 PHP 8.4.28 builds, license dump, TLS and first package smoke passed on old deployment targets, but linker warned prebuilt ICU objects require macOS 12.0. Both Mac targets, wrapper and installer have been raised to 12.0; new native CI/package run required.",
+    "DC08 Mac/Linux installer migrations byte-compare SQLite and master.key; Windows verifies SHA-256. DC08 commit 1b3e016 pushed and Linux CI passed.",
+    "Release installers and Windows/macOS auto-updaters require one complete release with Windows package+update manifest, macOS universal ZIP, Linux tarball+SHA-256. Current alpha.8 incomplete; correctly refused.",
+    "Version metadata drift remains: PHP config alpha.8, About/cache alpha.7, Mac Info.plist alpha.9 and Windows csproj fallback alpha.7. Create one platform/version.json and inject same tag across all platform package builders and PHP/UI metadata before release.",
+    "Q006 local chat/llama.cpp lifecycle follows Q005; review PID/path ownership and Linux passwordless-sudo install support.",
+    "Q007 Cloud schema migration/API deployment follows Q006. Live schema old: devices.user_id NOT NULL, pairing tables missing. User authorized deployment after backup and migration review; no production change yet.",
+    "Windows upgrade migrates legacy DB/key to DCP-UserData/Windows, verifies SHA-256 and retains rollback backup until app startup/decryption succeeds.",
+    "macOS/Linux installers migrate and byte-compare into DCP-UserData/macOS and DCP-UserData/Linux.",
+    "Ubuntu 24.04 x86_64 SSH/passwordless sudo verified; no app or system packages installed yet.",
+    "Working tree has unrelated dirty cloud/web-entry/LocalAI changes; stage only scoped Q005 files."
   ],
   "github": {
     "sshAlias": "github-dcp",
@@ -163,7 +165,8 @@
       "dataMigration": "Legacy platform/data and platform/storage -> DCP-UserData/Linux/data and DCP-UserData/Linux/storage if no new-layout database/key exists."
     },
     "macos": {
-      "dataMigration": "Legacy platform/data and platform/storage -> DCP-UserData/macOS/data and DCP-UserData/macOS/storage if no new-layout database/key exists."
+      "dataMigration": "Legacy platform/data and platform/storage -> DCP-UserData/macOS/data and DCP-UserData/macOS/storage if no new-layout database/key exists.",
+      "minimumOS": "12.0"
     }
   },
   "releaseInstallers": {
@@ -172,6 +175,7 @@
     "linuxReleaseWorkflow": ".github/workflows/release-linux.yml",
     "linuxCiWorkflow": ".github/workflows/build-linux.yml",
     "dataMigration": "All installers preserve DCP-UserData, migrate legacy DB/storage only when the new OS-specific DB/key are absent, then verify source and target bytes (Windows SHA-256, macOS/Linux cmp).",
-    "completeReleaseGate": "Require all assets in one tag: DCP-Windows-x64.zip, DCP-Windows-update.json, DCP-macOS-universal.zip, DCP-Linux-x64.tar.gz, DCP-Linux-x64.tar.gz.sha256. Windows/macOS background updaters use same gate."
+    "completeReleaseGate": "Require all assets in one tag: DCP-Windows-x64.zip, DCP-Windows-update.json, DCP-macOS-universal.zip, DCP-Linux-x64.tar.gz, DCP-Linux-x64.tar.gz.sha256. Windows/macOS background updaters use same gate.",
+    "macOSMinimum": "12.0 for Intel and Apple Silicon because pinned prebuilt ICU contains objects built for macOS 12.0; online installer rejects older systems."
   }
 }

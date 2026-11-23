@@ -18,12 +18,12 @@ for spec in "16 16x16" "32 16x16@2x" "32 32x32" "64 32x32@2x" "128 128x128" "256
  done
 /usr/bin/iconutil -c icns "$ICONSET" -o "$CONTENTS/Resources/AppIcon.icns"
 
-# Catalina-compatible Intel build; Apple Silicon starts at Big Sur.
-/usr/bin/clang -arch x86_64 -mmacosx-version-min=10.15 -fobjc-arc \
+# macOS 12.0+ build for both Intel and Apple Silicon.
+/usr/bin/clang -arch x86_64 -mmacosx-version-min=12.0 -fobjc-arc \
   -framework Cocoa -framework WebKit \
   "$ROOT/platform/wrappers/macos/main.m" \
   -o "$BUILD_TMP/DCP-x86_64"
-/usr/bin/clang -arch arm64 -mmacosx-version-min=11.0 -fobjc-arc \
+/usr/bin/clang -arch arm64 -mmacosx-version-min=12.0 -fobjc-arc \
   -framework Cocoa -framework WebKit \
   "$ROOT/platform/wrappers/macos/main.m" \
   -o "$BUILD_TMP/DCP-arm64"

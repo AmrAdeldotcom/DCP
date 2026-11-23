@@ -1,0 +1,49 @@
+{
+  "date": "2026-11-24",
+  "session": "DC10",
+  "repository": "/Volumes/Data/ChatGPT/DCP",
+  "branch": "fix/alpha7-localai-cloud-pairing",
+  "lastPushedCommit": "1b3e016",
+  "activeTask": "Q005",
+  "status": "partial",
+  "macOSCompatibility": {
+    "hostVersion": "14.7.1",
+    "minimumSupported": "12.0",
+    "reason": "Pinned StaticPHP prebuilt ICU archive contains objects built for macOS 12.0; earlier x64 build warned when linked with 10.15 minimum.",
+    "updated": [
+      ".github/workflows/build-php-runtime-macos.yml",
+      ".github/workflows/test-macos-package.yml",
+      ".github/workflows/release-macos.yml",
+      "platform/dcp-env/manifests/php-runtime.json",
+      "platform/wrappers/build-macos.sh",
+      "platform/wrappers/macos/Info.plist",
+      "platform/Install-DCP-Online.sh",
+      "platform/INSTALL.md"
+    ],
+    "checks": ["vtool PHP minos 12.0", "Info.plist LSMinimumSystemVersion 12.0.0", "installer refuses macOS <12"]
+  },
+  "previousCi": {
+    "macosNative": {"run": 45282359336, "intel": "success with ICU 12.0 linker warning", "arm64": "success", "licenseDump": "success both", "packageSmoke": "success pre-DCP-UserData layout"},
+    "linux": {"run": 45285189769, "result": "success with DCP-UserData/Linux"},
+    "windows": {"run": 45284370511, "build": "success", "package": {"run": 45284370605, "result": "success"}}
+  },
+  "releasePolicy": {
+    "completeAssetsRequired": [
+      "DCP-Windows-x64.zip",
+      "DCP-Windows-update.json",
+      "DCP-macOS-universal.zip",
+      "DCP-Linux-x64.tar.gz",
+      "DCP-Linux-x64.tar.gz.sha256"
+    ],
+    "partialReleasesIgnored": true,
+    "currentAlpha8Eligible": false
+  },
+  "versionDrift": {
+    "phpConfig": "1.0.0-alpha.8",
+    "aboutAndAppCache": "1.0.0-alpha.7",
+    "macInfoPlist": "1.0.0-alpha.9",
+    "windowsCsprojFallback": "1.0.0-alpha.7",
+    "requiredFix": "Introduce platform/version.json and inject one Git tag into Windows/macOS/Linux metadata, PHP bootstrap/About and asset cache keys before release."
+  },
+  "nextAction": "Commit/push DC10 macOS 12.0 compatibility correction; validate fresh Mac Intel/ARM64 runtime and package CI; then unify version metadata before final synchronized release."
+}

@@ -25,6 +25,12 @@ command -v python3 >/dev/null 2>&1 || { echo "Python 3 is required to read GitHu
 
 case "$(uname -s)" in
   Darwin)
+    CURRENT_MACOS="$(sw_vers -productVersion)"
+    MACOS_MAJOR="${CURRENT_MACOS%%.*}"
+    if [[ ! "$MACOS_MAJOR" =~ ^[0-9]+$ ]] || (( MACOS_MAJOR < 12 )); then
+      echo "DCP for macOS requires macOS 12.0 or later (detected $CURRENT_MACOS)." >&2
+      exit 1
+    fi
     ASSET="DCP-macOS-universal.zip"
     ARCHIVE="$WORK_ROOT/$ASSET"
     EXTRACT="$WORK_ROOT/extracted"
