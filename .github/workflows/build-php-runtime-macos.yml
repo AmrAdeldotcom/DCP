@@ -141,21 +141,36 @@ jobs:
           vtool -show-build "$OUT/bin/php" | tee "$RUNNER_TEMP/php-build-info.txt"
           grep -F "minos $DEPLOYMENT_TARGET" "$RUNNER_TEMP/php-build-info.txt"
 
+          # StaticPHP v2.8.5's license dumper expects an OpenSSL LICENSE.txt source file,
+          # but the builder downloads its prebuilt OpenSSL library archive without that file.
+          # Recover the matching upstream license using the exact version compiled into PHP.
+          OPENSSL_VERSION_TEXT="$("$OUT/bin/php" -r 'echo OPENSSL_VERSION_TEXT;')"
+          OPENSSL_VERSION="$(python3 -c 'import re,sys; m=re.search(r"OpenSSL ([0-9]+[.][0-9]+[.][0-9]+)", sys.argv[1]); print(m.group(1) if m else "")' "$OPENSSL_VERSION_TEXT")"
+          if [[ ! "$OPENSSL_VERSION" =~ ^[0-9]+[.][0-9]+[.][0-9]+$ ]]; then
+            echo "Could not determine the compiled OpenSSL version: $OPENSSL_VERSION_TEXT" >&2
+            exit 1
+          fi
+          mkdir -p "$SPC_DIR/buildroot/source-licenses/openssl"
+          OPENSSL_LICENSE_URL="https://raw.githubusercontent.com/openssl/openssl/openssl-$OPENSSL_VERSION/LICENSE.txt"
+          curl --fail --location --retry 3 --retry-all-errors "$OPENSSL_LICENSE_URL" --output "$SPC_DIR/buildroot/source-licenses/openssl/0.txt"
+          grep -q 'Apache License' "$SPC_DIR/buildroot/source-licenses/openssl/0.txt"
           "$SPC_DIR/bin/spc" dump-license --for-extensions="$EXTENSIONS" --dump-dir="$OUT/licenses"
           test -d "$OUT/licenses"
           test -n "$(find "$OUT/licenses" -type f -print -quit)"
           cp "$SPC_DIR/LICENSE" "$OUT/licenses/StaticPHP-MIT.txt"
 
           shasum -a 256 "$OUT/bin/php" | awk '{print $1}' > "$OUT/php.sha256"
-          python3 - "$OUT/runtime.json" "$PHP_VERSION" "$ARCH" "$DEPLOYMENT_TARGET" <<'PY'
+          python3 - "$OUT/runtime.json" "$PHP_VERSION" "$ARCH" "$DEPLOYMENT_TARGET" "$OPENSSL_VERSION" "$OPENSSL_LICENSE_URL" <<'PY'
           import json, sys
-          path, version, arch, min_os = sys.argv[1:]
+          path, version, arch, min_os, openssl_version, openssl_license_url = sys.argv[1:]
           with open(path, "w", encoding="utf-8") as f:
               json.dump({
                   "schema": 1,
                   "phpVersion": version,
                   "architecture": arch,
                   "minimumMacOS": min_os,
+                  "opensslVersion": openssl_version,
+                  "opensslLicense": openssl_license_url,
                   "managedBy": "DCP",
                   "builder": "StaticPHP v2.8.5",
                   "builderCommit": "4318ef8fa32a02460ec1554746674a7bc42b49fa"

@@ -1,7 +1,7 @@
 {
   "checkpoint": "DC03-Q005-2026-11-23",
   "branch": "fix/alpha7-localai-cloud-pairing",
-  "head": "e63be814569909a3300b46be153a77f6cdfc0dce",
+  "head": "35d0b8c0af7ecd7a3f1a74858d9019312a6caf1f",
   "activeTask": "Q005",
   "installerTests": "6/6 passed",
   "platformTests": "ALL PLATFORM TESTS PASSED",
@@ -63,5 +63,15 @@
     "runId": 45271261590,
     "result": "both architectures compiling after source checksum pass"
   },
-  "latestCheckpoint": "Windows and cloud CI green; macOS native PHP compilation in progress"
+  "latestCheckpoint": "Windows and cloud CI green; macOS native PHP compilation in progress",
+  "macosArm64Build": {
+    "runId": 45271261590,
+    "phpBuild": "passed",
+    "extensions": "passed",
+    "httpsTls": "passed",
+    "systemDylibs": "passed",
+    "licenseDump": "failed: OpenSSL LICENSE.txt missing from prebuilt archive",
+    "fix": "fetch exact OpenSSL LICENSE.txt from matching upstream tag into buildroot/source-licenses/openssl/0.txt; pending push"
+  },
+  "macosIntelBuild": "still compiling at last check"
 }

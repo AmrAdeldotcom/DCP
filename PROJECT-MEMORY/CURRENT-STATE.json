@@ -5,9 +5,9 @@
   "session": "DC03",
   "repository": "/Volumes/Data/ChatGPT/DCP",
   "branch": "fix/alpha7-localai-cloud-pairing",
-  "headCommit": "e63be814569909a3300b46be153a77f6cdfc0dce",
+  "headCommit": "35d0b8c0af7ecd7a3f1a74858d9019312a6caf1f",
   "latestReleaseTag": "v1.0.0-alpha.8",
-  "workingTree": "dirty; unrelated cloud/web-entry changes remain uncommitted and preserved; Q005 Windows CI is green; macOS runtime builds are still running",
+  "workingTree": "dirty; macOS OpenSSL license-dumper fix pending focused commit; unrelated cloud/web-entry changes remain uncommitted and preserved",
   "device": {
     "name": "Amrs-Mac-Pro",
     "id": "a23231bf-eabc-441c-a6e2-560e3ae7f957",
@@ -75,7 +75,7 @@
   ],
   "openIssues": [
     "Q004 blocked: Apache AllowOverride None and mod_rewrite unavailable; public URL/shortcut must remain blocked until server security is verified.",
-    "Q005 partial: Windows clean package and existing Windows app CI both passed on dcfdaf4; cloud PHP CI passed. macOS Intel/ARM64 source downloads and SHA-256 checks passed, but both PHP 8.4.28 compilations are still running; TLS, deployment target, license, artifact and macOS package checks remain. Clean-machine installs remain.",
+    "Q005 partial: Windows clean package and existing Windows app CI passed; Cloud PHP CI passed. ARM64 PHP 8.4.28 compiled, all required extensions and HTTPS/TLS passed, and dylib check passed, but StaticPHP license dumper could not find OpenSSL LICENSE.txt in its prebuilt archive. A matching-version license fallback is implemented locally and pending push; Intel compilation is still running. Rerun Mac CI and finish clean-machine tests.",
     "Q006 pending: local chat/llama.cpp lifecycle work must not start before Q005 closes.",
     "Working tree contains many unrelated dirty files; inspect exact Q005 diffs and never stage/commit wholesale.",
     "GitHub Actions workflow semantic validation and execution are pending; actionlint is not installed locally.",
@@ -85,7 +85,7 @@
     "sshAlias": "github-dcp",
     "authentication": "SSH succeeds for AmrAdeldotcom/DCP",
     "branch": "fix/alpha7-localai-cloud-pairing",
-    "commit": "e63be814569909a3300b46be153a77f6cdfc0dce",
+    "commit": "35d0b8c0af7ecd7a3f1a74858d9019312a6caf1f",
     "pushVerified": true,
     "ciRuns": {
       "windows": 45270962681,
@@ -99,7 +99,8 @@
       "windowsCleanPackagePassFinal": 45272037581,
       "windowsAppBuildPassFinal": 45272037351,
       "cloudPhpPassFinal": 45272037799,
-      "macosBuildInProgress": 45271261590
+      "macosBuildInProgress": 45271261590,
+      "macosRuntimeLicenseFailure": 45271261590
     }
   },
   "cloudAccess": {

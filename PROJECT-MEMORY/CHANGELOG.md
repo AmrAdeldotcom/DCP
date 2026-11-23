@@ -55,3 +55,8 @@
 - Both clean Windows package CI and the existing Windows app build CI passed on commit `dcfdaf4`.
 - Cloud PHP CI passed on the same commit.
 - macOS Intel and Apple Silicon have passed source download and official PHP source checksum validation; PHP compilation is still in progress.
+
+## 2026-11-23 — macOS PHP build and license-dumper fix
+- ARM64 PHP 8.4.28 compiled successfully; required extensions, real HTTPS/TLS and system-only dylib checks passed.
+- StaticPHP v2.8.5 license dumper failed because the prebuilt OpenSSL archive omitted `LICENSE.txt`. Confirmed its documented fallback path and added a matching-version OpenSSL upstream license retrieval step, validated against the OpenSSL 3.5.4 tag.
+- Intel compilation was still running; the license fix awaits a focused push and a fresh Mac CI run.

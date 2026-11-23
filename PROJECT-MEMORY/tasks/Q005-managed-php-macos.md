@@ -104,6 +104,12 @@ Result: **6/6 passed**
 - Cloud PHP test run `45272037799` passed.
 - macOS run `45271261590` is still compiling PHP 8.4.28 on both native architectures after passing dependency download and official source SHA-256 verification. Runtime extension/TLS/deployment-target checks and package assembly are still pending.
 
+## Fifth GitHub Actions feedback — macOS runtime run 45271261590
+- ARM64 PHP 8.4.28 compiled successfully. The runtime verifier passed all required extensions, the real HTTPS/TLS request passed, and the binary linked only to macOS system libraries.
+- The verification step then failed only at StaticPHP's license dumper: its prebuilt OpenSSL archive (`openssl-aarch64-darwin.txz`) contains the library but not `LICENSE.txt`, while StaticPHP v2.8.5's source metadata expects that file and its dumper fallback is `buildroot/source-licenses/openssl/0.txt`.
+- Added a workflow fix to read `OPENSSL_VERSION_TEXT` from the built PHP binary, fetch the exact matching OpenSSL upstream `LICENSE.txt` from the corresponding `openssl-<version>` tag, verify it contains the Apache License notice, and place it in StaticPHP's documented license fallback path before running `spc dump-license`. The exact OpenSSL 3.5.4 upstream license URL was independently verified.
+- Intel build in run `45271261590` was still compiling at the time of this update. The license fix is in the working tree and needs a focused commit/push to rerun both architectures.
+
 ## Remaining acceptance criteria
 - [~] Pinned StaticPHP/PHP build recipe and source checksum verification are configured; validate actual native builds in CI.
 - [ ] Build native Intel and Apple Silicon PHP archives on GitHub Actions.
