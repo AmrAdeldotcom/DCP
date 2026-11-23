@@ -30,7 +30,7 @@ internal sealed class MainWindow : Form
     private Process? php;
     private readonly HttpClient updaterClient = new() { Timeout = TimeSpan.FromSeconds(8) };
     private CancellationTokenSource? updaterCancellation;
-    private string LogPath => Path.Combine(root, "platform", "storage", "logs", "desktop-wrapper.log");
+    private string LogPath => Path.Combine(root, "DCP-UserData", "Windows", "storage", "logs", "desktop-wrapper.log");
 
     public MainWindow()
     {
@@ -53,7 +53,7 @@ internal sealed class MainWindow : Form
         var platform = Path.Combine(root, "platform");
         var publicDir = Path.Combine(platform, "public");
         var router = Path.Combine(publicDir, "router.php");
-        var phpPath = Path.Combine(root, "runtime", "php", "php.exe");
+        var phpPath = FindCompatiblePhp(platform);
 
         if (!Directory.Exists(publicDir) || !File.Exists(router))
         {
@@ -61,12 +61,15 @@ internal sealed class MainWindow : Form
             return;
         }
 
-        if (!File.Exists(phpPath))
+        if (phpPath is null)
         {
-            ShowStartupError("DCP's private PHP runtime is missing. Run the official DCP installer again; DCP will not silently use a different system PHP installation.");
+            ShowStartupError("No compatible PHP runtime was found. Run platform\\dcp-env\\scripts\\bootstrap-windows.ps1; DCP will not overwrite an existing PHP installation.");
             return;
         }
 
+        var userData = Path.Combine(root, "DCP-UserData", "Windows");
+        Directory.CreateDirectory(Path.Combine(userData, "data"));
+        Directory.CreateDirectory(Path.Combine(userData, "storage"));
         var start = new ProcessStartInfo
         {
             FileName = phpPath,
@@ -81,6 +84,8 @@ internal sealed class MainWindow : Form
         start.ArgumentList.Add("-t");
         start.ArgumentList.Add(publicDir);
         start.ArgumentList.Add(router);
+        start.Environment["DCP_MODE"] = "desktop";
+        start.Environment["DCP_USER_DATA_DIR"] = userData;
 
         try
         {
@@ -99,7 +104,7 @@ internal sealed class MainWindow : Form
         catch (Exception ex)
         {
             AppendLog("PHP startup failed: " + ex);
-            ShowStartupError("DCP could not start its private PHP service. Details are in platform/storage/logs/desktop-wrapper.log.");
+            ShowStartupError("DCP could not start its private PHP service. Details are in DCP-UserData/Windows/storage/logs/desktop-wrapper.log.");
             return;
         }
 
@@ -152,7 +157,7 @@ internal sealed class MainWindow : Form
             await Task.Delay(200);
         }
 
-        ShowStartupError("DCP PHP service did not become ready. Check platform/storage/logs/desktop-wrapper.log.");
+        ShowStartupError("DCP PHP service did not become ready. Check DCP-UserData\\Windows\\storage\\logs\\desktop-wrapper.log.");
     }
 
     private async Task CheckAndApplyUpdateInBackgroundAsync(CancellationToken cancellationToken)
@@ -390,6 +395,58 @@ internal sealed class MainWindow : Form
         var port = ((IPEndPoint)listener.LocalEndpoint).Port;
         listener.Stop();
         return port;
+    }
+
+    private string? FindCompatiblePhp(string platform)
+    {
+        var candidates = new List<string>();
+        var path = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
+        foreach (var directory in path.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))
+        {
+            var candidate = Path.Combine(directory.Trim(), "php.exe");
+            if (File.Exists(candidate)) candidates.Add(candidate);
+        }
+        candidates.Add(Path.Combine(platform, "dcp-env", "runtime", "php", "windows-x64", "php.exe"));
+        candidates.Add(Path.Combine(root, "runtime", "php", "php.exe")); // backward-compatible package path
+
+        foreach (var candidate in candidates.Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            if (IsCompatiblePhp(candidate))
+            {
+                AppendLog("Selected compatible PHP runtime: " + candidate);
+                return candidate;
+            }
+        }
+        return null;
+    }
+
+    private static bool IsCompatiblePhp(string candidate)
+    {
+        if (!File.Exists(candidate)) return false;
+        try
+        {
+            var start = new ProcessStartInfo
+            {
+                FileName = candidate,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            };
+            start.ArgumentList.Add("-r");
+            start.ArgumentList.Add("echo (version_compare(PHP_VERSION,'8.2.0','>=') && extension_loaded('pdo_sqlite') && extension_loaded('curl') && extension_loaded('intl') && extension_loaded('mbstring') && extension_loaded('fileinfo') && extension_loaded('openssl') && extension_loaded('sodium')) ? 'DCP_OK' : 'DCP_MISSING';");
+            using var process = Process.Start(start);
+            if (process is null) return false;
+            var output = process.StandardOutput.ReadToEnd();
+            _ = process.StandardError.ReadToEnd();
+            if (!process.WaitForExit(5000))
+            {
+                process.Kill(true);
+                return false;
+            }
+            return process.ExitCode == 0 && output.Trim() == "DCP_OK";
+        }
+        catch { return false; }
     }
 
     private async Task<bool> IsServerReadyAsync()

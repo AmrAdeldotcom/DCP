@@ -1,0 +1,14 @@
+{
+  "checkpoint": "DC03-2026-11-23",
+  "branch": "fix/alpha7-localai-cloud-pairing",
+  "head": "1054f48",
+  "activeTask": "Q005",
+  "nextTask": "Q006 after Q005",
+  "workingTree": "dirty",
+  "device": "Amrs-Mac-Pro",
+  "os": "macOS 14.7.1 Intel x86_64",
+  "freeDiskGiB": 8.3,
+  "connection": "reconnected after transient persisted-session fetch failure",
+  "tests": "baseline recorded in WORK-QUEUE.md; rerun after code changes",
+  "created": "2026-11-23"
+}

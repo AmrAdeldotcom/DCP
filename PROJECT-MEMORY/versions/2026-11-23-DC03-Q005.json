@@ -1,0 +1,19 @@
+{
+  "checkpoint": "DC03-Q005-2026-11-23",
+  "branch": "fix/alpha7-localai-cloud-pairing",
+  "head": "1054f48",
+  "activeTask": "Q005",
+  "installerTests": "6/6 passed",
+  "platformTests": "ALL PLATFORM TESTS PASSED",
+  "wrapperBuilds": [
+    "x86_64 macOS 10.15",
+    "arm64 macOS 11.0"
+  ],
+  "phpBuild": "not run; GitHub Actions required",
+  "windowsCI": "configured, not run",
+  "workingTree": "dirty; no commit/push",
+  "freeDiskGiB": 8.3,
+  "created": "2026-11-23",
+  "macosPackageCI": "configured, not run",
+  "windowsPackageCI": "configured, not run"
+}

@@ -1,0 +1,58 @@
+[
+  {
+    "id": "DCP-001",
+    "decision": "Project memory is file-backed and hierarchical.",
+    "status": "accepted",
+    "rationale": "Conversation context can expire; repository files are the durable source for handoffs.",
+    "scope": "PROJECT-MEMORY"
+  },
+  {
+    "id": "DCP-002",
+    "decision": "WORK-QUEUE.md remains the operational task authority; PROJECT-MEMORY mirrors it.",
+    "status": "accepted",
+    "rationale": "Avoid conflicting task states across multiple trackers.",
+    "scope": "project workflow"
+  },
+  {
+    "id": "DCP-003",
+    "decision": "Use system-first, managed-fallback runtimes.",
+    "status": "accepted",
+    "rationale": "Reuse compatible existing services and do not replace, stop or reconfigure user installations.",
+    "scope": "platform/dcp-env"
+  },
+  {
+    "id": "DCP-004",
+    "decision": "Keep DCP-managed runtimes separate from user data and credentials.",
+    "status": "accepted",
+    "rationale": "Runtime distribution must not package SQLite data, keys, logs or workspaces.",
+    "scope": "packaging/security"
+  },
+  {
+    "id": "DCP-005",
+    "decision": "No commit, push, release, public tunnel or deployment without the documented approval gate.",
+    "status": "accepted",
+    "rationale": "The working tree is dirty and web entry security remains blocked.",
+    "scope": "release/security"
+  },
+  {
+    "id": "DCP-006",
+    "decision": "Build managed macOS PHP artifacts on native CI runners, not this Mac host while disk is critically low.",
+    "status": "accepted",
+    "rationale": "The current host has only about 8.3 GiB free; native CI can build x86_64 and arm64 artifacts reproducibly.",
+    "scope": "Q005"
+  },
+  {
+    "id": "DCP-007",
+    "decision": "Use StaticPHP v2.8.5 at immutable commit 4318ef8fa32a02460ec1554746674a7bc42b49fa with PHP 8.4.28 source SHA-256 for CI validation.",
+    "status": "accepted-for-validation",
+    "rationale": "StaticPHP v3 is alpha; v2 documents PHP 8.4 as stable and the required extensions as supported. No runtime is considered adopted until native CI and clean-machine tests pass.",
+    "scope": "Q005"
+  },
+  {
+    "id": "DCP-008",
+    "decision": "Embed architecture-specific managed PHP runtimes in the macOS release package and verify the binary SHA-256 before execution.",
+    "status": "accepted-for-validation",
+    "rationale": "Clean installs get their fallback immediately, and the wrapper can keep system PHP first without runtime downloads or global changes.",
+    "scope": "Q005"
+  }
+]

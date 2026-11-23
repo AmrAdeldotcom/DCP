@@ -1,0 +1,15 @@
+# StaticPHP v2.8.5 build recipe. Keep this extension set aligned with verify-runtime.php.
+php-version: 8.4.28
+extensions: curl,intl,mbstring,openssl,pdo,pdo_sqlite,sodium,fileinfo,tokenizer,phar,posix,dom,xml,xmlreader,xmlwriter,simplexml,session,ctype,filter,iconv,zlib
+sapi: cli
+build-options:
+  with-suggested-libs: false
+  with-suggested-exts: false
+  no-strip: false
+download-options:
+  retry: 5
+  prefer-pre-built: true
+craft-options:
+  doctor: true
+  download: true
+  build: true

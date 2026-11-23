@@ -9,7 +9,11 @@ permissions:
   contents: write
 
 jobs:
+  managed-php-runtime:
+    uses: ./.github/workflows/build-php-runtime-macos.yml
+
   macos-universal:
+    needs: managed-php-runtime
     runs-on: macos-latest
     steps:
       - name: Check out source
@@ -17,7 +21,40 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up PHP CLI
+      - name: Test macOS runtime bootstrap selection and integrity
+        run: bash platform/tests/runtime-macos-installer.sh
+
+      - name: Download managed PHP runtime artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: dcp-php-runtime-macos-*
+          path: ${{ runner.temp }}/dcp-php-artifacts
+          merge-multiple: false
+
+      - name: Embed and verify managed PHP runtimes
+        shell: bash
+        run: |
+          set -euo pipefail
+          for arch in macos-x64 macos-arm64; do
+            artifact="$RUNNER_TEMP/dcp-php-artifacts/dcp-php-runtime-$arch"
+            archive="$artifact/DCP-PHP-$arch.tar.gz"
+            checksum="$archive.sha256"
+            test -s "$archive"
+            test -s "$checksum"
+            (cd "$artifact" && shasum -a 256 -c "$(basename "$checksum")")
+            target="platform/dcp-env/runtime/php/$arch"
+            mkdir -p "$target"
+            tar -xzf "$archive" -C "$target"
+            test -x "$target/bin/php"
+            test -s "$target/php.ini"
+            test -s "$target/php.sha256"
+            actual="$(shasum -a 256 "$target/bin/php" | awk '{print $1}')"
+            expected="$(tr -d '[:space:]' < "$target/php.sha256")"
+            test "$actual" = "$expected"
+            PHPRC="$target/php.ini" PHP_INI_SCAN_DIR="$target/conf.d" "$target/bin/php" platform/scripts/verify-runtime.php
+          done
+
+      - name: Set up PHP CLI for the application build
         run: |
           brew install php
           php -v
@@ -51,7 +88,34 @@ jobs:
             --exclude '/tests/***' \
             --exclude '/.env' \
             --exclude '/.env.*' \
-            --exclude '/vendor/***'
+            --exclude '/vendor/***' \
+            --exclude '/dcp-env/build/***' \
+            --exclude '/dcp-env/engines/llama.cpp/source/***' \
+            --exclude '/dcp-env/engines/llama.cpp/macos-x64-avx2/***' \
+            --exclude '/dcp-env/engines/llama.cpp/macos-x64-sse42/***' \
+            --exclude '/dcp-env/engines/llama.cpp/macos-arm64/***' \
+            --exclude '/dcp-env/engines/llama.cpp/macos-x64/***' \
+            --exclude '/dcp-env/engines/llama.cpp/linux-x64/***' \
+            --exclude '/dcp-env/engines/ollama/linux-x64/***' \
+            --exclude '/dcp-env/engines/ollama/windows-x64/***' \
+            --exclude '/dcp-env/engines/ollama/macos-x64/***' \
+            --exclude '/dcp-env/engines/ollama/macos-arm64/***'
+          for arch in macos-x64 macos-arm64; do
+            runtime="$STAGE/platform/dcp-env/runtime/php/$arch"
+            test -x "$runtime/bin/php"
+            expected="$(tr -d '[:space:]' < "$runtime/php.sha256")"
+            actual="$(shasum -a 256 "$runtime/bin/php" | awk '{print $1}')"
+            test "$actual" = "$expected"
+            PHPRC="$runtime/php.ini" PHP_INI_SCAN_DIR="$runtime/conf.d" "$runtime/bin/php" "$STAGE/platform/scripts/verify-runtime.php"
+          done
+          if [ -d "$STAGE/platform/dcp-env/build" ] && find "$STAGE/platform/dcp-env/build" -type f -print -quit | grep -q .; then
+            echo "Build cache leaked into the portable package." >&2
+            exit 1
+          fi
+          if [ -d "$STAGE/platform/dcp-env/engines/llama.cpp/source" ] && find "$STAGE/platform/dcp-env/engines/llama.cpp/source" -type f -print -quit | grep -q .; then
+            echo "llama.cpp source tree leaked into the portable package." >&2
+            exit 1
+          fi
           touch "$STAGE/platform/data/.gitkeep" "$STAGE/platform/storage/.gitkeep"
           (cd "$STAGE" && zip -qry "$OUT" DCP.app platform)
           test -s "$OUT"

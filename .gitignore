@@ -45,3 +45,23 @@ platform/storage/local-ai-pull.ps1
 # Local-only agent skills and source checkouts
 .agent-sources/
 .agents/
+
+# Portable local databases, keys, models, logs and workspaces
+DCP-UserData/
+
+# Platform-specific DCP managed runtime binaries and build trees
+platform/dcp-env/build/
+platform/dcp-env/runtime/
+platform/dcp-env/engines/llama.cpp/macos-x64-avx2/
+platform/dcp-env/engines/llama.cpp/macos-x64-sse42/
+platform/dcp-env/engines/llama.cpp/macos-arm64/
+platform/dcp-env/engines/llama.cpp/windows-x64/
+platform/dcp-env/engines/ollama/macos-x64/
+platform/dcp-env/engines/ollama/macos-arm64/
+platform/dcp-env/engines/ollama/windows-x64/
+
+# DCP runtime source checkouts and generated platform binaries
+platform/dcp-env/engines/llama.cpp/source/
+platform/dcp-env/engines/llama.cpp/macos-x64/
+platform/dcp-env/engines/llama.cpp/linux-x64/
+platform/dcp-env/engines/ollama/linux-x64/

@@ -72,7 +72,7 @@ Legend: [x] implemented and verified in this session; [~] exists but needs deepe
 - [x] macOS WKWebView source and app bundle exist.
 - [~] Windows WebView2 source and a prior build output exist; must rebuild against current platform and test on Windows.
 - [~] Linux WebKit2GTK source exists; must build/test on Linux.
-- [ ] Bundle or bootstrap a private PHP runtime per OS; never change system Apache/MySQL/PostgreSQL/Node/Python/C# services.
+- [~] Windows private PHP runtime packaging and macOS managed PHP build/installer workflows are implemented; native CI builds and clean-machine launch tests remain. Never change system Apache/MySQL/PostgreSQL/Node/Python/C# services.
 - [ ] Remove generated build artifacts, duplicate legacy folders and unused files only after verified backup outside the DCP project.
 - [ ] Verify clean install, app launch, shutdown and upgrade on each OS.
 

@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "project": "DCP \u2014 Desktop Connector Platform",
+  "updatedAt": "2026-11-23T23:58:00+02:00",
+  "session": "DC03",
+  "repository": "/Volumes/Data/ChatGPT/DCP",
+  "branch": "fix/alpha7-localai-cloud-pairing",
+  "headCommit": "1054f48",
+  "latestReleaseTag": "v1.0.0-alpha.8",
+  "workingTree": "dirty; preserve all existing changes; no commit/push/release",
+  "device": {
+    "name": "Amrs-Mac-Pro",
+    "id": "a23231bf-eabc-441c-a6e2-560e3ae7f957",
+    "appVersion": "0.3.4",
+    "os": "macOS 14.7.1",
+    "architecture": "x86_64"
+  },
+  "activeTask": "Q005",
+  "activeTaskStatus": "partial",
+  "nextTask": "Q005 final code review; obtain explicit approval to commit/push so GitHub Actions can validate native macOS runtimes and clean Windows package. Do not begin Q006 until CI and clean-machine tests pass.",
+  "nextTaskFile": "PROJECT-MEMORY/tasks/Q005-managed-php-macos.md",
+  "followingTask": "Q006",
+  "knownConstraints": [
+    "Current machines in scope are Mac and Windows; defer Linux implementation and preserve Linux/Kali updater compatibility.",
+    "Work only in /Volumes/Data/ChatGPT/DCP.",
+    "Preserve installed alpha.8 copy until new layout is verified.",
+    "Do not change, stop, replace or reconfigure existing Apache, PHP, Homebrew services, Ollama or other user services.",
+    "Do not expose public tunnels until web entry authentication, rate limits and private-path protections are verified.",
+    "Never put secrets, credentials, .env files, keys, SQLite databases or runtime state in Git or project Markdown.",
+    "Do not commit, push, release or deploy without explicit approval and release gates.",
+    "Do not compile large runtimes on this Mac; disk has only about 8.3 GiB free."
+  ],
+  "verifiedBaseline": {
+    "platformTests": "php platform/tests/run.php \u2014 ALL PLATFORM TESTS PASSED on 2026-11-23",
+    "runtimeInstallerTests": "bash platform/tests/runtime-macos-installer.sh \u2014 6/6 passed",
+    "phpLint": "All platform PHP files linted successfully on 2026-11-23",
+    "javascriptSyntax": "node --check platform/public/assets/app.js passed",
+    "shellSyntax": "bash -n for macOS installer, tests and bootstrap/build scripts passed",
+    "wrapperCompile": "macOS Objective-C wrapper compiled for x86_64 target 10.15 and arm64 target 11.0",
+    "workflowSyntax": "Ruby YAML parsing passed for build-php-runtime-macos.yml, release-macos.yml, test-windows-package.yml and php-macos.craft.yml; actionlint unavailable",
+    "manifestJson": "php-runtime.json and runtime.json parsed successfully",
+    "gitDiffCheck": "git diff --check passed",
+    "hostRuntime": "Host PHP 8.5.9 with all required extensions; verify-runtime.php passed"
+  },
+  "hostConstraints": {
+    "freeDisk": "8.3 GiB available on /Volumes/Data; filesystem 99% used at last check",
+    "php": "/usr/local/bin/php 8.5.9, Homebrew PHP present",
+    "impact": "Do not compile PHP or install large build dependencies locally; use native GitHub Actions runners."
+  },
+  "connectionNote": "Remote Desktop Commander connection intermittently failed during persisted-session/device startup; device reconnected and is online. Check tool-call status before retrying pending operations.",
+  "lastVerifiedFiles": [
+    "WORK-QUEUE.md",
+    "ROADMAP.md",
+    "AGENTS.md",
+    "PROJECT-MEMORY/INDEX.md",
+    "PROJECT-MEMORY/CURRENT-STATE.json",
+    "PROJECT-MEMORY/tasks/Q005-managed-php-macos.md",
+    "platform/dcp-env/README.md",
+    "platform/dcp-env/manifests/runtime.json",
+    "platform/dcp-env/manifests/php-runtime.json",
+    "platform/dcp-env/manifests/php-macos.craft.yml",
+    "platform/dcp-env/manifests/php-macos.ini",
+    "platform/dcp-env/scripts/bootstrap-macos.sh",
+    "platform/scripts/install-runtime-macos.sh",
+    "platform/tests/runtime-macos-installer.sh",
+    "platform/scripts/verify-runtime.php",
+    "platform/wrappers/macos/main.m",
+    ".github/workflows/build-php-runtime-macos.yml",
+    ".github/workflows/release-macos.yml",
+    ".github/workflows/test-windows-package.yml",
+    "platform/docs/IMPLEMENTATION-CHECKLIST.md",
+    ".github/workflows/test-macos-package.yml"
+  ],
+  "openIssues": [
+    "Q004 blocked: Apache AllowOverride None and mod_rewrite unavailable; public URL/shortcut must remain blocked until server security is verified.",
+    "Q005 partial: pinned runtime build, non-publishing macOS package CI and Windows package CI are configured but not run; actual binaries, TLS, deployment targets, package artifacts and real-machine installs remain unverified.",
+    "Q006 pending: local chat/llama.cpp lifecycle work must not start before Q005 closes.",
+    "Working tree contains many unrelated dirty files; inspect exact Q005 diffs and never stage/commit wholesale.",
+    "GitHub Actions workflow semantic validation and execution are pending; actionlint is not installed locally."
+  ]
+}

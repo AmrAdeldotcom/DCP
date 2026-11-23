@@ -1,0 +1,176 @@
+name: Build DCP managed PHP runtimes for macOS
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-runtime:
+    name: PHP runtime — ${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: macos-x64
+            runner: macos-15-intel
+            deployment_target: "10.15"
+          - arch: macos-arm64
+            runner: macos-15
+            deployment_target: "11.0"
+    runs-on: ${{ matrix.runner }}
+    env:
+      MACOSX_DEPLOYMENT_TARGET: ${{ matrix.deployment_target }}
+    steps:
+      - name: Check out DCP
+        uses: actions/checkout@v4
+
+      - name: Read pinned runtime manifest
+        id: runtime
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json, os
+          with open("platform/dcp-env/manifests/php-runtime.json", encoding="utf-8") as f:
+              manifest = json.load(f)
+          values = {
+              "php_version": manifest["phpVersion"],
+              "php_source_sha256": manifest["phpSource"]["sha256"],
+              "static_php_commit": manifest["builder"]["commit"],
+              "extensions": ",".join(manifest["requiredExtensions"] + manifest["additionalExtensions"]),
+          }
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as f:
+              for key, value in values.items():
+                  f.write(f"{key}={value}\n")
+          PY
+
+      - name: Install isolated CI build dependencies
+        shell: bash
+        run: |
+          brew install php@8.4 composer autoconf automake bison cmake libtool pkg-config re2c
+          export PATH="$(brew --prefix php@8.4)/bin:$(brew --prefix bison)/bin:$PATH"
+          echo "$(brew --prefix php@8.4)/bin" >> "$GITHUB_PATH"
+          echo "$(brew --prefix bison)/bin" >> "$GITHUB_PATH"
+          php -v
+          composer --version
+          php -r 'if (PHP_VERSION_ID < 80300) { exit(1); }'
+          test -s /etc/ssl/cert.pem
+
+      - name: Check out pinned StaticPHP source
+        shell: bash
+        env:
+          STATIC_PHP_COMMIT: ${{ steps.runtime.outputs.static_php_commit }}
+        run: |
+          set -euo pipefail
+          SPC_DIR="$RUNNER_TEMP/static-php-cli"
+          git clone --depth=1 --filter=blob:none --branch 2.8.5 https://github.com/crazywhalecc/static-php-cli.git "$SPC_DIR"
+          git -C "$SPC_DIR" checkout --detach "$STATIC_PHP_COMMIT"
+          test "$(git -C "$SPC_DIR" rev-parse HEAD)" = "$STATIC_PHP_COMMIT"
+          echo "SPC_DIR=$SPC_DIR" >> "$GITHUB_ENV"
+
+      - name: Install pinned builder dependencies
+        shell: bash
+        run: |
+          composer install --working-dir "$SPC_DIR" --no-dev --prefer-dist --no-interaction --no-progress --optimize-autoloader
+          test -f "$SPC_DIR/vendor/autoload.php"
+
+      - name: Download and verify official PHP source
+        shell: bash
+        env:
+          PHP_VERSION: ${{ steps.runtime.outputs.php_version }}
+          PHP_SOURCE_SHA256: ${{ steps.runtime.outputs.php_source_sha256 }}
+          EXTENSIONS: ${{ steps.runtime.outputs.extensions }}
+        run: |
+          set -euo pipefail
+          cd "$SPC_DIR"
+          bin/spc download --for-extensions="$EXTENSIONS" --with-php="$PHP_VERSION" --prefer-pre-built
+          PHP_ARCHIVE="$(find . -type f -name "php-$PHP_VERSION.tar.xz" -print -quit)"
+          test -n "$PHP_ARCHIVE"
+          printf '%s  %s\n' "$PHP_SOURCE_SHA256" "$PHP_ARCHIVE" | shasum -a 256 -c -
+
+      - name: Compile managed PHP
+        shell: bash
+        env:
+          PHP_VERSION: ${{ steps.runtime.outputs.php_version }}
+        run: |
+          set -euo pipefail
+          cp "$GITHUB_WORKSPACE/platform/dcp-env/manifests/php-macos.craft.yml" "$SPC_DIR/craft.yml"
+          cd "$SPC_DIR"
+          bin/spc craft --debug
+          test -x buildroot/bin/php
+          test "$(buildroot/bin/php -r 'echo PHP_VERSION;')" = "$PHP_VERSION"
+
+      - name: Verify extensions, TLS, architecture and deployment target
+        shell: bash
+        env:
+          PHP_VERSION: ${{ steps.runtime.outputs.php_version }}
+          ARCH: ${{ matrix.arch }}
+          DEPLOYMENT_TARGET: ${{ matrix.deployment_target }}
+          EXTENSIONS: ${{ steps.runtime.outputs.extensions }}
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/dcp-managed-php/$ARCH"
+          mkdir -p "$OUT/bin" "$OUT/conf.d"
+          cp "$SPC_DIR/buildroot/bin/php" "$OUT/bin/php"
+          cp "$GITHUB_WORKSPACE/platform/dcp-env/manifests/php-macos.ini" "$OUT/php.ini"
+          chmod 0755 "$OUT/bin/php"
+
+          PHPRC="$OUT/php.ini" PHP_INI_SCAN_DIR="$OUT/conf.d" "$OUT/bin/php" "$GITHUB_WORKSPACE/platform/scripts/verify-runtime.php"
+          PHPRC="$OUT/php.ini" PHP_INI_SCAN_DIR="$OUT/conf.d" "$OUT/bin/php" -r '
+            $url = "https://www.php.net/releases/index.php?json&version=8.4.28";
+            $ch = curl_init($url);
+            curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 20]);
+            $body = curl_exec($ch);
+            if ($body === false) { fwrite(STDERR, curl_error($ch) . "\n"); exit(1); }
+            if (curl_getinfo($ch, CURLINFO_RESPONSE_CODE) !== 200) { fwrite(STDERR, "HTTPS returned a non-200 response\n"); exit(2); }
+            json_decode($body, true, 512, JSON_THROW_ON_ERROR);
+            echo "Managed PHP HTTPS/TLS smoke test passed\n";
+            curl_close($ch);
+          '
+
+          otool -L "$OUT/bin/php" | tee "$RUNNER_TEMP/php-dylibs.txt"
+          otool -L "$OUT/bin/php" | awk 'NR > 1 { print $1 }' | while IFS= read -r dependency; do
+            case "$dependency" in
+              /usr/lib/*|/System/Library/*) ;;
+              *) echo "Managed PHP has a non-system dynamic dependency: $dependency" >&2; exit 1 ;;
+            esac
+          done
+          vtool -show-build "$OUT/bin/php" | tee "$RUNNER_TEMP/php-build-info.txt"
+          grep -F "minos $DEPLOYMENT_TARGET" "$RUNNER_TEMP/php-build-info.txt"
+
+          "$SPC_DIR/bin/spc" dump-license --for-extensions="$EXTENSIONS" --dump-dir="$OUT/licenses"
+          test -d "$OUT/licenses"
+          test -n "$(find "$OUT/licenses" -type f -print -quit)"
+          cp "$SPC_DIR/LICENSE" "$OUT/licenses/StaticPHP-MIT.txt"
+
+          shasum -a 256 "$OUT/bin/php" | awk '{print $1}' > "$OUT/php.sha256"
+          python3 - "$OUT/runtime.json" "$PHP_VERSION" "$ARCH" "$DEPLOYMENT_TARGET" <<'PY'
+          import json, sys
+          path, version, arch, min_os = sys.argv[1:]
+          with open(path, "w", encoding="utf-8") as f:
+              json.dump({
+                  "schema": 1,
+                  "phpVersion": version,
+                  "architecture": arch,
+                  "minimumMacOS": min_os,
+                  "managedBy": "DCP",
+                  "builder": "StaticPHP v2.8.5",
+                  "builderCommit": "4318ef8fa32a02460ec1554746674a7bc42b49fa"
+              }, f, indent=2)
+              f.write("\n")
+          PY
+
+          tar -czf "$RUNNER_TEMP/DCP-PHP-$ARCH.tar.gz" -C "$OUT" .
+          (cd "$RUNNER_TEMP" && shasum -a 256 "DCP-PHP-$ARCH.tar.gz" > "DCP-PHP-$ARCH.tar.gz.sha256")
+
+      - name: Upload managed PHP runtime artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dcp-php-runtime-${{ matrix.arch }}
+          path: |
+            ${{ runner.temp }}/DCP-PHP-${{ matrix.arch }}.tar.gz
+            ${{ runner.temp }}/DCP-PHP-${{ matrix.arch }}.tar.gz.sha256
+          if-no-files-found: error
+          retention-days: 14

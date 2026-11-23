@@ -4,6 +4,7 @@
 #import <sys/socket.h>
 #import <netinet/in.h>
 #import <arpa/inet.h>
+#import <CommonCrypto/CommonDigest.h>
 #import <string.h>
 
 @interface DCPAppDelegate : NSObject <NSApplicationDelegate, WKNavigationDelegate, WKUIDelegate>
@@ -13,6 +14,7 @@
 @property(nonatomic,assign) BOOL ownsPHP;
 @property(nonatomic,assign) NSInteger port;
 @property(nonatomic,strong) NSURL *platformURL;
+@property(nonatomic,strong) NSURL *userDataURL;
 - (void)loadAttempt:(NSInteger)attempt;
 - (void)startPHPIfNeeded;
 - (void)checkForUpdates;
@@ -22,6 +24,7 @@
 - (void)applicationDidFinishLaunching:(NSNotification *)note {
     NSURL *root=[[[NSBundle mainBundle] bundleURL] URLByDeletingLastPathComponent];
     self.platformURL=[root URLByAppendingPathComponent:@"platform" isDirectory:YES];
+    self.userDataURL=[root URLByAppendingPathComponent:@"DCP-UserData/macOS" isDirectory:YES];
     self.port=[self availablePort];
     WKWebViewConfiguration *config=[[WKWebViewConfiguration alloc] init];
     self.webView=[[WKWebView alloc] initWithFrame:NSMakeRect(0,0,1280,820) configuration:config];
@@ -75,17 +78,64 @@
     close(fd);
     return port;
 }
+- (BOOL)isCompatiblePHP:(NSString *)path {
+    NSTask *task=[[NSTask alloc] init];
+    task.executableURL=[NSURL fileURLWithPath:path];
+    task.arguments=@[@"-r", @"echo (version_compare(PHP_VERSION,'8.2.0','>=') && extension_loaded('pdo_sqlite') && extension_loaded('curl') && extension_loaded('intl') && extension_loaded('mbstring') && extension_loaded('fileinfo') && extension_loaded('openssl') && extension_loaded('sodium')) ? 'DCP_OK' : 'DCP_MISSING';"];
+    NSPipe *pipe=[NSPipe pipe];task.standardOutput=pipe;task.standardError=[NSFileHandle fileHandleWithNullDevice];
+    NSError *error=nil;
+    if(![task launchAndReturnError:&error])return NO;
+    NSData *data=[pipe.fileHandleForReading readDataToEndOfFile];
+    [task waitUntilExit];
+    NSString *output=[[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding] ?: @"";
+    return task.terminationStatus==0 && [output containsString:@"DCP_OK"];
+}
+- (BOOL)isVerifiedManagedPHP:(NSString *)path {
+    NSURL *binaryURL=[NSURL fileURLWithPath:path];
+    NSURL *parent=[binaryURL URLByDeletingLastPathComponent];
+    NSURL *runtimeURL=[parent.lastPathComponent isEqualToString:@"bin"] ? [parent URLByDeletingLastPathComponent] : parent;
+    NSString *runtimeRoot=runtimeURL.path;
+    NSString *checksumPath=[runtimeRoot stringByAppendingPathComponent:@"php.sha256"];
+    NSString *expected=[NSString stringWithContentsOfFile:checksumPath encoding:NSUTF8StringEncoding error:nil];
+    expected=[[expected stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]] lowercaseString];
+    if(expected.length!=CC_SHA256_DIGEST_LENGTH*2) return NO;
+    NSData *binary=[NSData dataWithContentsOfFile:path options:NSDataReadingMappedIfSafe error:nil];
+    if(!binary) return NO;
+    unsigned char digest[CC_SHA256_DIGEST_LENGTH];
+    CC_SHA256(binary.bytes,(CC_LONG)binary.length,digest);
+    NSMutableString *actual=[NSMutableString stringWithCapacity:CC_SHA256_DIGEST_LENGTH*2];
+    for(NSUInteger i=0;i<CC_SHA256_DIGEST_LENGTH;i++) [actual appendFormat:@"%02x",digest[i]];
+    return [actual isEqualToString:expected];
+}
 - (void)startPHPIfNeeded {
-    NSURL *runtimeRoot=[self.platformURL URLByDeletingLastPathComponent];
-    NSURL *privateRuntime=[runtimeRoot URLByAppendingPathComponent:@"runtime/php/bin/php"];
-    NSURL *privateRuntimeFlat=[runtimeRoot URLByAppendingPathComponent:@"runtime/php/php"];
-    NSArray *phpCandidates=@[privateRuntime.path,privateRuntimeFlat.path,@"/usr/local/bin/php",@"/opt/homebrew/bin/php"];
+#if defined(__arm64__)
+    NSString *managedName=@"macos-arm64";
+#else
+    NSString *managedName=@"macos-x64";
+#endif
+    NSURL *managed=[self.platformURL URLByAppendingPathComponent:[NSString stringWithFormat:@"dcp-env/runtime/php/%@/bin/php",managedName]];
+    NSURL *managedFlat=[self.platformURL URLByAppendingPathComponent:[NSString stringWithFormat:@"dcp-env/runtime/php/%@/php",managedName]];
+    NSURL *legacy=[[[self.platformURL URLByDeletingLastPathComponent] URLByAppendingPathComponent:@"runtime/php/bin/php"] copy];
+    NSArray *phpCandidates=@[@"/usr/local/bin/php",@"/opt/homebrew/bin/php",managed.path,managedFlat.path,legacy.path];
     NSString *php=nil;
-    for(NSString *candidate in phpCandidates) if([[NSFileManager defaultManager] isExecutableFileAtPath:candidate]) {php=candidate;break;}
-    if(!php){[self.webView loadHTMLString:@"<h2>PHP 8.2+ is required</h2><p>Install PHP with PDO_SQLite, cURL, OpenSSL and Sodium.</p>" baseURL:nil];return;}
+    BOOL managedPHP=NO;
+    for(NSString *candidate in phpCandidates){
+        BOOL candidateIsManaged=[candidate isEqualToString:managed.path] || [candidate isEqualToString:managedFlat.path];
+        if(candidateIsManaged && ![self isVerifiedManagedPHP:candidate]) continue;
+        if([[NSFileManager defaultManager] isExecutableFileAtPath:candidate] && [self isCompatiblePHP:candidate]){
+            php=candidate;
+            managedPHP=candidateIsManaged;
+            break;
+        }
+    }
+    if(!php){[self.webView loadHTMLString:@"<h2>Compatible PHP 8.2+ is required</h2><p>Run platform/dcp-env/scripts/bootstrap-macos.sh. DCP will not replace an existing PHP installation.</p>" baseURL:nil];return;}
     NSURL *publicDir=[self.platformURL URLByAppendingPathComponent:@"public" isDirectory:YES];
     NSURL *router=[publicDir URLByAppendingPathComponent:@"router.php"];
-    NSURL *logs=[self.platformURL URLByAppendingPathComponent:@"storage/logs" isDirectory:YES];
+    NSURL *dataDir=[self.userDataURL URLByAppendingPathComponent:@"data" isDirectory:YES];
+    NSURL *storageDir=[self.userDataURL URLByAppendingPathComponent:@"storage" isDirectory:YES];
+    [[NSFileManager defaultManager] createDirectoryAtURL:dataDir withIntermediateDirectories:YES attributes:@{NSFilePosixPermissions:@0700} error:nil];
+    [[NSFileManager defaultManager] createDirectoryAtURL:storageDir withIntermediateDirectories:YES attributes:@{NSFilePosixPermissions:@0700} error:nil];
+    NSURL *logs=[storageDir URLByAppendingPathComponent:@"logs" isDirectory:YES];
     [[NSFileManager defaultManager] createDirectoryAtURL:logs withIntermediateDirectories:YES attributes:@{NSFilePosixPermissions:@0700} error:nil];
     NSURL *log=[logs URLByAppendingPathComponent:@"desktop-wrapper.log"];
     [[NSFileManager defaultManager] createFileAtPath:log.path contents:nil attributes:@{NSFilePosixPermissions:@0600}];
@@ -95,14 +145,23 @@
     NSString *address=[NSString stringWithFormat:@"127.0.0.1:%ld",(long)self.port];
     self.phpTask.arguments=@[@"-S",address,@"-t",publicDir.path,router.path];
     self.phpTask.currentDirectoryURL=self.platformURL;
+    NSMutableDictionary *environment=[NSMutableDictionary dictionaryWithDictionary:[[NSProcessInfo processInfo] environment]];
+    environment[@"DCP_MODE"]=@"desktop";
+    environment[@"DCP_USER_DATA_DIR"]=self.userDataURL.path;
+    if(managedPHP){
+        NSURL *runtimeRoot=[[managed URLByDeletingLastPathComponent] URLByDeletingLastPathComponent];
+        environment[@"PHPRC"]=[[runtimeRoot URLByAppendingPathComponent:@"php.ini"] path];
+        environment[@"PHP_INI_SCAN_DIR"]=[[runtimeRoot URLByAppendingPathComponent:@"conf.d" isDirectory:YES] path];
+    }
+    self.phpTask.environment=environment;
     self.phpTask.standardOutput=handle;
     self.phpTask.standardError=handle;
     NSError *error=nil;
     if([self.phpTask launchAndReturnError:&error]) self.ownsPHP=YES;
-    else {NSString *msg=[NSString stringWithFormat:@"Unable to start private PHP service: %@",error.localizedDescription];[self.webView loadHTMLString:[NSString stringWithFormat:@"<h2>DCP could not start</h2><p>%@</p>",msg] baseURL:nil];}
+    else {NSString *msg=[NSString stringWithFormat:@"Unable to start PHP service: %@",error.localizedDescription];[self.webView loadHTMLString:[NSString stringWithFormat:@"<h2>DCP could not start</h2><p>%@</p>",msg] baseURL:nil];}
 }
 - (void)loadAttempt:(NSInteger)attempt {
-    if(attempt>=60){[self.webView loadHTMLString:@"<html><body style='font:16px -apple-system;padding:40px;background:#f3f6fa;color:#123'><h2>DCP service is not responding</h2><p>Check platform/storage/logs/desktop-wrapper.log.</p></body></html>" baseURL:nil];return;}
+    if(attempt>=60){[self.webView loadHTMLString:@"<html><body style='font:16px -apple-system;padding:40px;background:#f3f6fa;color:#123'><h2>DCP service is not responding</h2><p>Check DCP-UserData/macOS/storage/logs/desktop-wrapper.log.</p></body></html>" baseURL:nil];return;}
     NSString *statusURL=[NSString stringWithFormat:@"http://127.0.0.1:%ld/api/status",(long)self.port];
     NSURL *url=[NSURL URLWithString:statusURL];
     [[[NSURLSession sharedSession] dataTaskWithURL:url completionHandler:^(NSData *data,NSURLResponse *response,NSError *error){

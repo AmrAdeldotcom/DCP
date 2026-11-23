@@ -1,0 +1,77 @@
+name: Test clean DCP Windows package
+
+on:
+  push:
+    paths:
+      - "platform/scripts/build-windows.ps1"
+      - "platform/scripts/install-runtime-windows.ps1"
+      - "platform/scripts/verify-runtime.php"
+      - "platform/dcp-env/**"
+      - "platform/wrappers/windows/**"
+      - ".github/workflows/test-windows-package.yml"
+      - ".github/workflows/release-windows.yml"
+  pull_request:
+    paths:
+      - "platform/scripts/build-windows.ps1"
+      - "platform/scripts/install-runtime-windows.ps1"
+      - "platform/scripts/verify-runtime.php"
+      - "platform/dcp-env/**"
+      - "platform/wrappers/windows/**"
+      - ".github/workflows/test-windows-package.yml"
+      - ".github/workflows/release-windows.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-x64:
+    runs-on: windows-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Build clean portable Windows package
+        shell: pwsh
+        run: ./platform/scripts/build-windows.ps1 -DCPVersion "1.0.0-ci.1"
+
+      - name: Verify package contents and user-data boundaries
+        shell: pwsh
+        run: |
+          $Root = "platform/dist/windows"
+          $Required = @(
+            "DCP.exe",
+            "platform/dcp-env/runtime/php/windows-x64/php.exe",
+            "platform/public/router.php",
+            "platform/scripts/install-runtime-windows.ps1",
+            "platform/scripts/update-windows.ps1",
+            "platform/scripts/verify-runtime.php",
+            "Install-DCP.ps1",
+            "DCP-Windows-update.json"
+          )
+          foreach ($Relative in $Required) {
+            $Path = Join-Path $Root $Relative
+            if (!(Test-Path -LiteralPath $Path -PathType Leaf)) {
+              throw "Required release file is missing: $Relative"
+            }
+          }
+
+          $Php = Join-Path $Root "platform/dcp-env/runtime/php/windows-x64/php.exe"
+          $Verifier = Join-Path $Root "platform/scripts/verify-runtime.php"
+          & $Php $Verifier
+          if ($LASTEXITCODE -ne 0) { throw "Packaged managed PHP failed runtime verification." }
+
+          $Key = Join-Path $Root "DCP-UserData/Windows/storage/keys/master.key"
+          $Database = Join-Path $Root "DCP-UserData/Windows/data/dcp.sqlite"
+          if (Test-Path -LiteralPath $Key) { throw "Developer encryption key leaked into package." }
+          if (Test-Path -LiteralPath $Database) { throw "Developer SQLite database leaked into package." }
+
+          if (!(Test-Path -LiteralPath (Join-Path $Root "payload") -PathType Container)) {
+            throw "Delta update payload directory is missing."
+          }
+          Write-Host "Clean Windows package verification passed."

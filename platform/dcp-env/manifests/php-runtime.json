@@ -1,0 +1,55 @@
+{
+  "schema": 1,
+  "phpVersion": "8.4.28",
+  "phpSource": {
+    "url": "https://www.php.net/distributions/php-8.4.28.tar.xz",
+    "sha256": "0c8ec360e5dd8154f270b2fd50cd44ecc824e6ee39c85f911312b80d4daecd72"
+  },
+  "builder": {
+    "name": "StaticPHP",
+    "repository": "https://github.com/crazywhalecc/static-php-cli",
+    "tag": "2.8.5",
+    "commit": "4318ef8fa32a02460ec1554746674a7bc42b49fa",
+    "license": "MIT"
+  },
+  "architectures": {
+    "macos-x64": {
+      "runner": "macos-15-intel",
+      "minimumMacOS": "10.15",
+      "binary": "runtime/php/macos-x64/bin/php"
+    },
+    "macos-arm64": {
+      "runner": "macos-15",
+      "minimumMacOS": "11.0",
+      "binary": "runtime/php/macos-arm64/bin/php"
+    }
+  },
+  "requiredExtensions": [
+    "curl",
+    "intl",
+    "mbstring",
+    "openssl",
+    "pdo_sqlite",
+    "sodium",
+    "fileinfo"
+  ],
+  "additionalExtensions": [
+    "pdo",
+    "sqlite3",
+    "tokenizer",
+    "phar",
+    "posix",
+    "dom",
+    "xml",
+    "xmlreader",
+    "xmlwriter",
+    "simplexml",
+    "session",
+    "ctype",
+    "filter",
+    "iconv",
+    "zlib"
+  ],
+  "caBundle": "/etc/ssl/cert.pem",
+  "notes": "PHP 8.4.28 selected because StaticPHP v2.8.5 documents PHP 8.4 as stable; verify macOS HTTPS and deployment targets in CI before release."
+}

@@ -17,16 +17,40 @@ $Payload = Join-Path $Out 'platform'
 New-Item -ItemType Directory -Force -Path $Payload | Out-Null
 $Exclude = @('dist','wrappers','tests','.git','data','storage')
 Get-ChildItem $Platform -Force | Where-Object { $_.Name -notin $Exclude } | ForEach-Object {
-  Copy-Item $_.FullName $Payload -Recurse -Force
+  $ItemPath = $_.FullName
+  if ($_.Name -ne 'dcp-env') {
+    Copy-Item $ItemPath $Payload -Recurse -Force
+    return
+  }
+  $EnvRoot = Join-Path $Platform 'dcp-env'
+  $EnvTarget = Join-Path $Payload 'dcp-env'
+  $ExcludedPaths = @(
+    (Join-Path $EnvRoot 'build'),
+    (Join-Path $EnvRoot 'runtime'),
+    (Join-Path $EnvRoot 'engines\llama.cpp\source'),
+    (Join-Path $EnvRoot 'engines\llama.cpp\macos-x64'),
+    (Join-Path $EnvRoot 'engines\llama.cpp\macos-x64-avx2'),
+    (Join-Path $EnvRoot 'engines\llama.cpp\macos-x64-sse42'),
+    (Join-Path $EnvRoot 'engines\llama.cpp\macos-arm64'),
+    (Join-Path $EnvRoot 'engines\llama.cpp\windows-x64'),
+    (Join-Path $EnvRoot 'engines\llama.cpp\linux-x64'),
+    (Join-Path $EnvRoot 'engines\ollama\macos-x64'),
+    (Join-Path $EnvRoot 'engines\ollama\macos-arm64'),
+    (Join-Path $EnvRoot 'engines\ollama\windows-x64'),
+    (Join-Path $EnvRoot 'engines\ollama\linux-x64')
+  )
+  & robocopy.exe $EnvRoot $EnvTarget /E /XD $ExcludedPaths /NFL /NDL /NJH /NJS /NC /NS /NP
+  if ($LASTEXITCODE -ge 8) { throw "Could not copy the portable DCP runtime manifests (robocopy exit $LASTEXITCODE)." }
+  $global:LASTEXITCODE = 0
 }
 
 # Never ship the developer's SQLite database, encryption keys, logs or local settings.
-New-Item -ItemType Directory -Force -Path (Join-Path $Payload 'data'), (Join-Path $Payload 'storage') | Out-Null
-New-Item -ItemType File -Force -Path (Join-Path $Payload 'data\.gitkeep'), (Join-Path $Payload 'storage\.gitkeep') | Out-Null
-
+$UserData = Join-Path $Out 'DCP-UserData'
+New-Item -ItemType Directory -Force -Path $UserData | Out-Null
+'DCP creates per-device databases, keys, logs, models and workspaces here on first run. Never upload this folder.' | Set-Content (Join-Path $UserData 'README.txt')
 # Bundle the private PHP runtime and verify it before creating the release archive.
 $env:DCP_ROOT = $Out
-& (Join-Path $PSScriptRoot 'install-runtime-windows.ps1')
+& (Join-Path $PSScriptRoot 'install-runtime-windows.ps1') -ForceManaged
 if ($LASTEXITCODE -ne 0) { throw 'The private PHP runtime setup failed.' }
 
 @(
@@ -57,7 +81,7 @@ if (-not [string]::IsNullOrWhiteSpace($PreviousTag)) {
 }
 $Files = @()
 foreach ($Relative in $Changed) {
-  $Relative = $Relative -replace '\\','/'
+  $Relative = $Relative -replace '\','/'
   if (-not $Relative.StartsWith('platform/')) { continue }
   if ($Relative -match '^platform/(data|storage)(/|$)' -or $Relative -match '^platform/(dist|wrappers|tests)(/|$)') { continue }
   if ($Relative -match '^platform/\.git') { continue }

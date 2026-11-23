@@ -1,0 +1,64 @@
+{
+  "schema": 1,
+  "policy": "system-first-managed-fallback",
+  "defaultCloudBaseUrl": "https://dcp.amradel.com",
+  "platforms": {
+    "macOS-x64": {
+      "php": {
+        "systemFirst": true,
+        "managedPath": "runtime/php/macos-x64/bin/php"
+      },
+      "ollama": {
+        "systemFirst": true,
+        "managedPath": "engines/ollama/macos-x64/Ollama.app"
+      },
+      "llamaCpp": {
+        "systemFirst": true,
+        "managedPath": "engines/llama.cpp/macos-x64/llama-server",
+        "fallback": "macos-x64-sse42"
+      }
+    },
+    "macOS-arm64": {
+      "php": {
+        "systemFirst": true,
+        "managedPath": "runtime/php/macos-arm64/bin/php"
+      },
+      "ollama": {
+        "systemFirst": true,
+        "managedPath": "engines/ollama/macos-arm64/Ollama.app"
+      },
+      "llamaCpp": {
+        "systemFirst": true,
+        "managedPath": "engines/llama.cpp/macos-arm64/llama-server"
+      }
+    },
+    "Windows-x64": {
+      "php": {
+        "systemFirst": true,
+        "managedPath": "runtime/php/windows-x64/php.exe"
+      },
+      "ollama": {
+        "systemFirst": true,
+        "managedPath": "engines/ollama/windows-x64/ollama.exe"
+      },
+      "llamaCpp": {
+        "systemFirst": true,
+        "managedPath": "engines/llama.cpp/windows-x64-sse42/llama-server.exe"
+      }
+    },
+    "Linux-x64": {
+      "php": {
+        "systemFirst": true,
+        "managedPath": "runtime/php/linux-x64/bin/php"
+      },
+      "ollama": {
+        "systemFirst": true,
+        "managedPath": "engines/ollama/linux-x64/ollama"
+      },
+      "llamaCpp": {
+        "systemFirst": true,
+        "managedPath": "engines/llama.cpp/linux-x64/llama-server"
+      }
+    }
+  }
+}
