@@ -70,6 +70,12 @@ PY
     mkdir -p "$DATA_DIR" "$STORAGE_DIR"
     if [[ ! -f "$DATA_DIR/dcp.sqlite" && -d "$SAVED/legacy-data" ]]; then ditto "$SAVED/legacy-data" "$DATA_DIR"; fi
     if [[ ! -f "$STORAGE_DIR/keys/master.key" && -d "$SAVED/legacy-storage" ]]; then ditto "$SAVED/legacy-storage" "$STORAGE_DIR"; fi
+    DB_SOURCE="$SAVED/DCP-UserData/macOS/data/dcp.sqlite"
+    [[ -f "$DB_SOURCE" ]] || DB_SOURCE="$SAVED/legacy-data/dcp.sqlite"
+    KEY_SOURCE="$SAVED/DCP-UserData/macOS/storage/keys/master.key"
+    [[ -f "$KEY_SOURCE" ]] || KEY_SOURCE="$SAVED/legacy-storage/keys/master.key"
+    if [[ -f "$DB_SOURCE" ]] && ! cmp -s "$DB_SOURCE" "$DATA_DIR/dcp.sqlite"; then echo "SQLite migration verification failed." >&2; exit 1; fi
+    if [[ -f "$KEY_SOURCE" ]] && ! cmp -s "$KEY_SOURCE" "$STORAGE_DIR/keys/master.key"; then echo "Master key migration verification failed." >&2; exit 1; fi
     chmod -R u+rwX "$INSTALL_ROOT/DCP-UserData"
     chmod -R u+rwX "$INSTALL_ROOT"
     "$INSTALL_ROOT/platform/scripts/install-runtime-macos.sh"
@@ -134,6 +140,12 @@ PY
     mkdir -p "$DATA_DIR" "$STORAGE_DIR"
     if [[ ! -f "$DATA_DIR/dcp.sqlite" && -d "$SAVED/legacy-data" ]]; then cp -a "$SAVED/legacy-data/." "$DATA_DIR/"; fi
     if [[ ! -f "$STORAGE_DIR/keys/master.key" && -d "$SAVED/legacy-storage" ]]; then cp -a "$SAVED/legacy-storage/." "$STORAGE_DIR/"; fi
+    DB_SOURCE="$SAVED/DCP-UserData/Linux/data/dcp.sqlite"
+    [[ -f "$DB_SOURCE" ]] || DB_SOURCE="$SAVED/legacy-data/dcp.sqlite"
+    KEY_SOURCE="$SAVED/DCP-UserData/Linux/storage/keys/master.key"
+    [[ -f "$KEY_SOURCE" ]] || KEY_SOURCE="$SAVED/legacy-storage/keys/master.key"
+    if [[ -f "$DB_SOURCE" ]] && ! cmp -s "$DB_SOURCE" "$DATA_DIR/dcp.sqlite"; then echo "SQLite migration verification failed." >&2; exit 1; fi
+    if [[ -f "$KEY_SOURCE" ]] && ! cmp -s "$KEY_SOURCE" "$STORAGE_DIR/keys/master.key"; then echo "Master key migration verification failed." >&2; exit 1; fi
     chmod -R u+rwX "$INSTALL_ROOT/DCP-UserData"
     chmod 0700 "$INSTALL_ROOT/DCP-UserData/Linux" "$DATA_DIR" "$STORAGE_DIR"
 

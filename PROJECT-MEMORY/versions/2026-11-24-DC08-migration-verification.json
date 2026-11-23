@@ -1,0 +1,40 @@
+{
+  "date": "2026-11-24",
+  "session": "DC08",
+  "repository": "/Volumes/Data/ChatGPT/DCP",
+  "branch": "fix/alpha7-localai-cloud-pairing",
+  "lastPushedCommit": "cea4075",
+  "activeTask": "Q005",
+  "status": "partial",
+  "migrationVerification": {
+    "windows": "Get-FileHash SHA-256 comparison for dcp.sqlite and keys/master.key after legacy-to-DCP-UserData/Windows migration",
+    "macOS": "cmp -s byte comparison for dcp.sqlite and keys/master.key after migration into DCP-UserData/macOS",
+    "linux": "cmp -s byte comparison for dcp.sqlite and keys/master.key after migration into DCP-UserData/Linux",
+    "rollback": "All installers restore previous application folder if migration verification or setup fails."
+  },
+  "ciEvidence": {
+    "macosNative": {
+      "run": 45282359336,
+      "intel": "success",
+      "arm64": "success",
+      "licenseDump": "success on both",
+      "tlsAndExtensions": "success on both",
+      "cleanPackageSmoke": "success (pre-DC06 user-data layout)"
+    },
+    "linux": {"run": 45283615372, "result": "success; Linux x64 package artifact uploaded with DCP-UserData/Linux"},
+    "windows": {"buildRun": 45284370511, "packageRun": 45284370605, "result": "both success"},
+    "macosLatest": {"run": 45283615505, "arm64": "success", "intel": "in progress at checkpoint"},
+    "linuxLatest": {"run": 45284370572, "status": "in progress at checkpoint"},
+    "macosLatestReleaseGate": {"run": 45284370371, "status": "queued/in progress at checkpoint"}
+  },
+  "completeReleaseGate": [
+    "DCP-Windows-x64.zip",
+    "DCP-Windows-update.json",
+    "DCP-macOS-universal.zip",
+    "DCP-Linux-x64.tar.gz",
+    "DCP-Linux-x64.tar.gz.sha256"
+  ],
+  "dc08LocalChanges": ["platform/Install-DCP-Online.sh", "PROJECT-MEMORY/tasks/Q005-managed-php-macos.md", "PROJECT-MEMORY/CHANGELOG.md", "PROJECT-MEMORY/handoffs/DC08-2026-11-24.md"],
+  "validation": ["bash -n passed", "PowerShell parser passed", "workflow YAML checks passed earlier", "git diff --check passed earlier"],
+  "nextAction": "Commit/push DC08 shell migration verification and memory; validate Linux/Windows CI; await latest Mac clean package with DCP-UserData; close Q005, then Q006 and Q007 before final synchronized release."
+}

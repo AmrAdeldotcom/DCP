@@ -178,3 +178,9 @@ Result: **6/6 passed**
 - Updated installer documentation to explain the complete-release gate.
 - PowerShell parser, bash syntax, seven workflow YAML parses and macOS Objective-C syntax check passed. Windows C# project built successfully on Mac with 0 errors; one nullable warning from the new release-asset filter was corrected immediately and needs a clean rebuild.
 - Remaining: commit/push DC07, verify Windows build CI, Mac/Ubuntu package CI and both native Mac runtime jobs, then proceed to Q006/Q007 before publishing a synchronized release.
+
+
+## DC08 — 2026-11-24: verify data migration on all desktop platforms
+- Extended the macOS and Linux online installers to byte-compare migrated `dcp.sqlite` and `keys/master.key` against the preserved source after copying into `DCP-UserData/macOS` and `DCP-UserData/Linux`. A mismatch aborts installation and triggers rollback.
+- Windows already performs SHA-256 comparisons for the same two files after migration into `DCP-UserData/Windows`.
+- Local Bash syntax check passed after adding `cmp -s` checks. This change is intentionally limited to the shared shell installer and does not alter the native PHP runtime build.

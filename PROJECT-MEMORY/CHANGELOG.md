@@ -106,3 +106,9 @@
 - Partial release uploads are ignored; all devices stay on the last complete release. Current public releases have no complete package set, so alpha.8 is intentionally not eligible for installation/update.
 - Updated INSTALL.md with synchronized-release policy.
 - Local checks: bash and PowerShell parsers passed; seven YAML workflows parsed; macOS Objective-C syntax passed; .NET build passed with zero errors, and the nullable warning in release-asset filtering was corrected for clean rebuild.
+
+
+## 2026-11-24 — DC08: verify migrated DB and master key on macOS/Linux
+- Added byte-for-byte `cmp -s` verification after macOS and Linux installers migrate legacy SQLite and master key into their OS-specific DCP-UserData directories. Mismatch triggers installer rollback.
+- Windows installer already compares SHA-256 for both files.
+- Local bash syntax passed. This is an installer-only change; native Mac runtime build is unaffected.
