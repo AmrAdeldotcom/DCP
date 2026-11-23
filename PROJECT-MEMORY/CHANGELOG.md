@@ -65,3 +65,7 @@
 - Committed and pushed the exact-version OpenSSL license fallback as `64eaf1c`.
 - New native macOS runtime workflow run `45272657258` started. Intel is compiling PHP 8.4.28; Apple Silicon is downloading and verifying the PHP source.
 - Windows build/package CI and Cloud PHP CI remain green.
+
+## 2026-11-23 — StaticPHP craft token propagation fix
+- The license-fix rerun reached `spc craft` but failed to fetch the prebuilt pkg-config asset because the read-only GitHub token was scoped only to the preceding `spc download` step.
+- Added `GITHUB_TOKEN` to the separate `Compile managed PHP` step; YAML validation passed. This fix awaits a focused push and another native Mac CI run.

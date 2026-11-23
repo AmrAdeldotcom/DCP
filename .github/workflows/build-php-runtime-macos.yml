@@ -95,6 +95,7 @@ jobs:
         shell: bash
         env:
           PHP_VERSION: ${{ steps.runtime.outputs.php_version }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           cp "$GITHUB_WORKSPACE/platform/dcp-env/manifests/php-macos.craft.yml" "$SPC_DIR/craft.yml"

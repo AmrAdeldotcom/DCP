@@ -7,7 +7,7 @@
   "branch": "fix/alpha7-localai-cloud-pairing",
   "headCommit": "64eaf1c2da99b1b582bb8b3b7fb0c4826c64462a",
   "latestReleaseTag": "v1.0.0-alpha.8",
-  "workingTree": "dirty; unrelated cloud/web-entry changes remain uncommitted and preserved; Windows CI green; macOS native runtime rerun is in progress with OpenSSL license fix",
+  "workingTree": "dirty; compile-step GITHUB_TOKEN fix pending focused commit; unrelated cloud/web-entry changes remain uncommitted and preserved",
   "device": {
     "name": "Amrs-Mac-Pro",
     "id": "a23231bf-eabc-441c-a6e2-560e3ae7f957",
@@ -75,7 +75,7 @@
   ],
   "openIssues": [
     "Q004 blocked: Apache AllowOverride None and mod_rewrite unavailable; public URL/shortcut must remain blocked until server security is verified.",
-    "Q005 partial: Windows build/package CI and Cloud PHP CI are green. ARM64 PHP 8.4.28 previously compiled and passed extensions, HTTPS/TLS and system-dylib checks; only StaticPHP license dumping failed due missing OpenSSL LICENSE.txt in prebuilt archive. Matching-version upstream license fallback has been committed in 64eaf1c; new native macOS Intel/ARM64 workflow run 45272657258 is in progress. Package assembly and clean-machine installs remain.",
+    "Q005 partial: Windows and Cloud PHP CI green. macOS ARM64 run 45272657258 failed during StaticPHP craft because the prebuilt pkg-config GitHub release API request received 403; GITHUB_TOKEN was present only in the earlier download step. The same read-only token is now added to the compile step in the working tree. OpenSSL matching-version license fallback is committed but has not yet been exercised after a successful compile. Rerun Mac CI and complete package/clean-machine tests.",
     "Q006 pending: local chat/llama.cpp lifecycle work must not start before Q005 closes.",
     "Working tree contains many unrelated dirty files; inspect exact Q005 diffs and never stage/commit wholesale.",
     "GitHub Actions workflow semantic validation and execution are pending; actionlint is not installed locally.",

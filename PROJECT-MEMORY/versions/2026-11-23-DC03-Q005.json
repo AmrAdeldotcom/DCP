@@ -77,10 +77,7 @@
   "macosLicenseFixCommit": "64eaf1c2da99b1b582bb8b3b7fb0c4826c64462a",
   "macosLicenseFixRerun": {
     "runId": 45272657258,
-    "status": "in progress",
-    "lastObserved": {
-      "macosX64": "compiling PHP 8.4.28",
-      "macosArm64": "downloading/verifying PHP source"
-    }
-  }
+    "status": "failed during craft: pkg-config prebuilt GitHub API 403; token missing from compile step"
+  },
+  "compileStepTokenFix": "added GITHUB_TOKEN to Compile managed PHP step; pending push"
 }
