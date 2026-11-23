@@ -47,7 +47,10 @@ jobs:
         shell: pwsh
         run: |
           if (!(Test-Path 'platform/dist/windows/DCP.exe')) { throw 'DCP.exe missing' }
-          if (!(Test-Path 'platform/dist/windows/runtime/php/php.exe')) { throw 'Private PHP runtime missing' }
+          if (!(Test-Path 'platform/dist/windows/platform/dcp-env/runtime/php/windows-x64/php.exe')) { throw 'Private PHP runtime missing' }
+          $php = 'platform/dist/windows/platform/dcp-env/runtime/php/windows-x64/php.exe'
+          & $php 'platform/dist/windows/platform/scripts/verify-runtime.php'
+          if ($LASTEXITCODE -ne 0) { throw 'Packaged PHP runtime verification failed' }
           if (!(Test-Path 'platform/dist/windows/platform/scripts/update-windows.ps1')) { throw 'Self-updater missing' }
           if (!(Test-Path 'platform/dist/windows/DCP-Windows-update.json')) { throw 'Delta manifest missing' }
           if (!(Test-Path 'platform/dist/windows/payload')) { throw 'Delta payload missing' }
@@ -59,5 +62,8 @@ jobs:
             if (!(Test-Path $payload)) { throw ('Delta payload missing: ' + $entry.path) }
             if ((Get-FileHash $payload -Algorithm SHA256).Hash.ToLowerInvariant() -ne $entry.sha256) { throw ('Delta payload hash mismatch: ' + $entry.path) }
           }
-          if (Test-Path 'platform/dist/windows/platform/storage/keys/master.key') { throw 'Developer encryption key leaked into package' }
-          if (Test-Path 'platform/dist/windows/platform/data/dcp.sqlite') { throw 'Developer SQLite database leaked into package' }
+          if (!(Test-Path 'platform/dist/windows/DCP-UserData/README.txt')) { throw 'DCP-UserData boundary notice missing' }
+          if (Test-Path 'platform/dist/windows/DCP-UserData/Windows/storage/keys/master.key') { throw 'Developer encryption key leaked into package' }
+          if (Test-Path 'platform/dist/windows/DCP-UserData/Windows/data/dcp.sqlite') { throw 'Developer SQLite database leaked into package' }
+          if (Test-Path 'platform/dist/windows/platform/storage/keys/master.key') { throw 'Legacy developer encryption key leaked into package' }
+          if (Test-Path 'platform/dist/windows/platform/data/dcp.sqlite') { throw 'Legacy developer SQLite database leaked into package' }

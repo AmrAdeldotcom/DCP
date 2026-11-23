@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
   "project": "DCP \u2014 Desktop Connector Platform",
-  "updatedAt": "2026-11-23T23:59:30+02:00",
+  "updatedAt": "2026-11-23T23:59:50+02:00",
   "session": "DC03",
   "repository": "/Volumes/Data/ChatGPT/DCP",
   "branch": "fix/alpha7-localai-cloud-pairing",
-  "headCommit": "41cd3d3c2b5b95034bb43de883a44c455638ad88",
+  "headCommit": "810834c3f878aeb76f69fc7fbfd853542ed950ed",
   "latestReleaseTag": "v1.0.0-alpha.8",
-  "workingTree": "dirty; Windows path-normalization CI fix and access inventory pending focused commit; preserve unrelated changes",
+  "workingTree": "dirty; Windows test/release workflow path assertions pending focused commit; preserve unrelated changes",
   "device": {
     "name": "Amrs-Mac-Pro",
     "id": "a23231bf-eabc-441c-a6e2-560e3ae7f957",
@@ -75,7 +75,7 @@
   ],
   "openIssues": [
     "Q004 blocked: Apache AllowOverride None and mod_rewrite unavailable; public URL/shortcut must remain blocked until server security is verified.",
-    "Q005 partial: initial CI found and follow-up fixed C# variable shadowing and unauthenticated GitHub API 403. Second CI found a PowerShell regex path-normalization error after PHP install and C# compile; fixed locally, awaiting a focused push and rerun. macOS authenticated build is still running; clean-machine tests remain.",
+    "Q005 partial: clean Windows package CI passed on commit 810834c. Existing Windows app build succeeded but its final workflow assertion expected the legacy PHP path; test/release workflow assertions are corrected locally and need a push. macOS Intel/ARM64 have passed source download and checksum and are compiling; runtime TLS/deployment target/package checks and clean-machine installs remain.",
     "Q006 pending: local chat/llama.cpp lifecycle work must not start before Q005 closes.",
     "Working tree contains many unrelated dirty files; inspect exact Q005 diffs and never stage/commit wholesale.",
     "GitHub Actions workflow semantic validation and execution are pending; actionlint is not installed locally.",
@@ -85,7 +85,7 @@
     "sshAlias": "github-dcp",
     "authentication": "SSH succeeds for AmrAdeldotcom/DCP",
     "branch": "fix/alpha7-localai-cloud-pairing",
-    "commit": "41cd3d3c2b5b95034bb43de883a44c455638ad88",
+    "commit": "810834c3f878aeb76f69fc7fbfd853542ed950ed",
     "pushVerified": true,
     "ciRuns": {
       "windows": 45270962681,
@@ -93,7 +93,9 @@
       "windowsCleanPackageFollowup": 45271261380,
       "windowsBuildFollowup": 45271261254,
       "macosFollowup": 45271261590,
-      "cloudPhpFollowup": 45271261214
+      "cloudPhpFollowup": 45271261214,
+      "windowsCleanPackagePass": 45271742595,
+      "windowsAppBuildPathAssertion": 45271742512
     }
   },
   "cloudAccess": {

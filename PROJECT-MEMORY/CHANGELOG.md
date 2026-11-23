@@ -44,3 +44,8 @@
 - Windows CI confirmed the C# variable-shadowing fix and successfully downloaded, verified, installed and ran managed PHP 8.5.13.
 - Both clean-package and existing Windows app build workflows then exposed a PowerShell `-replace` regex with a single backslash. Corrected it to match a literal backslash and verified the path-normalization expression locally with PowerShell.
 - Audited SSH inventory: GitHub key works; Hostinger key exists and is offered but rejected by server; Windows lab host is unreachable; Ubuntu alias is placeholder. No cloud deployment performed.
+
+## 2026-11-23 — Windows clean package passes
+- Clean Windows package CI passed on commit `810834c`: PHP 8.5.13 managed runtime, verifier, release layout and user-data exclusions all passed.
+- Existing Windows app build also compiled and installed PHP but failed a stale test assertion for the old PHP path. Updated the Windows test and release workflows to the new `platform/dcp-env/runtime/php/windows-x64/php.exe` location and `DCP-UserData` paths.
+- macOS Intel and Apple Silicon builds passed builder setup, official source download and SHA-256 verification; PHP compilation is still running.

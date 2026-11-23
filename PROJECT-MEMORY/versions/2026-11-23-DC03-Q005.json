@@ -1,7 +1,7 @@
 {
   "checkpoint": "DC03-Q005-2026-11-23",
   "branch": "fix/alpha7-localai-cloud-pairing",
-  "head": "41cd3d3c2b5b95034bb43de883a44c455638ad88",
+  "head": "810834c3f878aeb76f69fc7fbfd853542ed950ed",
   "activeTask": "Q005",
   "installerTests": "6/6 passed",
   "platformTests": "ALL PLATFORM TESTS PASSED",
@@ -32,8 +32,19 @@
     "appBuildRun": 45271261254,
     "result": "both passed C# compile and managed PHP install; failed PowerShell regex at build-windows.ps1:84; fixed in working tree"
   },
-  "macosFollowupRun": 45271261590,
+  "macosFollowupRun": {
+    "runId": 45271261590,
+    "result": "both architectures passed source download and checksum; PHP compilation in progress"
+  },
   "hostingerSSH": "key exists and is offered; server rejects; no deployment",
   "windowsLabSSH": "host down / timed out",
-  "ubuntuLabSSH": "placeholder config"
+  "ubuntuLabSSH": "placeholder config",
+  "windowsCleanPackageRun": {
+    "runId": 45271742595,
+    "result": "success; PHP 8.5.13 runtime and package boundaries verified"
+  },
+  "windowsAppBuildRun": {
+    "runId": 45271742512,
+    "result": "build and PHP install succeeded; final test failed because it expected legacy PHP path; test/release workflow paths updated in working tree"
+  }
 }

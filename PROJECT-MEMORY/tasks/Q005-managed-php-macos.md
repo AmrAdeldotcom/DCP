@@ -92,6 +92,12 @@ Result: **6/6 passed**
 - macOS run `45271261590` is still active after the `GITHUB_TOKEN` fix; inspect both architecture jobs through source download, compilation, HTTPS/TLS and package assembly.
 - The Windows path fix is in the working tree and needs a focused commit/push to trigger fresh Windows CI.
 
+## Third GitHub Actions feedback — commit 810834c
+- Clean Windows package workflow `45271742595` passed: app/package build, PHP 8.5.13 managed runtime, runtime verifier, required package files, delta payload and developer key/database exclusion checks all succeeded.
+- Existing Windows app workflow `45271742512` built the app and installed PHP successfully, but its final assertion still expected the legacy `platform/dist/windows/runtime/php/php.exe` path. Updated `.github/workflows/test-windows.yml` and `.github/workflows/release-windows.yml` to assert `platform/dcp-env/runtime/php/windows-x64/php.exe` and the new `DCP-UserData` boundaries.
+- macOS run `45271261590`: both Intel and Apple Silicon passed builder setup, source download and PHP source SHA-256 verification; both are still compiling PHP. TLS, deployment target, license, artifact upload and package assembly remain pending.
+- Updated Windows workflow assertions are in the working tree and need a focused commit/push for a fresh Windows app CI run.
+
 ## Remaining acceptance criteria
 - [~] Pinned StaticPHP/PHP build recipe and source checksum verification are configured; validate actual native builds in CI.
 - [ ] Build native Intel and Apple Silicon PHP archives on GitHub Actions.
