@@ -1,0 +1,62 @@
+{
+  "date": "2026-11-24",
+  "session": "DC07",
+  "repository": "/Volumes/Data/ChatGPT/DCP",
+  "branch": "fix/alpha7-localai-cloud-pairing",
+  "lastPushedCommit": "2b41260",
+  "activeTask": "Q005",
+  "status": "partial",
+  "synchronizedReleaseGate": {
+    "requiredAssets": [
+      "DCP-Windows-x64.zip",
+      "DCP-Windows-update.json",
+      "DCP-macOS-universal.zip",
+      "DCP-Linux-x64.tar.gz",
+      "DCP-Linux-x64.tar.gz.sha256"
+    ],
+    "enforcedBy": [
+      "platform/Install-DCP-Online.ps1",
+      "platform/Install-DCP-Online.sh",
+      "platform/wrappers/windows/Program.cs",
+      "platform/wrappers/macos/main.m"
+    ],
+    "currentPublicReleaseSet": "none complete; alpha.8 intentionally refused",
+    "reason": "Keep Windows, macOS and Linux on the same release; do not install partial releases."
+  },
+  "userdataMigration": {
+    "windows": "DCP-UserData/Windows; migrate legacy platform/data and platform/storage; verify SQLite and master.key SHA-256",
+    "macOS": "DCP-UserData/macOS; preserve existing data and migrate legacy paths if target DB/key absent",
+    "linux": "DCP-UserData/Linux; preserve existing data and migrate legacy paths if target DB/key absent"
+  },
+  "localValidation": [
+    "Bash syntax passed",
+    "PowerShell parser passed",
+    "YAML parse passed for seven workflows",
+    "macOS Objective-C syntax passed",
+    ".NET Windows project built with 0 errors; nullable warning fixed and needs clean rebuild"
+  ],
+  "ci": {
+    "b0442a7": {
+      "windowsApp": "success",
+      "windowsPackage": "success",
+      "cloudPhp": "success",
+      "linuxBuild": "success",
+      "macosIntelArm64": "in_progress at last check"
+    },
+    "2b41260": {
+      "windowsApp": "success",
+      "windowsPackage": "success",
+      "cloudPhp": "in_progress at last check",
+      "linuxBuild": "in_progress at last check",
+      "macosPackage": "in_progress at last check"
+    }
+  },
+  "cloud": {
+    "documentRoot": "/home/u163155085/domains/amradel.com/public_html/dcp",
+    "subdomain": "dcp.amradel.com",
+    "health": 200,
+    "databaseMigration": "not applied",
+    "filesUpdated": false
+  },
+  "nextAction": "Commit/push DC07 release gate, validate CI and Mac runtimes, close Q005 package tests, then Q006 LocalAI and Q007 Cloud before publishing complete synchronized release and installing on Windows/Ubuntu."
+}

@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "project": "DCP — Desktop Connector Platform",
-  "updatedAt": "2026-11-24T02:20:00+02:00",
-  "session": "DC06",
+  "updatedAt": "2026-11-24T03:00:00+02:00",
+  "session": "DC07",
   "repository": "/Volumes/Data/ChatGPT/DCP",
   "branch": "fix/alpha7-localai-cloud-pairing",
   "headCommit": "e3b8bf2db2e827c07a227f39ec2b4cbb33682a23",
@@ -17,7 +17,7 @@
   },
   "activeTask": "Q005",
   "activeTaskStatus": "partial",
-  "nextTask": "Commit and push the OS-specific DCP-UserData migration and package assertions; validate fresh Mac/Linux/Windows CI; then complete clean install verification and close Q005.",
+  "nextTask": "Commit/push synchronized-release gating, validate CI and native Mac runtime artifacts, finish Q005 package/install tests, then proceed Q006 and Q007 before publishing one synchronized release and installing Windows/Ubuntu.",
   "nextTaskFile": "PROJECT-MEMORY/tasks/Q005-managed-php-macos.md",
   "followingTask": "Q006",
   "knownConstraints": [
@@ -74,20 +74,21 @@
     "PROJECT-MEMORY/ACCESS-INVENTORY.md"
   ],
   "openIssues": [
-    "Q004 blocked only for the separate platform/index.php web preview: Cloud document root mapping is confirmed and live health is 200; do not expose preview until Access/Basic Auth, private-path denial, rate limits and route isolation are verified.",
-    "Q005 partial: macOS StaticPHP license dump working-directory fix and Linux package installer are pushed in b0442a7; Windows package/app CI passed, Cloud PHP CI passed, Linux build and Mac Intel/ARM64 were still running. DC06 local changes correct the OS-specific user-data migration and add CI checks; they require a focused push and new CI.",
+    "Q004 blocked for separate platform/index.php preview only. Cloud document root is confirmed as amradel.com/dcp serving dcp.amradel.com; live health 200, .env/schema denied. Preview remains unexposed until Access/Basic Auth, private-path denial, rate limits and route isolation pass.",
+    "Q005 partial: cross-platform GitHub installers, per-OS DCP-UserData migration and complete-release gating implemented locally/pushed in commits b0442a7 and 2b41260. Previous Windows and Linux CI pass; Mac native runtime builds still in progress. DC07 complete-release gate is local/uncommitted; current public releases are incomplete and installers correctly refuse alpha.8.",
     "Q006 local chat/llama.cpp lifecycle is next after Q005 closes.",
-    "Q007 cloud migration and API deployment remain pending after Q006. Live schema is old: devices.user_id NOT NULL and pairing tables missing; no production change made.",
-    "Windows upgrade must migrate old platform/data and platform/storage into DCP-UserData/Windows and verify SQLite/master.key SHA-256; keep old installation backup until successful launch/decryption.",
-    "macOS/Linux installers also migrate legacy paths into DCP-UserData/macOS and DCP-UserData/Linux; preserve existing DCP-UserData first.",
+    "Q007 cloud schema migration/API deployment follows Q006; live schema remains old with devices.user_id NOT NULL and pairing tables absent. No production change made.",
+    "Windows online installer migrates legacy DB/master key into DCP-UserData/Windows and verifies hashes; old app is kept as timestamped rollback backup.",
+    "macOS/Linux installers migrate legacy state into DCP-UserData/macOS and DCP-UserData/Linux.",
+    "All installers and desktop auto-updaters require a single GitHub Release with Windows package+manifest, macOS package, Linux package+checksum; prevents mixed platform versions.",
     "Ubuntu 24.04 x86_64 has SSH and passwordless sudo; no app or packages installed yet.",
-    "Working tree contains unrelated dirty cloud/web-entry/LocalAI changes; stage only reviewed Q005 paths."
+    "Working tree contains unrelated dirty Cloud/web-entry/LocalAI changes; stage only reviewed files."
   ],
   "github": {
     "sshAlias": "github-dcp",
     "authentication": "SSH succeeds for AmrAdeldotcom/DCP",
     "branch": "fix/alpha7-localai-cloud-pairing",
-    "commit": "e3b8bf2db2e827c07a227f39ec2b4cbb33682a23",
+    "commit": "2b41260",
     "pushVerified": true,
     "ciRuns": {
       "windows": 45270962681,
@@ -170,6 +171,7 @@
     "macos_linux": "platform/Install-DCP-Online.sh detects OS; Linux downloads DCP-Linux-x64.tar.gz and verifies SHA-256; macOS downloads universal ZIP.",
     "linuxReleaseWorkflow": ".github/workflows/release-linux.yml",
     "linuxCiWorkflow": ".github/workflows/build-linux.yml",
-    "dataMigration": "All online installers preserve existing DCP-UserData and migrate legacy platform/data + platform/storage into the OS-specific DCP-UserData path only when the new database/key are absent. Windows installer compares SQLite and master.key SHA-256 before continuing."
+    "dataMigration": "All online installers preserve existing DCP-UserData and migrate legacy platform/data + platform/storage into the OS-specific DCP-UserData path only when the new database/key are absent. Windows installer compares SQLite and master.key SHA-256 before continuing.",
+    "completeReleaseGate": "Require all assets in one tag: DCP-Windows-x64.zip, DCP-Windows-update.json, DCP-macOS-universal.zip, DCP-Linux-x64.tar.gz, DCP-Linux-x64.tar.gz.sha256. Windows/macOS background updaters use same gate."
   }
 }

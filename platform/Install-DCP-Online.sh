@@ -34,14 +34,15 @@ case "$(uname -s)" in
     curl -fsSL -H "Accept: application/vnd.github+json" "$API" -o "$WORK_ROOT/releases.json"
     DOWNLOAD_URL="$(python3 - "$WORK_ROOT/releases.json" "$ASSET" <<'PY'
 import json, sys
+required = {"DCP-Windows-x64.zip", "DCP-macOS-universal.zip", "DCP-Linux-x64.tar.gz", "DCP-Linux-x64.tar.gz.sha256", "DCP-Windows-update.json"}
 for release in json.load(open(sys.argv[1], encoding="utf-8")):
     if release.get("draft"):
         continue
-    for asset in release.get("assets", []):
-        if asset.get("name") == sys.argv[2]:
-            print(asset["browser_download_url"])
-            raise SystemExit(0)
-raise SystemExit("No published macOS package was found in GitHub Releases.")
+    assets = {a["name"]: a["browser_download_url"] for a in release.get("assets", [])}
+    if required.issubset(assets) and sys.argv[2] in assets:
+        print(assets[sys.argv[2]])
+        raise SystemExit(0)
+raise SystemExit("No complete synchronized DCP release containing Windows, macOS and Linux packages was found.")
 PY
 )"
     mkdir -p "$EXTRACT" "$(dirname "$INSTALL_ROOT")"
@@ -91,16 +92,17 @@ PY
     curl -fsSL -H "Accept: application/vnd.github+json" "$API" -o "$WORK_ROOT/releases.json"
     python3 - "$WORK_ROOT/releases.json" "$ASSET" "$ASSET.sha256" "$WORK_ROOT/asset-urls.txt" <<'PY'
 import json, sys
+required = {"DCP-Windows-x64.zip", "DCP-macOS-universal.zip", "DCP-Linux-x64.tar.gz", "DCP-Linux-x64.tar.gz.sha256", "DCP-Windows-update.json"}
 for release in json.load(open(sys.argv[1], encoding="utf-8")):
     if release.get("draft"):
         continue
     assets = {a["name"]: a["browser_download_url"] for a in release.get("assets", [])}
-    if all(name in assets for name in sys.argv[2:4]):
+    if required.issubset(assets):
         with open(sys.argv[4], "w", encoding="utf-8") as f:
             f.write(assets[sys.argv[2]] + "\n" + assets[sys.argv[3]] + "\n")
         break
 else:
-    raise SystemExit("No published DCP Linux release contains both the package and its SHA-256 file.")
+    raise SystemExit("No complete synchronized DCP release containing Windows, macOS and Linux packages was found.")
 PY
     mapfile -t URLS < "$WORK_ROOT/asset-urls.txt"
     mkdir -p "$EXTRACT" "$(dirname "$INSTALL_ROOT")"

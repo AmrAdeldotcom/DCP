@@ -99,3 +99,10 @@
 - Windows/Linux/macOS package workflows now stage per-OS data directories and assert they are present while real DB/key files are excluded.
 - AGENTS.md updated for Ubuntu 24.04 scope. WORK-QUEUE Q004 corrected: Hostinger path is the single Cloud API document root; platform/index.php web preview remains separately gated.
 - Validation passed: PowerShell parser, bash syntax, YAML parse across 7 workflows, platform tests, 6 macOS installer tests and git diff --check.
+
+
+## 2026-11-24 — DC07: complete-release gate for synchronized updates
+- Installers and Windows/macOS background updaters now accept only a GitHub Release containing Windows package + update manifest, macOS universal package, Linux package and Linux SHA-256 in the same tag.
+- Partial release uploads are ignored; all devices stay on the last complete release. Current public releases have no complete package set, so alpha.8 is intentionally not eligible for installation/update.
+- Updated INSTALL.md with synchronized-release policy.
+- Local checks: bash and PowerShell parsers passed; seven YAML workflows parsed; macOS Objective-C syntax passed; .NET build passed with zero errors, and the nullable warning in release-asset filtering was corrected for clean rebuild.

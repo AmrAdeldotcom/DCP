@@ -16,7 +16,7 @@ irm https://raw.githubusercontent.com/AmrAdeldotcom/DCP/main/platform/Install-DC
 curl -fsSL https://raw.githubusercontent.com/AmrAdeldotcom/DCP/main/platform/Install-DCP-Online.sh | bash
 ```
 
-The shell installer detects macOS or Linux. Linux installs the published `DCP-Linux-x64.tar.gz` package and required Ubuntu GTK/WebKit/PHP runtime packages. The Linux release is not considered available until its tagged GitHub Actions release workflow has published both the archive and checksum.
+The shell installer detects macOS or Linux. Windows, macOS, Linux installers and both desktop auto-updaters select only a complete synchronized GitHub Release containing the Windows ZIP/update manifest, universal macOS ZIP, Linux tarball and Linux SHA-256 file. Partial releases are ignored, so one device cannot silently update ahead of the others. Linux installs the verified `DCP-Linux-x64.tar.gz` package and required Ubuntu GTK/WebKit/PHP runtime packages.
 
 ## Package layout
 

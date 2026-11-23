@@ -175,14 +175,28 @@ internal sealed class MainWindow : Form
             using var releases = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
             if (releases.RootElement.ValueKind != JsonValueKind.Array)
                 throw new InvalidOperationException("GitHub returned an invalid releases list.");
+            var requiredReleaseAssets = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                "DCP-Windows-x64.zip",
+                "DCP-Windows-update.json",
+                "DCP-macOS-universal.zip",
+                "DCP-Linux-x64.tar.gz",
+                "DCP-Linux-x64.tar.gz.sha256"
+            };
             var release = releases.RootElement.EnumerateArray().FirstOrDefault(item =>
-                (!item.TryGetProperty("draft", out var draft) || !draft.GetBoolean()) &&
-                item.TryGetProperty("assets", out var assets) && assets.ValueKind == JsonValueKind.Array &&
-                assets.EnumerateArray().Any(asset => string.Equals(
-                    asset.GetProperty("name").GetString(), "DCP-Windows-update.json", StringComparison.OrdinalIgnoreCase)));
+            {
+                if ((item.TryGetProperty("draft", out var draft) && draft.GetBoolean()) ||
+                    !item.TryGetProperty("assets", out var assets) || assets.ValueKind != JsonValueKind.Array)
+                    return false;
+                var names = assets.EnumerateArray()
+                    .Select(asset => asset.TryGetProperty("name", out var name) ? name.GetString() ?? string.Empty : string.Empty)
+                    .Where(name => name.Length > 0)
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
+                return requiredReleaseAssets.IsSubsetOf(names);
+            });
             if (release.ValueKind == JsonValueKind.Undefined)
             {
-                AppendLog("Background release check: no published compatible delta manifest was found; keeping installed version.");
+                AppendLog("Background release check: no complete synchronized Windows/macOS/Linux release was found; keeping installed version.");
                 return;
             }
             var tag = release.GetProperty("tag_name").GetString() ?? "";

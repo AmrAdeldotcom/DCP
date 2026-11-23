@@ -13,8 +13,13 @@ try {
     New-Item -ItemType Directory -Force -Path $WorkRoot, $ExtractRoot | Out-Null
     Write-Host 'Finding the latest official DCP for Windows...' -ForegroundColor Cyan
     $Releases = Invoke-RestMethod -Uri $ReleaseApi -Headers @{ 'Accept' = 'application/vnd.github+json'; 'User-Agent' = 'DCP-Windows-Installer' }
-    $Release = $Releases | Where-Object { -not $_.draft -and $_.assets.name -contains 'DCP-Windows-x64.zip' } | Select-Object -First 1
-    if (-not $Release) { throw 'No published Windows package was found in the latest GitHub releases.' }
+    $RequiredReleaseAssets = @('DCP-Windows-x64.zip', 'DCP-macOS-universal.zip', 'DCP-Linux-x64.tar.gz', 'DCP-Linux-x64.tar.gz.sha256', 'DCP-Windows-update.json')
+    $Release = $Releases | Where-Object {
+        $Candidate = $_
+        -not $Candidate.draft -and
+        @($RequiredReleaseAssets | Where-Object { $Candidate.assets.name -notcontains $_ }).Count -eq 0
+    } | Select-Object -First 1
+    if (-not $Release) { throw 'No complete synchronized DCP release containing Windows, macOS and Linux packages was found. No local files were changed.' }
     $Asset = $Release.assets | Where-Object { $_.name -eq 'DCP-Windows-x64.zip' } | Select-Object -First 1
     $ReleaseUrl = $Asset.browser_download_url
     if ([string]::IsNullOrWhiteSpace($ReleaseUrl)) { throw 'The Windows release download URL is missing.' }

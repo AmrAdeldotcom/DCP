@@ -189,13 +189,22 @@
         NSError *jsonError=nil;
         id json=[NSJSONSerialization JSONObjectWithData:data options:0 error:&jsonError];
         if(jsonError || ![json isKindOfClass:[NSArray class]]) return;
+        NSSet *requiredAssets=[NSSet setWithArray:@[
+            @"DCP-Windows-x64.zip",
+            @"DCP-Windows-update.json",
+            @"DCP-macOS-universal.zip",
+            @"DCP-Linux-x64.tar.gz",
+            @"DCP-Linux-x64.tar.gz.sha256"
+        ]];
         NSDictionary *release=nil;
         for(id item in (NSArray *)json){
             if(![item isKindOfClass:[NSDictionary class]] || [item[@"draft"] boolValue]) continue;
+            NSMutableSet *assetNames=[NSMutableSet set];
             for(NSDictionary *asset in item[@"assets"] ?: @[]){
-                if([asset[@"name"] isEqualToString:@"DCP-macOS-universal.zip"]){ release=item; break; }
+                NSString *name=asset[@"name"];
+                if([name isKindOfClass:[NSString class]]) [assetNames addObject:name];
             }
-            if(release) break;
+            if([requiredAssets isSubsetOfSet:assetNames]){ release=item; break; }
         }
         if(!release) return;
         NSString *tag=[release[@"tag_name"] isKindOfClass:[NSString class]]?release[@"tag_name"]:@"";

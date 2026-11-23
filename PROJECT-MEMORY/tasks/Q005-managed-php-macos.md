@@ -169,3 +169,12 @@ Result: **6/6 passed**
 - Updated Windows/Linux/macOS CI assertions to require per-OS data boundaries and exclude actual SQLite/master.key files from release packages.
 - Updated AGENTS.md scope to include Ubuntu 24.04 x86_64 as explicitly authorized; updated WORK-QUEUE Q004 to correct the Hostinger document-root mapping and distinguish Cloud API root from the separate web-preview entry.
 - Validation after changes: PowerShell parser, bash syntax, YAML parse for seven workflows, platform PHP tests (all passed), macOS runtime installer tests (6/6 passed), git diff --check. Native CI rerun still pending.
+
+
+## DC07 — 2026-11-24: enforce synchronized multi-OS releases
+- Added a complete-release gate to Windows, macOS and Linux online installers. A release is installable only if the same tag contains `DCP-Windows-x64.zip`, `DCP-Windows-update.json`, `DCP-macOS-universal.zip`, `DCP-Linux-x64.tar.gz` and its SHA-256 sidecar.
+- Applied the same release completeness gate to the Windows and macOS background auto-updaters. A partially published tag is ignored; devices remain on the previous complete release rather than updating to different versions.
+- Confirmed the currently published GitHub releases contain no complete synchronized package set; therefore the installers will refuse the existing alpha.8 release and will not replace any device with stale assets.
+- Updated installer documentation to explain the complete-release gate.
+- PowerShell parser, bash syntax, seven workflow YAML parses and macOS Objective-C syntax check passed. Windows C# project built successfully on Mac with 0 errors; one nullable warning from the new release-asset filter was corrected immediately and needs a clean rebuild.
+- Remaining: commit/push DC07, verify Windows build CI, Mac/Ubuntu package CI and both native Mac runtime jobs, then proceed to Q006/Q007 before publishing a synchronized release.
