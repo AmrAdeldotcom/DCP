@@ -4,21 +4,22 @@ This file is the durable resume point. Update status, evidence and next action a
 
 ## Active constraints
 - Current machines in scope: Mac + Windows only. Ubuntu/Linux implementation is deferred; preserve existing Linux/Kali auto-update compatibility.
-- Work from the Git repository, not the extracted installed package. Preserve the installed alpha.8 directory until the new layout is verified.
+- Work from the Git repository at /Volumes/Data/ChatGPT/DCP, not the extracted installed package. Preserve the installed alpha.8 directory until the new layout is verified.
 - No public tunnel exposure until private paths and terminal access are protected.
 - Never place passwords, API keys, tokens, .env, private keys, SQLite data or encryption keys in Git or project Markdown.
+- Detect and reuse existing compatible services first. Do not replace, stop, reconfigure or hijack existing services or processes.
 
 ## Queue
 | ID | Task | Status | Evidence / exit criterion |
 |---|---|---|---|
 | Q000 | Read Speed Engineer and map current app | done | User-supplied SKILL.md read; initial stack/code scan captured |
-| Q001 | Restore source-of-truth repository to requested DCP path | next | Git repo at /Volumes/Data/ChatGPT/DCP; original install copy preserved |
+| Q001 | Restore source-of-truth repository to requested DCP path | done | Git worktree confirmed at /Volumes/Data/ChatGPT/DCP; installed alpha.8 copy preserved separately; active branch fix/alpha7-localai-cloud-pairing |
 | Q002 | Install requested planning/review/security skills | done | 10 skill folders installed locally; upstream revisions recorded in platform/docs/ENGINEERING-SKILLS.md |
-| Q003 | Write architecture, product, roadmap, security and performance docs | done | AGENTS.md, PRODUCT-VISION.md, ROADMAP.md, WORK-QUEUE.md and platform/docs specs created |
-| Q004 | Harden web entry and create dcp-shortcut | blocked | Current URL is 404; require root index/.htaccess and authenticated tunnel |
-| Q005 | Add dcp-env runtime manifests and bootstrap | partial | Windows 11 PHP 8.5.13 NTS x64 archive SHA-256 verified; isolated runtime and package-copy smoke passed. macOS system-first installer and managed fallback are implemented; six isolated tests pass (system reuse, missing/incompatible system fallback, tampered/missing checksum rejection, unsupported architecture). macOS wrapper verifies managed PHP checksum and required extensions. StaticPHP v2.8.5 and PHP 8.4.28 source hash are pinned; native Intel/ARM64 runtime build, clean macOS package CI, Windows package CI and release embedding workflows are configured but not run. Q005 remains open until GitHub Actions and clean-machine tests pass |
-| Q006 | Fix local chat and llama.cpp port/install lifecycle | pending | Ollama and llama.cpp chat smoke tests pass; no 8080 collision |
-| Q007 | Cloud API contract and Hostinger deployment | pending | health/register/login/device endpoints pass against live DB |
+| Q003 | Write architecture, product, roadmap, security and performance docs | done | AGENTS.md, PRODUCT-VISION.md, ROADMAP.md, WORK-QUEUE.md and platform/docs specs exist |
+| Q004 | Harden web entry and create dcp-shortcut | blocked | platform/index.php and platform/.htaccess exist; Apache currently has AllowOverride None and mod_rewrite unavailable; public URL previously returned 404. Do not expose via tunnel or create shortcut until Apache routing, authentication, rate limits and private-path protections are verified |
+| Q005 | Add dcp-env runtime manifests and bootstrap | partial | Windows 11: PHP 8.5.13 NTS x64 archive SHA-256 verified and isolated runtime/package-copy smoke passed. Mac: system-first installer hardened; 6 isolated tests pass for system reuse, fallback after missing/incompatible system PHP, corrupt/missing checksum rejection and unsupported architecture; wrapper checks the full extension set and verifies managed PHP SHA-256 before launch. Added StaticPHP v2.8.5 pinned source commit + PHP 8.4.28 source hash, craft recipe, private php.ini, native macOS Intel/ARM64 CI build workflow, non-publishing clean macOS package CI workflow, release-package embedding checks and clean Windows package CI workflow. Remaining: run GitHub Actions on both macOS architectures, clean macOS package assembly and Windows package CI; resolve any build/TLS/deployment-target failures; test clean installs on real Macs and a Windows machine |
+| Q006 | Fix local chat and llama.cpp port/install lifecycle | pending | Next after Q005 is closed: inspect LocalAIService.php and engine manifests/installers; capture chat request/response/logs; fix hardware detection latency, portable llama.cpp dependencies, CPU-safe Intel build selection, managed process ownership and dynamic port allocation. Preserve existing llama-server/Ollama processes; do not assume port 8080 is free |
+| Q007 | Cloud API contract and Hostinger deployment | pending | Audit API contract/schema; live health/register/login/device tests only after explicit deployment approval |
 | Q008 | Header auth + Devices pairing management | pending | Mac and Windows pair, scopes, pause/resume/revoke work |
 | Q009 | Mail page and AI mail capability | pending | Titan SMTP/IMAP tests, multi-account and task workflow |
 | Q010 | Providers, agents, terminal, notices and clipboard | pending | CRUD/lifecycle/permission and keyboard tests pass |
@@ -26,17 +27,55 @@ This file is the durable resume point. Update status, evidence and next action a
 | Q012 | Shared chat, remote agent, browser and memory | pending | authenticated end-to-end tests and capability policy |
 | Q013 | Speed/security/code review and release | pending | all release gates green |
 
+## Latest validation checkpoint — 2026-11-23
+- `php platform/tests/run.php`: ALL PLATFORM TESTS PASSED.
+- PHP lint across `platform/**/*.php`: passed; final lint output showed no syntax errors.
+- `php platform/scripts/verify-runtime.php`: PHP 8.5.9 and all required extensions available.
+- `node --check platform/public/assets/app.js`: passed.
+- `bash -n` for the macOS runtime installer and its new test script: passed.
+- `bash platform/tests/runtime-macos-installer.sh`: 6/6 passed (system-first, managed fallback, checksum mismatch, missing checksum, unsupported architecture).
+- Objective-C macOS wrapper compiled for x86_64 (10.15 target) and arm64 (11.0 target): passed.
+- YAML syntax parsed for the macOS PHP build workflow, macOS release workflow, clean macOS package CI workflow, Windows package CI workflow and PHP craft recipe; JSON manifest parsed. `actionlint` is not installed on this Mac.
+- PowerShell parser: `install-runtime-windows.ps1`, `build-windows.ps1`, and `update-windows.ps1` passed.
+- Windows package-copy smoke: passed; required manifests/scripts present and developer build/runtime/source/binary trees excluded.
+- GitHub Actions YAML parse for release-macos.yml, release-windows.yml, test-cloud.yml: passed.
+- `git diff --check`: passed.
+- `git check-ignore`: confirmed llama.cpp build cache, source checkout and local binary are ignored.
+- No commit, push, release, Hostinger DB change, Apache change, tunnel exposure or alpha.8 modification made.
+- Working tree remains dirty by design; inspect diff before any commit.
+
 ## Resume protocol
 1. Read this file first.
 2. Read AGENTS.md and the relevant plan/spec.
 3. Check git status, last commit, active process/tool calls and WORK-QUEUE.md.
 4. Continue the first non-blocked task; do not redo done tasks.
 5. Update this file with exact file paths, commands, test results and next step.
+6. Do not commit/push/release until all relevant release gates pass and the user has a checkpoint.
 
-## Q005 validation checkpoint — 2026-11-23
-- `php platform/tests/run.php`: ALL PLATFORM TESTS PASSED.
-- PHP lint across platform and `node --check platform/public/assets/app.js`: passed.
-- `bash platform/tests/runtime-macos-installer.sh`: 6/6 passed.
-- macOS Objective-C wrapper compiled for x86_64 (10.15) and arm64 (11.0).
-- YAML/JSON syntax checks and `git diff --check`: passed. `actionlint` is not installed locally.
-- GitHub Actions workflows are configured but not yet executed; no release or deployment was performed.
+
+## DC03 continuity checkpoint — 2026-11-23
+- Created `PROJECT-MEMORY/INDEX.md`, `CURRENT-STATE.json`, `DECISIONS.json`, `CHANGELOG.md`, immutable version checkpoint, Q005 task plan and DC03 handoff. Read `PROJECT-MEMORY/INDEX.md` first in every new session.
+- Active task remains Q005; Q006 must not start until Q005 acceptance criteria pass.
+- Remote Desktop Commander connection recovered after intermittent persisted-session/fetch failure; device Amrs-Mac-Pro is online (app 0.3.4).
+- Host is Intel macOS 14.7.1, PHP 8.5.9 with required extensions. Disk has only 8.3 GiB free (99% used); do not compile or install large build dependencies locally.
+- StaticPHP v2.8.5 is pinned to commit 4318ef8fa32a02460ec1554746674a7bc42b49fa for CI validation; PHP 8.4.28 source SHA-256 is pinned in platform/dcp-env/manifests/php-runtime.json. v3 is alpha; v2 docs list PHP 8.4 as stable. No runtime binary has been built or adopted yet.
+- No application code changed during the initial DC03 memory initialization. Subsequent Q005 changes are recorded below. Existing dirty changes preserved; no commit/push/release/deployment.
+
+
+## DC03 Q005 implementation checkpoint — 2026-11-23
+- Added `platform/tests/runtime-macos-installer.sh`; six tests pass, including rejecting a tampered or checksum-less managed PHP executable.
+- `platform/scripts/install-runtime-macos.sh` now checks compatible system PHP first, then verifies the managed executable SHA-256 and its private ini/config directory before running it. It refuses unknown CPU architectures and never modifies Homebrew, Apache or services.
+- `platform/wrappers/macos/main.m` checks curl, intl, mbstring, fileinfo, openssl, pdo_sqlite and sodium; it verifies the managed PHP SHA-256 and applies PHPRC only to the managed runtime. x86_64 and arm64 wrapper compilation passed.
+- Added pinned build recipe and manifest: StaticPHP v2.8.5 commit `4318ef8fa32a02460ec1554746674a7bc42b49fa`, PHP 8.4.28 official source SHA-256, extension set and macOS minimum targets.
+- Added `.github/workflows/build-php-runtime-macos.yml` with native Intel/Apple Silicon runners, source checksum verification, extension/TLS/dylib/deployment-target/license checks and runtime artifacts. Added runtime artifact embedding and package verification to `.github/workflows/release-macos.yml`.
+- Added `.github/workflows/test-windows-package.yml` for clean Windows package build and data/secret exclusion checks. It has not run yet.
+- Current PHP build workflows are configured but unverified until pushed and run in GitHub Actions. Q005 remains partial; do not begin Q006.
+
+- Added `.github/workflows/test-macos-package.yml`: non-publishing push/PR/manual CI that builds both managed PHP architectures, builds the universal app, packages it and checks runtime inclusion plus private-data/build-cache exclusions. YAML parsing passed; workflow has not run.
+
+
+## First GitHub Actions feedback — 2026-11-23
+- Commit `4752f9d` pushed to `fix/alpha7-localai-cloud-pairing`; remote branch matches local HEAD.
+- Windows clean-package CI exposed CS0136 in `Program.cs`: nested WebView2 local `userData` shadowed the outer DCP data directory variable. Renamed the nested variable to `webViewData`.
+- macOS ARM64 runtime CI reached StaticPHP download and failed because the unauthenticated GitHub API request for StaticPHP hosted releases returned HTTP 403. The download step now supplies the workflow's read-only `GITHUB_TOKEN`; rerun on the next push.
+- Windows fix and macOS token fix are being committed as a focused Q005 follow-up.

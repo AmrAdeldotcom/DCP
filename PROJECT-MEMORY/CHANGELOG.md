@@ -33,3 +33,9 @@
 ## 2026-11-23 — DC03 Q005 clean macOS package CI
 - Added a non-publishing macOS package smoke workflow for push, pull request and manual dispatch. It builds both PHP runtimes, the universal app and portable ZIP, then checks runtime inclusion and private-data/build-cache exclusions.
 - Expanded Q005 automation so package verification can run without publishing a release. Workflow YAML parsed successfully; CI execution is still pending.
+
+## 2026-11-23 — First CI feedback and fixes
+- Pushed Q005 commit `4752f9d` to the existing feature branch using the configured GitHub SSH identity.
+- Windows CI exposed CS0136 in the WebView2 initialization block; renamed the nested local to `webViewData`.
+- macOS ARM64 CI exposed an unauthenticated GitHub API 403 during StaticPHP dependency download; supplied the workflow read-only `GITHUB_TOKEN` to the download step.
+- Audited cloud access: `dcp-hostinger` SSH alias exists but its configured private-key path is missing and authentication is rejected. No cloud deployment was attempted.

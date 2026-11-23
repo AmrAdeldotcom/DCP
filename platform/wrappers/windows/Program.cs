@@ -114,11 +114,11 @@ internal sealed class MainWindow : Form
             {
                 try
                 {
-                    var userData = Path.Combine(
+                    var webViewData = Path.Combine(
                         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                         "DCP-UserData", "WebView2");
-                    Directory.CreateDirectory(userData);
-                    var environment = await CoreWebView2Environment.CreateAsync(null, userData);
+                    Directory.CreateDirectory(webViewData);
+                    var environment = await CoreWebView2Environment.CreateAsync(null, webViewData);
                     await view.EnsureCoreWebView2Async(environment);
                     view.CoreWebView2.Settings.AreDefaultContextMenusEnabled = true;
                     view.CoreWebView2.NavigationStarting += (_, args) =>

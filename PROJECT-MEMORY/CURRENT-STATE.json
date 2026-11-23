@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
   "project": "DCP \u2014 Desktop Connector Platform",
-  "updatedAt": "2026-11-23T23:58:00+02:00",
+  "updatedAt": "2026-11-23T23:59:00+02:00",
   "session": "DC03",
   "repository": "/Volumes/Data/ChatGPT/DCP",
   "branch": "fix/alpha7-localai-cloud-pairing",
-  "headCommit": "1054f48",
+  "headCommit": "4752f9d540126404572d4986b7451ea6ca6b1946",
   "latestReleaseTag": "v1.0.0-alpha.8",
-  "workingTree": "dirty; preserve all existing changes; no commit/push/release",
+  "workingTree": "dirty; Q005 follow-up fixes pending commit; preserve all unrelated changes",
   "device": {
     "name": "Amrs-Mac-Pro",
     "id": "a23231bf-eabc-441c-a6e2-560e3ae7f957",
@@ -73,9 +73,31 @@
   ],
   "openIssues": [
     "Q004 blocked: Apache AllowOverride None and mod_rewrite unavailable; public URL/shortcut must remain blocked until server security is verified.",
-    "Q005 partial: pinned runtime build, non-publishing macOS package CI and Windows package CI are configured but not run; actual binaries, TLS, deployment targets, package artifacts and real-machine installs remain unverified.",
+    "Q005 partial: first CI run exposed a Windows C# local-variable shadowing error and unauthenticated GitHub API 403 during StaticPHP download. Both fixes are in the working tree; push a focused follow-up and rerun CI. Clean-machine tests remain.",
     "Q006 pending: local chat/llama.cpp lifecycle work must not start before Q005 closes.",
     "Working tree contains many unrelated dirty files; inspect exact Q005 diffs and never stage/commit wholesale.",
-    "GitHub Actions workflow semantic validation and execution are pending; actionlint is not installed locally."
-  ]
+    "GitHub Actions workflow semantic validation and execution are pending; actionlint is not installed locally.",
+    "Hostinger SSH alias dcp-hostinger exists but its configured IdentityFile ~/.ssh/dcp-hostinger is missing; BatchMode SSH probe returned Permission denied (publickey,password). GitHub SSH alias github-dcp works. Do not deploy to cloud until the Hostinger key/authorized login is restored."
+  ],
+  "github": {
+    "sshAlias": "github-dcp",
+    "authentication": "SSH succeeds for AmrAdeldotcom/DCP",
+    "branch": "fix/alpha7-localai-cloud-pairing",
+    "commit": "4752f9d540126404572d4986b7451ea6ca6b1946",
+    "pushVerified": true,
+    "ciRuns": {
+      "windows": 45270962681,
+      "macos": 45270962540
+    }
+  },
+  "cloudAccess": {
+    "sshAlias": "dcp-hostinger",
+    "configuredHost": "145.223.105.238",
+    "configuredPort": 65002,
+    "configuredUser": "u163155085",
+    "identityFile": "~/.ssh/dcp-hostinger",
+    "identityFileExists": false,
+    "probe": "Permission denied (publickey,password)",
+    "deploymentAllowed": false
+  }
 }

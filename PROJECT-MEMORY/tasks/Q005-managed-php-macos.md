@@ -82,6 +82,11 @@ Result: **6/6 passed**
 - `actionlint` is not installed; GitHub Actions workflow semantic validation remains pending.
 - No commit, push, release, deployment, Apache change, tunnel exposure or alpha.8 modification.
 
+## First GitHub Actions feedback — commit 4752f9d
+- Windows workflow run `45270962681` failed at `Build clean portable Windows package`: compiler error CS0136 because a nested WebView2 local named `userData` shadowed the DCP data directory local. Fixed by renaming the WebView2 local to `webViewData`.
+- macOS workflow run `45270962540`: ARM64 reached StaticPHP download but received HTTP 403 from the GitHub API endpoint for `static-php-cli-hosted` releases. Added `GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}` to the `spc download` step so the API request is authenticated with the workflow's read-only token. Intel was still installing builder dependencies at last check.
+- The fixes require a follow-up commit and fresh CI runs. Neither initial run is considered passed.
+
 ## Remaining acceptance criteria
 - [~] Pinned StaticPHP/PHP build recipe and source checksum verification are configured; validate actual native builds in CI.
 - [ ] Build native Intel and Apple Silicon PHP archives on GitHub Actions.
@@ -97,7 +102,7 @@ Result: **6/6 passed**
 ## Next actions
 1. Final review of only the Q005 files; preserve all unrelated dirty changes.
 2. Obtain explicit approval to commit/push the current branch so GitHub Actions can run the macOS runtime matrix and Windows package workflow.
-3. Fix any CI failures, especially StaticPHP build config, TLS CA trust, deployment target, package artifact transfer and Windows package paths.
+3. Fix any remaining CI failures, especially StaticPHP build config, TLS CA trust, deployment target, package artifact transfer and Windows package paths.
 4. Perform clean-machine launch tests on Intel Mac, Apple Silicon Mac and Windows.
 5. Close Q005 only after all acceptance criteria pass; then begin Q006.
 

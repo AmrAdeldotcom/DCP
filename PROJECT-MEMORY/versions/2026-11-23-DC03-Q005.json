@@ -1,7 +1,7 @@
 {
   "checkpoint": "DC03-Q005-2026-11-23",
   "branch": "fix/alpha7-localai-cloud-pairing",
-  "head": "1054f48",
+  "head": "4752f9d540126404572d4986b7451ea6ca6b1946",
   "activeTask": "Q005",
   "installerTests": "6/6 passed",
   "platformTests": "ALL PLATFORM TESTS PASSED",
@@ -15,5 +15,16 @@
   "freeDiskGiB": 8.3,
   "created": "2026-11-23",
   "macosPackageCI": "configured, not run",
-  "windowsPackageCI": "configured, not run"
+  "windowsPackageCI": "configured, not run",
+  "githubPush": "verified",
+  "ciInitialRuns": {
+    "windows": {
+      "runId": 45270962681,
+      "result": "failed: C# CS0136 shadowed userData local; fixed in working tree"
+    },
+    "macos": {
+      "runId": 45270962540,
+      "result": "ARM64 failed with GitHub API HTTP 403 in StaticPHP download; GITHUB_TOKEN added in working tree"
+    }
+  }
 }

@@ -82,6 +82,7 @@ jobs:
           PHP_VERSION: ${{ steps.runtime.outputs.php_version }}
           PHP_SOURCE_SHA256: ${{ steps.runtime.outputs.php_source_sha256 }}
           EXTENSIONS: ${{ steps.runtime.outputs.extensions }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           cd "$SPC_DIR"
