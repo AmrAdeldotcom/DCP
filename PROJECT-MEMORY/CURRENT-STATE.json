@@ -5,9 +5,9 @@
   "session": "DC03",
   "repository": "/Volumes/Data/ChatGPT/DCP",
   "branch": "fix/alpha7-localai-cloud-pairing",
-  "headCommit": "dcfdaf4469bf7362be581e97c4ee4ebf4b1ddebe",
+  "headCommit": "e63be814569909a3300b46be153a77f6cdfc0dce",
   "latestReleaseTag": "v1.0.0-alpha.8",
-  "workingTree": "dirty; unrelated cloud/web-entry changes remain uncommitted; preserve them; Q005 Windows workflows are green and macOS runtime build is still running",
+  "workingTree": "dirty; unrelated cloud/web-entry changes remain uncommitted and preserved; Q005 Windows CI is green; macOS runtime builds are still running",
   "device": {
     "name": "Amrs-Mac-Pro",
     "id": "a23231bf-eabc-441c-a6e2-560e3ae7f957",
@@ -17,7 +17,7 @@
   },
   "activeTask": "Q005",
   "activeTaskStatus": "partial",
-  "nextTask": "Q005 final code review; obtain explicit approval to commit/push so GitHub Actions can validate native macOS runtimes and clean Windows package. Do not begin Q006 until CI and clean-machine tests pass.",
+  "nextTask": "Continue Q005: monitor native macOS Intel/ARM64 PHP builds; resolve extension/TLS/deployment-target/license/package issues; run clean-machine installs. Do not start Q006 until Q005 closes.",
   "nextTaskFile": "PROJECT-MEMORY/tasks/Q005-managed-php-macos.md",
   "followingTask": "Q006",
   "knownConstraints": [
@@ -85,7 +85,7 @@
     "sshAlias": "github-dcp",
     "authentication": "SSH succeeds for AmrAdeldotcom/DCP",
     "branch": "fix/alpha7-localai-cloud-pairing",
-    "commit": "dcfdaf4469bf7362be581e97c4ee4ebf4b1ddebe",
+    "commit": "e63be814569909a3300b46be153a77f6cdfc0dce",
     "pushVerified": true,
     "ciRuns": {
       "windows": 45270962681,

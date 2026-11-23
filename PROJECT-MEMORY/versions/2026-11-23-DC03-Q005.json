@@ -1,7 +1,7 @@
 {
   "checkpoint": "DC03-Q005-2026-11-23",
   "branch": "fix/alpha7-localai-cloud-pairing",
-  "head": "dcfdaf4469bf7362be581e97c4ee4ebf4b1ddebe",
+  "head": "e63be814569909a3300b46be153a77f6cdfc0dce",
   "activeTask": "Q005",
   "installerTests": "6/6 passed",
   "platformTests": "ALL PLATFORM TESTS PASSED",
@@ -62,5 +62,6 @@
   "macosBuildRun": {
     "runId": 45271261590,
     "result": "both architectures compiling after source checksum pass"
-  }
+  },
+  "latestCheckpoint": "Windows and cloud CI green; macOS native PHP compilation in progress"
 }
