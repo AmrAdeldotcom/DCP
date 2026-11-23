@@ -158,3 +158,14 @@ Result: **6/6 passed**
 - Local checks: bash syntax, PowerShell parser, YAML parsing for five workflows, PHP lint, runtime manifest JSON, current-state JSON, and `git diff --check` all passed.
 - Ubuntu target: key SSH works; Ubuntu 24.04 LTS x86_64, 2 vCPU/7.7 GiB RAM, 49 GiB free; passwordless sudo is available. No app or packages installed yet. The host has WebKitGTK 4.1 runtime present, and Ubuntu 24.04 GTK runtime package is `libgtk-3-0t64`.
 - Still pending: push this focused packaging change, run Mac Intel/ARM64 runtime and package CI, run Linux build/release CI, publish a new synchronized release (not alpha.8), then install/verify on Windows and Ubuntu.
+
+
+## DC06 — 2026-11-24: per-OS user-data migration
+- Critical review found that all desktop wrappers use `DCP-UserData/<OS>`, while legacy Windows data was under `platform/data` and `platform/storage`. Copying legacy files back into the old paths would make the new app create a blank profile.
+- Updated the Windows GitHub installer to stop DCP gracefully, back up the old app directory, preserve the existing `DCP-UserData` tree, migrate legacy SQLite/storage into `DCP-UserData/Windows`, and verify the migrated `dcp.sqlite` and `keys/master.key` SHA-256 before setup/launch. If the app does not exit cleanly, the installer aborts before changing data.
+- Updated the macOS online installer to preserve `DCP-UserData` and migrate legacy `platform/data` + `platform/storage` into `DCP-UserData/macOS`.
+- Updated Linux package layout and online installer to use `DCP-UserData/Linux`, preserving existing DCP-UserData and migrating legacy directories only when the new database/key do not already exist.
+- Windows package builder now creates empty `DCP-UserData/Windows/data` and `storage` directories. Linux package builder creates `DCP-UserData/Linux/data` and `storage`; macOS package workflows stage the corresponding directories.
+- Updated Windows/Linux/macOS CI assertions to require per-OS data boundaries and exclude actual SQLite/master.key files from release packages.
+- Updated AGENTS.md scope to include Ubuntu 24.04 x86_64 as explicitly authorized; updated WORK-QUEUE Q004 to correct the Hostinger document-root mapping and distinguish Cloud API root from the separate web-preview entry.
+- Validation after changes: PowerShell parser, bash syntax, YAML parse for seven workflows, platform PHP tests (all passed), macOS runtime installer tests (6/6 passed), git diff --check. Native CI rerun still pending.

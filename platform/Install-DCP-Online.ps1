@@ -33,12 +33,28 @@ try {
     if (-not (Test-Path $PrerequisiteLauncher)) { throw 'The downloaded release is incomplete: Install-DCP.ps1 is missing.' }
 
     Write-Host "Installing DCP into $InstallRoot ..." -ForegroundColor Cyan
-    $SavedData = Join-Path $WorkRoot 'user-data'
-    $SavedStorage = Join-Path $WorkRoot 'user-storage'
+    $SavedData = Join-Path $WorkRoot 'legacy-data'
+    $SavedStorage = Join-Path $WorkRoot 'legacy-storage'
+    $SavedUserData = Join-Path $WorkRoot 'DCP-UserData'
     $ExistingData = Join-Path $InstallRoot 'platform\data'
     $ExistingStorage = Join-Path $InstallRoot 'platform\storage'
+    $ExistingUserData = Join-Path $InstallRoot 'DCP-UserData'
 
-    # Preserve all user state, especially the master encryption key paired with SQLite.
+    # Stop the old app cleanly before copying SQLite or replacing its executable.
+    $RunningDcp = @(Get-Process -Name 'DCP' -ErrorAction SilentlyContinue)
+    foreach ($Process in $RunningDcp) {
+        if ($Process.MainWindowHandle -ne 0) { [void]$Process.CloseMainWindow() }
+    }
+    foreach ($Process in $RunningDcp) {
+        try { Wait-Process -Id $Process.Id -Timeout 30 -ErrorAction Stop } catch {
+            if (Get-Process -Id $Process.Id -ErrorAction SilentlyContinue) {
+                throw 'DCP is still running. Close it normally, then run the GitHub installer again; user data was not changed.'
+            }
+        }
+    }
+
+    # Preserve the current DCP-UserData tree and legacy state before replacing the app.
+    if (Test-Path $ExistingUserData) { Copy-Item -LiteralPath $ExistingUserData -Destination $SavedUserData -Recurse -Force }
     if (Test-Path $ExistingData) { Copy-Item -LiteralPath $ExistingData -Destination $SavedData -Recurse -Force }
     if (Test-Path $ExistingStorage) { Copy-Item -LiteralPath $ExistingStorage -Destination $SavedStorage -Recurse -Force }
 
@@ -51,13 +67,27 @@ try {
     New-Item -ItemType Directory -Force -Path $InstallRoot | Out-Null
     Copy-Item -Path (Join-Path $Package '*') -Destination $InstallRoot -Recurse -Force
 
-    $DataDir = Join-Path $InstallRoot 'platform\data'
-    $StorageDir = Join-Path $InstallRoot 'platform\storage'
+    $UserDataRoot = Join-Path $InstallRoot 'DCP-UserData'
+    if (Test-Path $SavedUserData) {
+        New-Item -ItemType Directory -Force -Path $UserDataRoot | Out-Null
+        Get-ChildItem -LiteralPath $SavedUserData -Force | Copy-Item -Destination $UserDataRoot -Recurse -Force
+    }
+    $DataDir = Join-Path $UserDataRoot 'Windows\data'
+    $StorageDir = Join-Path $UserDataRoot 'Windows\storage'
     New-Item -ItemType Directory -Force -Path $DataDir, $StorageDir | Out-Null
-    if (Test-Path $SavedData) { Get-ChildItem -LiteralPath $SavedData -Force | Copy-Item -Destination $DataDir -Recurse -Force }
-    if (Test-Path $SavedStorage) { Get-ChildItem -LiteralPath $SavedStorage -Force | Copy-Item -Destination $StorageDir -Recurse -Force }
+    if (!(Test-Path (Join-Path $DataDir 'dcp.sqlite')) -and (Test-Path $SavedData)) {
+        Get-ChildItem -LiteralPath $SavedData -Force | Copy-Item -Destination $DataDir -Recurse -Force
+    }
+    if (!(Test-Path (Join-Path $StorageDir 'keys\master.key')) -and (Test-Path $SavedStorage)) {
+        Get-ChildItem -LiteralPath $SavedStorage -Force | Copy-Item -Destination $StorageDir -Recurse -Force
+    }
 
-    $StalePid = Join-Path $InstallRoot 'platform\storage\php-server.pid'
+    $ExpectedDatabase = if (Test-Path (Join-Path $SavedUserData 'Windows\data\dcp.sqlite')) { Join-Path $SavedUserData 'Windows\data\dcp.sqlite' } elseif (Test-Path (Join-Path $SavedData 'dcp.sqlite')) { Join-Path $SavedData 'dcp.sqlite' } else { $null }
+    $ExpectedMasterKey = if (Test-Path (Join-Path $SavedUserData 'Windows\storage\keys\master.key')) { Join-Path $SavedUserData 'Windows\storage\keys\master.key' } elseif (Test-Path (Join-Path $SavedStorage 'keys\master.key')) { Join-Path $SavedStorage 'keys\master.key' } else { $null }
+    if ($ExpectedDatabase -and (Get-FileHash $ExpectedDatabase -Algorithm SHA256).Hash -ne (Get-FileHash (Join-Path $DataDir 'dcp.sqlite') -Algorithm SHA256).Hash) { throw 'SQLite database migration verification failed.' }
+    if ($ExpectedMasterKey -and (Get-FileHash $ExpectedMasterKey -Algorithm SHA256).Hash -ne (Get-FileHash (Join-Path $StorageDir 'keys\master.key') -Algorithm SHA256).Hash) { throw 'Master encryption key migration verification failed.' }
+
+    $StalePid = Join-Path $StorageDir 'php-server.pid'
     if (Test-Path $StalePid) { Remove-Item -LiteralPath $StalePid -Force }
 
     Write-Host 'Installing and verifying PHP, Visual C++ Runtime, and WebView2...' -ForegroundColor Cyan

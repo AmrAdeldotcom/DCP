@@ -22,7 +22,7 @@ Build DCP as a portable, local-first, cross-platform AI workspace. Amr owns prod
 - .agents/skills/browser-testing-with-devtools/SKILL.md
 
 ## Product boundaries
-- Current implementation scope: macOS + Windows. Do not modify or provision Ubuntu/Linux until the Mac/Windows milestones pass. Preserve Linux/Kali update compatibility in the design and CI.
+- Current implementation scope: macOS + Windows + Ubuntu 24.04 x86_64, as explicitly authorized by Amr. Preserve Linux/Kali update compatibility. Validate Mac/Windows milestones and Ubuntu clean-install packaging in CI before publishing synchronized releases.
 - Detect and reuse an existing system service before installing a DCP-managed copy. Never replace, stop, reconfigure or hijack an existing user service.
 - Keep DCP-managed runtimes under platform/dcp-env. Keep user data, databases, keys, logs and workspaces outside the public web root.
 - Never commit credentials, .env files, API keys, tokens, mail passwords, private keys, SQLite databases or runtime state.

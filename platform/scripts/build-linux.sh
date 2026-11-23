@@ -15,8 +15,11 @@ done
 
 OUT="$ROOT/dist/linux"
 rm -rf "$OUT"
-mkdir -p "$OUT/platform/data" "$OUT/platform/storage"
-touch "$OUT/platform/data/.keep" "$OUT/platform/storage/.keep"
+mkdir -p "$OUT/DCP-UserData/Linux/data" "$OUT/DCP-UserData/Linux/storage"
+touch "$OUT/DCP-UserData/Linux/data/.keep" "$OUT/DCP-UserData/Linux/storage/.keep"
+cat > "$OUT/DCP-UserData/README.txt" <<'NOTICE'
+DCP user data is device-local. Linux databases, encryption keys, logs, models and workspaces are stored under DCP-UserData/Linux. Never upload this directory.
+NOTICE
 cc "$ROOT/wrappers/linux/dcp-webview.c" -o "$OUT/DCP" $(pkg-config --cflags --libs gtk+-3.0 webkit2gtk-4.1)
 chmod 0755 "$OUT/DCP"
 
@@ -29,13 +32,13 @@ if [[ -d "$ROOT/dcp-env" ]]; then
   tar -C "$ROOT/dcp-env" \
     --exclude='./build' --exclude='./runtime' \
     --exclude='./engines/llama.cpp/source' --exclude='./engines/llama.cpp/linux-x64' \
-    --exclude='./engines/ollama/linux-x64' \
+    --exclude='./engines/llama.cpp/macos-*' --exclude='./engines/llama.cpp/windows-x64' \
+    --exclude='./engines/ollama/linux-x64' --exclude='./engines/ollama/macos-*' \
+    --exclude='./engines/ollama/windows-x64' \
     --exclude='./python/*/venv' --exclude='./python/*/.venv' \
     -cf - . | tar -C "$OUT/platform/dcp-env" -xf -
 fi
 # Never ship the developer machine SQLite database, encryption keys or local logs.
-mkdir -p "$OUT/platform/data" "$OUT/platform/storage"
-touch "$OUT/platform/data/.keep" "$OUT/platform/storage/.keep"
 cp "$ROOT/README.md" "$OUT/platform/README-DCP.md"
 cp "$ROOT/INSTALL.md" "$OUT/platform/INSTALL.md"
 cp "$ROOT/public/assets/dcp-logo.png" "$OUT/DCP.png"
@@ -45,8 +48,8 @@ cat > "$OUT/Run-DCP.sh" <<'RUNNER'
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 cd "$ROOT"
-mkdir -p "$ROOT/platform/data" "$ROOT/platform/storage"
-chmod u+rwx "$ROOT/platform/data" "$ROOT/platform/storage"
+mkdir -p "$ROOT/DCP-UserData/Linux/data" "$ROOT/DCP-UserData/Linux/storage"
+chmod 0700 "$ROOT/DCP-UserData/Linux" "$ROOT/DCP-UserData/Linux/data" "$ROOT/DCP-UserData/Linux/storage"
 "$ROOT/platform/scripts/install-runtime-linux.sh"
 PHP_BIN="${DCP_PHP_BIN:-php}"
 "$PHP_BIN" "$ROOT/platform/scripts/verify-runtime.php"

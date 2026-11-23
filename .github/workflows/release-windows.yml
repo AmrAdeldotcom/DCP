@@ -42,6 +42,8 @@ jobs:
           if (!(Test-Path 'platform/dist/windows/Install-DCP.ps1')) { throw 'Top-level prerequisite launcher missing from package' }
           if (!(Test-Path 'platform/dist/windows/DCP-Windows-update.json')) { throw 'Delta update manifest missing from package' }
           if (!(Test-Path 'platform/dist/windows/payload')) { throw 'Delta update payload missing from package' }
+          if (!(Test-Path 'platform/dist/windows/DCP-UserData/Windows/data')) { throw 'Windows user-data database directory missing' }
+          if (!(Test-Path 'platform/dist/windows/DCP-UserData/Windows/storage')) { throw 'Windows user-data storage directory missing' }
           if (Test-Path 'platform/dist/windows/DCP-UserData/Windows/storage/keys/master.key') { throw 'Developer encryption key leaked into release package' }
           if (Test-Path 'platform/dist/windows/DCP-UserData/Windows/data/dcp.sqlite') { throw 'Developer SQLite database leaked into release package' }
           Compress-Archive -Path 'platform/dist/windows' -DestinationPath 'DCP-Windows-x64.zip' -CompressionLevel Optimal

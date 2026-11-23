@@ -46,7 +46,8 @@ Get-ChildItem $Platform -Force | Where-Object { $_.Name -notin $Exclude } | ForE
 
 # Never ship the developer's SQLite database, encryption keys, logs or local settings.
 $UserData = Join-Path $Out 'DCP-UserData'
-New-Item -ItemType Directory -Force -Path $UserData | Out-Null
+$WindowsUserData = Join-Path $UserData 'Windows'
+New-Item -ItemType Directory -Force -Path $WindowsUserData, (Join-Path $WindowsUserData 'data'), (Join-Path $WindowsUserData 'storage') | Out-Null
 'DCP creates per-device databases, keys, logs, models and workspaces here on first run. Never upload this folder.' | Set-Content (Join-Path $UserData 'README.txt')
 # Bundle the private PHP runtime and verify it before creating the release archive.
 $env:DCP_ROOT = $Out

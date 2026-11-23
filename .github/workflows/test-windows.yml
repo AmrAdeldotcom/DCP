@@ -63,6 +63,8 @@ jobs:
             if ((Get-FileHash $payload -Algorithm SHA256).Hash.ToLowerInvariant() -ne $entry.sha256) { throw ('Delta payload hash mismatch: ' + $entry.path) }
           }
           if (!(Test-Path 'platform/dist/windows/DCP-UserData/README.txt')) { throw 'DCP-UserData boundary notice missing' }
+          if (!(Test-Path 'platform/dist/windows/DCP-UserData/Windows/data')) { throw 'Windows user-data database directory missing' }
+          if (!(Test-Path 'platform/dist/windows/DCP-UserData/Windows/storage')) { throw 'Windows user-data storage directory missing' }
           if (Test-Path 'platform/dist/windows/DCP-UserData/Windows/storage/keys/master.key') { throw 'Developer encryption key leaked into package' }
           if (Test-Path 'platform/dist/windows/DCP-UserData/Windows/data/dcp.sqlite') { throw 'Developer SQLite database leaked into package' }
           if (Test-Path 'platform/dist/windows/platform/storage/keys/master.key') { throw 'Legacy developer encryption key leaked into package' }

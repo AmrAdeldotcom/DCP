@@ -44,10 +44,11 @@ jobs:
           test -f "$ROOT/platform/dcp-env/manifests/php-runtime.json"
           test -f "$ROOT/platform/dcp-env/README.md"
           test ! -d "$ROOT/platform/dcp-env/build"
-          test -d "$ROOT/platform/data"
-          test -d "$ROOT/platform/storage"
-          test ! -f "$ROOT/platform/storage/keys/master.key"
-          test ! -f "$ROOT/platform/data/dcp.sqlite"
+          test -d "$ROOT/DCP-UserData/Linux/data"
+          test -d "$ROOT/DCP-UserData/Linux/storage"
+          test -f "$ROOT/DCP-UserData/README.txt"
+          test ! -f "$ROOT/DCP-UserData/Linux/storage/keys/master.key"
+          test ! -f "$ROOT/DCP-UserData/Linux/data/dcp.sqlite"
           bash -n "$ROOT/Run-DCP.sh" "$ROOT/Install-DCP-Launcher.sh" platform/Install-DCP-Online.sh
           php "$ROOT/platform/scripts/verify-runtime.php"
           if ldd "$ROOT/DCP" | grep -q 'not found'; then

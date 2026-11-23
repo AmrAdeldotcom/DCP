@@ -52,8 +52,9 @@ PY
 
     SAVED="$WORK_ROOT/user-state"
     mkdir -p "$SAVED"
-    [[ ! -d "$INSTALL_ROOT/platform/data" ]] || ditto "$INSTALL_ROOT/platform/data" "$SAVED/data"
-    [[ ! -d "$INSTALL_ROOT/platform/storage" ]] || ditto "$INSTALL_ROOT/platform/storage" "$SAVED/storage"
+    [[ ! -d "$INSTALL_ROOT/DCP-UserData" ]] || ditto "$INSTALL_ROOT/DCP-UserData" "$SAVED/DCP-UserData"
+    [[ ! -d "$INSTALL_ROOT/platform/data" ]] || ditto "$INSTALL_ROOT/platform/data" "$SAVED/legacy-data"
+    [[ ! -d "$INSTALL_ROOT/platform/storage" ]] || ditto "$INSTALL_ROOT/platform/storage" "$SAVED/legacy-storage"
     if [[ -d "$INSTALL_ROOT" ]]; then
       BACKUP="${INSTALL_ROOT}.backup.$(date +%Y%m%d-%H%M%S)"
       mv "$INSTALL_ROOT" "$BACKUP"
@@ -62,9 +63,13 @@ PY
     mkdir -p "$INSTALL_ROOT"
     ditto "$PACKAGE/DCP.app" "$INSTALL_ROOT/DCP.app"
     ditto "$PACKAGE/platform" "$INSTALL_ROOT/platform"
-    mkdir -p "$INSTALL_ROOT/platform/data" "$INSTALL_ROOT/platform/storage"
-    [[ ! -d "$SAVED/data" ]] || ditto "$SAVED/data" "$INSTALL_ROOT/platform/data"
-    [[ ! -d "$SAVED/storage" ]] || ditto "$SAVED/storage" "$INSTALL_ROOT/platform/storage"
+    if [[ -d "$SAVED/DCP-UserData" ]]; then ditto "$SAVED/DCP-UserData" "$INSTALL_ROOT/DCP-UserData"; fi
+    DATA_DIR="$INSTALL_ROOT/DCP-UserData/macOS/data"
+    STORAGE_DIR="$INSTALL_ROOT/DCP-UserData/macOS/storage"
+    mkdir -p "$DATA_DIR" "$STORAGE_DIR"
+    if [[ ! -f "$DATA_DIR/dcp.sqlite" && -d "$SAVED/legacy-data" ]]; then ditto "$SAVED/legacy-data" "$DATA_DIR"; fi
+    if [[ ! -f "$STORAGE_DIR/keys/master.key" && -d "$SAVED/legacy-storage" ]]; then ditto "$SAVED/legacy-storage" "$STORAGE_DIR"; fi
+    chmod -R u+rwX "$INSTALL_ROOT/DCP-UserData"
     chmod -R u+rwX "$INSTALL_ROOT"
     "$INSTALL_ROOT/platform/scripts/install-runtime-macos.sh"
     INSTALL_COMPLETE=1
@@ -106,14 +111,13 @@ PY
     [[ "$EXPECTED" =~ ^[a-fA-F0-9]{64}$ && "$ACTUAL" == "$EXPECTED" ]] || { echo "Linux package SHA-256 verification failed." >&2; exit 1; }
     tar -xzf "$ARCHIVE" -C "$EXTRACT"
     PACKAGE="$EXTRACT"
-    [[ -x "$PACKAGE/DCP" && -x "$PACKAGE/Run-DCP.sh" && -d "$PACKAGE/platform" ]] || { echo "Invalid Linux package: DCP launcher or platform directory missing." >&2; exit 1; }
+    [[ -x "$PACKAGE/DCP" && -x "$PACKAGE/Run-DCP.sh" && -d "$PACKAGE/platform" && -d "$PACKAGE/DCP-UserData/Linux/data" && -d "$PACKAGE/DCP-UserData/Linux/storage" ]] || { echo "Invalid Linux package: launcher, platform or per-device user-data directories are missing." >&2; exit 1; }
 
     SAVED="$WORK_ROOT/user-state"
     mkdir -p "$SAVED"
-    for item in data storage; do
-      [[ ! -d "$INSTALL_ROOT/platform/$item" ]] || cp -a "$INSTALL_ROOT/platform/$item" "$SAVED/$item"
-    done
     [[ ! -d "$INSTALL_ROOT/DCP-UserData" ]] || cp -a "$INSTALL_ROOT/DCP-UserData" "$SAVED/DCP-UserData"
+    [[ ! -d "$INSTALL_ROOT/platform/data" ]] || cp -a "$INSTALL_ROOT/platform/data" "$SAVED/legacy-data"
+    [[ ! -d "$INSTALL_ROOT/platform/storage" ]] || cp -a "$INSTALL_ROOT/platform/storage" "$SAVED/legacy-storage"
 
     if [[ -d "$INSTALL_ROOT" ]]; then
       BACKUP="${INSTALL_ROOT}.backup.$(date +%Y%m%d-%H%M%S)"
@@ -122,11 +126,14 @@ PY
     INSTALL_STARTED=1
     mkdir -p "$INSTALL_ROOT"
     cp -a "$PACKAGE/." "$INSTALL_ROOT/"
-    mkdir -p "$INSTALL_ROOT/platform/data" "$INSTALL_ROOT/platform/storage"
-    for item in data storage; do
-      [[ ! -d "$SAVED/$item" ]] || cp -a "$SAVED/$item/." "$INSTALL_ROOT/platform/$item/"
-    done
     [[ ! -d "$SAVED/DCP-UserData" ]] || cp -a "$SAVED/DCP-UserData" "$INSTALL_ROOT/"
+    DATA_DIR="$INSTALL_ROOT/DCP-UserData/Linux/data"
+    STORAGE_DIR="$INSTALL_ROOT/DCP-UserData/Linux/storage"
+    mkdir -p "$DATA_DIR" "$STORAGE_DIR"
+    if [[ ! -f "$DATA_DIR/dcp.sqlite" && -d "$SAVED/legacy-data" ]]; then cp -a "$SAVED/legacy-data/." "$DATA_DIR/"; fi
+    if [[ ! -f "$STORAGE_DIR/keys/master.key" && -d "$SAVED/legacy-storage" ]]; then cp -a "$SAVED/legacy-storage/." "$STORAGE_DIR/"; fi
+    chmod -R u+rwX "$INSTALL_ROOT/DCP-UserData"
+    chmod 0700 "$INSTALL_ROOT/DCP-UserData/Linux" "$DATA_DIR" "$STORAGE_DIR"
 
     if [[ $EUID -eq 0 ]]; then SUDO=(); else command -v sudo >/dev/null 2>&1 || { echo "sudo is required to install Ubuntu runtime libraries." >&2; exit 1; }; SUDO=(sudo); fi
     "${SUDO[@]}" apt-get update

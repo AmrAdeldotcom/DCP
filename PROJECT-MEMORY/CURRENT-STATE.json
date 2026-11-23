@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "project": "DCP — Desktop Connector Platform",
-  "updatedAt": "2026-11-24T01:30:00+02:00",
-  "session": "DC05",
+  "updatedAt": "2026-11-24T02:20:00+02:00",
+  "session": "DC06",
   "repository": "/Volumes/Data/ChatGPT/DCP",
   "branch": "fix/alpha7-localai-cloud-pairing",
   "headCommit": "e3b8bf2db2e827c07a227f39ec2b4cbb33682a23",
@@ -17,7 +17,7 @@
   },
   "activeTask": "Q005",
   "activeTaskStatus": "partial",
-  "nextTask": "Commit and push the focused Mac/Linux/Windows installer and package changes; validate native Mac runtime/package CI and Ubuntu Linux package CI; only then publish a new synchronized GitHub Release and install it on Windows and Ubuntu.",
+  "nextTask": "Commit and push the OS-specific DCP-UserData migration and package assertions; validate fresh Mac/Linux/Windows CI; then complete clean install verification and close Q005.",
   "nextTaskFile": "PROJECT-MEMORY/tasks/Q005-managed-php-macos.md",
   "followingTask": "Q006",
   "knownConstraints": [
@@ -74,13 +74,14 @@
     "PROJECT-MEMORY/ACCESS-INVENTORY.md"
   ],
   "openIssues": [
-    "Q004 web-entry routing/security must be rechecked with the corrected Hostinger document-root mapping; do not expose public tunnel until private-path/auth hardening is verified.",
-    "Q005 partial: StaticPHP license dump now runs from the builder working directory; Ubuntu Linux package and GitHub installer added locally. Requires push and CI validation on both Mac architectures and Ubuntu 24.04, followed by new tagged release and clean Windows/Ubuntu installs.",
-    "Q006 local chat and llama.cpp lifecycle remains next after Q005 closure.",
-    "Q007 Cloud migration and API deployment remain pending. Hostinger live database is old schema; pairing tables are missing and devices.user_id remains NOT NULL. No production change made.",
-    "Windows old DCP install must be preserved as rollback backup while official GitHub online installer installs the new release; carry forward SQLite and master key until app verification.",
-    "Ubuntu 24.04 target has SSH access and passwordless sudo; no DCP install or system packages have been changed yet.",
-    "Working tree contains unrelated dirty cloud/web-entry/LocalAI changes; stage only reviewed paths."
+    "Q004 blocked only for the separate platform/index.php web preview: Cloud document root mapping is confirmed and live health is 200; do not expose preview until Access/Basic Auth, private-path denial, rate limits and route isolation are verified.",
+    "Q005 partial: macOS StaticPHP license dump working-directory fix and Linux package installer are pushed in b0442a7; Windows package/app CI passed, Cloud PHP CI passed, Linux build and Mac Intel/ARM64 were still running. DC06 local changes correct the OS-specific user-data migration and add CI checks; they require a focused push and new CI.",
+    "Q006 local chat/llama.cpp lifecycle is next after Q005 closes.",
+    "Q007 cloud migration and API deployment remain pending after Q006. Live schema is old: devices.user_id NOT NULL and pairing tables missing; no production change made.",
+    "Windows upgrade must migrate old platform/data and platform/storage into DCP-UserData/Windows and verify SQLite/master.key SHA-256; keep old installation backup until successful launch/decryption.",
+    "macOS/Linux installers also migrate legacy paths into DCP-UserData/macOS and DCP-UserData/Linux; preserve existing DCP-UserData first.",
+    "Ubuntu 24.04 x86_64 has SSH and passwordless sudo; no app or packages installed yet.",
+    "Working tree contains unrelated dirty cloud/web-entry/LocalAI changes; stage only reviewed Q005 paths."
   ],
   "github": {
     "sshAlias": "github-dcp",
@@ -148,7 +149,8 @@
       "installedDcpCommit": "5b91bcc66a5caf7e8b06e93d8dee52ce35633aaa",
       "installedPhp": "8.5.13",
       "dataBoundary": "Existing installed copy stores SQLite and master.key under application platform/data and platform/storage/keys; DCP-UserData contains only WebView2. Preserve copy.",
-      "installTarget": "GitHub release asset DCP-Windows-x64.zip via platform/Install-DCP-Online.ps1; previous installation/data backed up"
+      "installTarget": "GitHub release asset DCP-Windows-x64.zip via platform/Install-DCP-Online.ps1; previous installation/data backed up",
+      "dataMigration": "Old platform/data/dcp.sqlite and platform/storage/keys/master.key -> DCP-UserData/Windows/data and DCP-UserData/Windows/storage; hashes verified; previous app root retained as rollback backup."
     },
     "ubuntu": {
       "os": "Ubuntu 24.04 LTS x86_64",
@@ -156,13 +158,18 @@
       "ram": "7.7 GiB",
       "disk": "64 GB, about 49 GB free",
       "installedTools": "Python3 and OpenSSH; Git/PHP/Composer/Node/Docker/Podman/Ollama not found",
-      "installTarget": "GitHub release asset DCP-Linux-x64.tar.gz via platform/Install-DCP-Online.sh; Ubuntu 24.04 x86_64"
+      "installTarget": "GitHub release asset DCP-Linux-x64.tar.gz via platform/Install-DCP-Online.sh; Ubuntu 24.04 x86_64",
+      "dataMigration": "Legacy platform/data and platform/storage -> DCP-UserData/Linux/data and DCP-UserData/Linux/storage if no new-layout database/key exists."
+    },
+    "macos": {
+      "dataMigration": "Legacy platform/data and platform/storage -> DCP-UserData/macOS/data and DCP-UserData/macOS/storage if no new-layout database/key exists."
     }
   },
   "releaseInstallers": {
     "windows": "platform/Install-DCP-Online.ps1 downloads latest release asset DCP-Windows-x64.zip, preserves data/storage, moves old install to timestamped backup, runs prerequisite setup.",
     "macos_linux": "platform/Install-DCP-Online.sh detects OS; Linux downloads DCP-Linux-x64.tar.gz and verifies SHA-256; macOS downloads universal ZIP.",
     "linuxReleaseWorkflow": ".github/workflows/release-linux.yml",
-    "linuxCiWorkflow": ".github/workflows/build-linux.yml"
+    "linuxCiWorkflow": ".github/workflows/build-linux.yml",
+    "dataMigration": "All online installers preserve existing DCP-UserData and migrate legacy platform/data + platform/storage into the OS-specific DCP-UserData path only when the new database/key are absent. Windows installer compares SQLite and master.key SHA-256 before continuing."
   }
 }

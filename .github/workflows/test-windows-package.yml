@@ -60,6 +60,11 @@ jobs:
               throw "Required release file is missing: $Relative"
             }
           }
+          foreach ($Relative in @("DCP-UserData/Windows/data", "DCP-UserData/Windows/storage")) {
+            if (!(Test-Path -LiteralPath (Join-Path $Root $Relative) -PathType Container)) {
+              throw "Per-device user-data directory is missing: $Relative"
+            }
+          }
 
           $Php = Join-Path $Root "platform/dcp-env/runtime/php/windows-x64/php.exe"
           $Verifier = Join-Path $Root "platform/scripts/verify-runtime.php"

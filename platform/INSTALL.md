@@ -20,7 +20,7 @@ The shell installer detects macOS or Linux. Linux installs the published `DCP-Li
 
 ## Package layout
 
-Keep the desktop executable, runtime/, and platform/ together in one writable folder. Do not install the portable package under a protected system folder such as Program Files unless you separately configure a writable per-user data directory.
+Keep the desktop executable, runtime/, platform/ and DCP-UserData/ together in one writable application folder. The wrapper selects an OS-specific DCP-UserData directory (Windows, macOS or Linux); databases, master keys, logs, models and workspaces belong there, never inside platform/. Do not install the portable package under a protected system folder such as Program Files unless you separately configure a writable per-user data directory.
 
 ## macOS
 

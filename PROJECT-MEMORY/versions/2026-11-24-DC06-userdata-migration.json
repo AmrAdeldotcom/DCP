@@ -1,0 +1,49 @@
+{
+  "date": "2026-11-24",
+  "session": "DC06",
+  "repository": "/Volumes/Data/ChatGPT/DCP",
+  "branch": "fix/alpha7-localai-cloud-pairing",
+  "lastPushedCommit": "b0442a720877af41a3384c503648f6ece1001716",
+  "activeTask": "Q005",
+  "status": "partial",
+  "criticalDataLayout": {
+    "windows": "DCP-UserData/Windows",
+    "macOS": "DCP-UserData/macOS",
+    "linux": "DCP-UserData/Linux",
+    "legacyWindows": ["platform/data", "platform/storage"],
+    "migrationRule": "Preserve existing DCP-UserData; copy legacy database/key only if new-layout database/key are absent."
+  },
+  "installerChanges": {
+    "windows": "Gracefully close DCP; preserve full DCP-UserData; migrate legacy SQLite/storage into DCP-UserData/Windows; compare SQLite and master.key SHA-256; retain timestamped old app backup.",
+    "macOS": "Preserve DCP-UserData; migrate legacy platform/data and platform/storage into DCP-UserData/macOS.",
+    "linux": "Package and installer use DCP-UserData/Linux; preserve existing DCP-UserData and migrate legacy data/storage only if the new DB/key are absent."
+  },
+  "packageChanges": [
+    "Windows build stages DCP-UserData/Windows/data and storage.",
+    "macOS CI/release package stages DCP-UserData/macOS/data and storage.",
+    "Linux package stages DCP-UserData/Linux/data and storage and includes dcp-env manifests without build caches/foreign engine binaries."
+  ],
+  "ciRunsOnPreviousCommit": {
+    "windowsBuild": {"run": 45282359359, "statusAtCheckpoint": "success"},
+    "windowsPackage": {"run": 45282359296, "statusAtCheckpoint": "success"},
+    "cloudPhp": {"run": 45282359437, "statusAtCheckpoint": "success"},
+    "linuxBuild": {"run": 45282359307, "statusAtCheckpoint": "in_progress"},
+    "macosPackage": {"run": 45282359336, "statusAtCheckpoint": "in_progress"}
+  },
+  "localValidation": [
+    "PowerShell parser passed",
+    "Bash syntax passed",
+    "YAML parse passed for seven workflows",
+    "php platform/tests/run.php: ALL PLATFORM TESTS PASSED",
+    "macOS runtime installer tests: 6/6 passed",
+    "git diff --check passed"
+  ],
+  "cloud": {
+    "docroot": "/home/u163155085/domains/amradel.com/public_html/dcp",
+    "subdomain": "dcp.amradel.com",
+    "health": 200,
+    "migration": "not applied",
+    "deployment": "not performed"
+  },
+  "nextAction": "Focused commit/push DC06 migration/package files, validate fresh Mac/Linux/Windows CI, then close Q005 after clean install and data preservation verification."
+}

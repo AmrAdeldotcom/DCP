@@ -90,3 +90,12 @@
 - User authorized Windows replacement via GitHub installer and added Ubuntu 24.04 as a clean-install target. Existing Windows app data/key must be carried forward; keep the previous installation as a rollback backup.
 - Local validation passed: bash -n, PowerShell parser, YAML parse (5 workflows), PHP lint, JSON parse and git diff --check. GitHub CI and real installs remain pending.
 - Ubuntu host verified as 24.04 x86_64 with passwordless sudo; no packages or application files were changed.
+
+
+## 2026-11-24 — DC06: migrate legacy user data into OS-specific DCP-UserData
+- Found and corrected an upgrade hazard: desktop wrappers read databases and encryption keys from DCP-UserData/<OS>, not platform/data and platform/storage.
+- Windows online installer now gracefully stops DCP, preserves old app as rollback backup, migrates old SQLite/storage into DCP-UserData/Windows and verifies database + master-key SHA-256 before setup/launch.
+- macOS installer migrates legacy data into DCP-UserData/macOS; Linux package/installer now uses DCP-UserData/Linux. All installers preserve an existing DCP-UserData tree and only migrate legacy data if the new database/key is absent.
+- Windows/Linux/macOS package workflows now stage per-OS data directories and assert they are present while real DB/key files are excluded.
+- AGENTS.md updated for Ubuntu 24.04 scope. WORK-QUEUE Q004 corrected: Hostinger path is the single Cloud API document root; platform/index.php web preview remains separately gated.
+- Validation passed: PowerShell parser, bash syntax, YAML parse across 7 workflows, platform tests, 6 macOS installer tests and git diff --check.

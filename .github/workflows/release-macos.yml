@@ -82,7 +82,10 @@ jobs:
           STAGE="$RUNNER_TEMP/dcp-macos-package"
           OUT="$GITHUB_WORKSPACE/DCP-macOS-universal.zip"
           rm -rf "$STAGE"
-          mkdir -p "$STAGE/platform/data" "$STAGE/platform/storage"
+          mkdir -p "$STAGE/DCP-UserData/macOS/data" "$STAGE/DCP-UserData/macOS/storage"
+          cat > "$STAGE/DCP-UserData/README.txt" <<'NOTICE'
+          DCP user data is device-local. macOS databases, encryption keys, logs, models and workspaces are stored under DCP-UserData/macOS. Never upload this directory.
+          NOTICE
           ditto DCP.app "$STAGE/DCP.app"
           rsync -a platform/ "$STAGE/platform/" \
             --exclude '/data/***' \
@@ -120,8 +123,10 @@ jobs:
             echo "llama.cpp source tree leaked into the portable package." >&2
             exit 1
           fi
-          touch "$STAGE/platform/data/.gitkeep" "$STAGE/platform/storage/.gitkeep"
-          (cd "$STAGE" && zip -qry "$OUT" DCP.app platform)
+          touch "$STAGE/DCP-UserData/macOS/data/.gitkeep" "$STAGE/DCP-UserData/macOS/storage/.gitkeep"
+          (cd "$STAGE" && zip -qry "$OUT" DCP.app platform DCP-UserData)
+          unzip -Z1 "$OUT" | grep -F 'DCP-UserData/macOS/data/.gitkeep'
+          unzip -Z1 "$OUT" | grep -F 'DCP-UserData/macOS/storage/.gitkeep'
           test -s "$OUT"
           shasum -a 256 "$OUT"
 
