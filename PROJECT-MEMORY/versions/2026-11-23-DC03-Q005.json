@@ -1,7 +1,7 @@
 {
   "checkpoint": "DC03-Q005-2026-11-23",
   "branch": "fix/alpha7-localai-cloud-pairing",
-  "head": "810834c3f878aeb76f69fc7fbfd853542ed950ed",
+  "head": "dcfdaf4469bf7362be581e97c4ee4ebf4b1ddebe",
   "activeTask": "Q005",
   "installerTests": "6/6 passed",
   "platformTests": "ALL PLATFORM TESTS PASSED",
@@ -46,5 +46,21 @@
   "windowsAppBuildRun": {
     "runId": 45271742512,
     "result": "build and PHP install succeeded; final test failed because it expected legacy PHP path; test/release workflow paths updated in working tree"
+  },
+  "windowsCleanPackageRunFinal": {
+    "runId": 45272037581,
+    "result": "success"
+  },
+  "windowsAppBuildRunFinal": {
+    "runId": 45272037351,
+    "result": "success"
+  },
+  "cloudPhpRunFinal": {
+    "runId": 45272037799,
+    "result": "success"
+  },
+  "macosBuildRun": {
+    "runId": 45271261590,
+    "result": "both architectures compiling after source checksum pass"
   }
 }

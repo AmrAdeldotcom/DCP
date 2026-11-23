@@ -49,3 +49,9 @@
 - Clean Windows package CI passed on commit `810834c`: PHP 8.5.13 managed runtime, verifier, release layout and user-data exclusions all passed.
 - Existing Windows app build also compiled and installed PHP but failed a stale test assertion for the old PHP path. Updated the Windows test and release workflows to the new `platform/dcp-env/runtime/php/windows-x64/php.exe` location and `DCP-UserData` paths.
 - macOS Intel and Apple Silicon builds passed builder setup, official source download and SHA-256 verification; PHP compilation is still running.
+
+## 2026-11-23 — Windows CI green
+- Updated Windows test/release workflow assertions to the managed PHP runtime path and isolated `DCP-UserData` layout.
+- Both clean Windows package CI and the existing Windows app build CI passed on commit `dcfdaf4`.
+- Cloud PHP CI passed on the same commit.
+- macOS Intel and Apple Silicon have passed source download and official PHP source checksum validation; PHP compilation is still in progress.

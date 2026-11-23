@@ -98,6 +98,12 @@ Result: **6/6 passed**
 - macOS run `45271261590`: both Intel and Apple Silicon passed builder setup, source download and PHP source SHA-256 verification; both are still compiling PHP. TLS, deployment target, license, artifact upload and package assembly remain pending.
 - Updated Windows workflow assertions are in the working tree and need a focused commit/push for a fresh Windows app CI run.
 
+## Fourth GitHub Actions feedback — commit dcfdaf4
+- Windows clean-package run `45272037581` passed: the updated package builder, managed PHP 8.5.13, runtime verifier, payload checks and DCP-UserData exclusions all succeeded.
+- Existing Windows app build run `45272037351` passed: C# app build, PowerShell parser checks, managed PHP and package assertions all succeeded with the corrected runtime path.
+- Cloud PHP test run `45272037799` passed.
+- macOS run `45271261590` is still compiling PHP 8.4.28 on both native architectures after passing dependency download and official source SHA-256 verification. Runtime extension/TLS/deployment-target checks and package assembly are still pending.
+
 ## Remaining acceptance criteria
 - [~] Pinned StaticPHP/PHP build recipe and source checksum verification are configured; validate actual native builds in CI.
 - [ ] Build native Intel and Apple Silicon PHP archives on GitHub Actions.
@@ -107,7 +113,7 @@ Result: **6/6 passed**
 - [x] Installer verifies managed PHP SHA-256 before execution and preserves system-first behavior.
 - [x] macOS wrapper sets private PHPRC only when the managed runtime is selected and verifies its SHA-256.
 - [x] Isolated installer tests cover system-first, fallback, bad/missing checksum and unsupported architecture.
-- [~] Clean Windows package CI workflow is configured; run it and fix any failures.
+- [x] Clean Windows package CI and existing Windows app build CI both passed on commit `dcfdaf4`.
 - [ ] Test clean installs and app launch on real Intel Mac, Apple Silicon Mac and Windows machine.
 
 ## Next actions
