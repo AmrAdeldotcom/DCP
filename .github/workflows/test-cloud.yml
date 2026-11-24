@@ -3,7 +3,7 @@ name: Test DCP Cloud PHP
 on:
   pull_request:
     paths:
-      - 'cloud-platform-upload/**'
+      - 'platform/cloud/**'
       - 'platform/app/Services/CloudService.php'
       - 'platform/app/Controllers/ApiController.php'
       - 'platform/tests/run.php'
@@ -12,7 +12,7 @@ on:
   push:
     branches: ['**']
     paths:
-      - 'cloud-platform-upload/**'
+      - 'platform/cloud/**'
       - 'platform/app/Services/CloudService.php'
       - 'platform/app/Controllers/ApiController.php'
       - 'platform/tests/run.php'
@@ -33,14 +33,17 @@ jobs:
           php-version: '8.3'
       - name: Validate Cloud PHP source
         run: |
-          php -l cloud-platform-upload/index.php
-          php -l cloud-platform-upload/site.php
+          php -l platform/cloud/index.php
+          test ! -e platform/cloud/site.php
           php -l platform/app/Services/CloudService.php
           php -l platform/app/Controllers/ApiController.php
           php -l platform/tests/run.php
-          grep -q '^DB_HOST=localhost$' cloud-platform-upload/.env.example
-          test ! -e cloud-platform-upload/.env
-          grep -q 'pairing_codes' cloud-platform-upload/schema.migrate.sql
-          grep -q 'device_pairings' cloud-platform-upload/schema.migrate.sql
-          grep -q 'devices/anonymous/register' cloud-platform-upload/index.php
-          grep -q 'pairing-requests' cloud-platform-upload/index.php
+          grep -q '^DB_HOST=localhost$' platform/cloud/.env.example
+          test ! -e platform/cloud/.env
+          grep -q 'pairing_codes' platform/cloud/schema.migrate.sql
+          grep -q 'device_pairings' platform/cloud/schema.migrate.sql
+          grep -q 'api_rate_limits' platform/cloud/schema.migrate.sql
+          grep -q 'rate_limit(' platform/cloud/index.php
+          grep -q "rate_limit('anonymous-device-register'" platform/cloud/index.php
+          grep -q 'devices/anonymous/register' platform/cloud/index.php
+          grep -q 'pairing-requests' platform/cloud/index.php

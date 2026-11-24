@@ -21,7 +21,7 @@ The current installation already has users, API tokens and devices. Preserve the
 1. Create a MySQL database and user in hPanel.
 2. Import **schema.mysql.sql**.
 3. Copy `.env.example` to `.env` and set the exact Hostinger DB host, port, database name, username, password and a strong APP_KEY.
-4. Upload the Cloud platform files into the domain document root.
+4. Upload only index.php and the routing .htaccess into the domain document root. Keep schema files, deployment notes, archives and environment files outside it.
 
 ## Verify deployment
 

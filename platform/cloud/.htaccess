@@ -1,9 +1,15 @@
 Options -Indexes
 DirectoryIndex index.php
-<FilesMatch "^(\.env|schema\.mysql\.sql|README\.txt|\.htaccess)$">
+<FilesMatch "^[.].*">
+  Require all denied
+</FilesMatch>
+<FilesMatch "[.](sql|md|txt)$">
   Require all denied
 </FilesMatch>
 RewriteEngine On
+RewriteRule ^site[.]php$ - [F,L,NC]
+RewriteRule [.]((sql|md|txt))$ - [F,L,NC]
+RewriteRule (^|/)[.] - [F,L]
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^ index.php [QSA,L]

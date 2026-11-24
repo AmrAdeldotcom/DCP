@@ -93,3 +93,10 @@ CREATE TABLE device_pairings (
  UNIQUE KEY uq_device_pair(owner_device,peer_device),
  INDEX(peer_device,revoked_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE api_rate_limits (
+ bucket_key CHAR(64) PRIMARY KEY,
+ hits INT UNSIGNED NOT NULL DEFAULT 0,
+ expires_at DATETIME NOT NULL,
+ INDEX(expires_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
