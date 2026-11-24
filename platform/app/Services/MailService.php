@@ -4,7 +4,7 @@ final class MailService {
  public function __construct(private PDO $db,private Crypto $crypto){}
  public function save(array $d):void{
   $keys=['smtp_host','smtp_port','smtp_secure','smtp_user','smtp_pass','imap_host','imap_port','imap_secure','imap_user','imap_pass','from_email','from_name','auto_poll'];
-  foreach($keys as $k){$v=(string)($d[$k]??'');if(in_array($k,['smtp_pass','imap_pass'],true)&&$v==='')continue;$enc=in_array($k,['smtp_pass','imap_pass'],true)?$this->crypto->encrypt($v):$v;$q=$this->db->prepare('INSERT INTO settings(key,value,updated_at) VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at');$q->execute(['mail.'.$k,$enc,date(DATE_ATOM)]);}
+  foreach($keys as $k){if(!array_key_exists($k,$d))continue;$v=(string)$d[$k];if(in_array($k,['smtp_pass','imap_pass'],true)&&$v==='')continue;$enc=in_array($k,['smtp_pass','imap_pass'],true)?$this->crypto->encrypt($v):$v;$q=$this->db->prepare('INSERT INTO settings(key,value,updated_at) VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at');$q->execute(['mail.'.$k,$enc,date(DATE_ATOM)]);}
  }
  public function settings(bool $secrets=false):array{$out=[];foreach($this->db->query("SELECT key,value FROM settings WHERE key LIKE 'mail.%'") as $r){$k=substr($r['key'],5);$out[$k]=str_ends_with($k,'_pass')?($secrets?$this->crypto->decrypt($r['value']):$this->crypto->mask($this->crypto->decrypt($r['value']))):$r['value'];}return $out;}
  private function readReply($fp):string{$all='';do{$line=fgets($fp,515)?:'';$all.=$line;}while(strlen($line)>=4&&$line[3]==='-');return $all;}
