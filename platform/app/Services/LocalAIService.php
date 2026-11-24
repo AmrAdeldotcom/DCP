@@ -320,7 +320,7 @@ PS;
  }
 
  private function llamaModelProfiles():array {
-  return ['qwen3:0.6b'=>'Qwen/Qwen3-0.6B-GGUF:Q8_0','qwen3:1.7b'=>'tensorblock/Qwen_Qwen3-1.7B-GGUF:Q4_K_M','qwen3:4b'=>'Qwen/Qwen3-4B-GGUF:Q4_K_M','llama3.2:3b'=>'bartowski/Llama-3.2-3B-Instruct-GGUF:Q4_K_M'];
+  return ['qwen3:0.6b'=>'mradermacher/Qwen3-0.6B-GGUF:Q4_K_M','qwen3:1.7b'=>'tensorblock/Qwen_Qwen3-1.7B-GGUF:Q4_K_M','qwen3:4b'=>'Qwen/Qwen3-4B-GGUF:Q4_K_M','llama3.2:3b'=>'bartowski/Llama-3.2-3B-Instruct-GGUF:Q4_K_M'];
  }
  public function startLlama(string $model):array {
   $profiles=$this->llamaModelProfiles();
