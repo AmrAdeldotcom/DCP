@@ -107,6 +107,35 @@ jobs:
           file DCP.app/Contents/MacOS/DCP
           lipo -info DCP.app/Contents/MacOS/DCP
 
+      - name: Smoke test official Apple Silicon llama.cpp runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "$(uname -m)" = "arm64" ]; then
+            TMP="$RUNNER_TEMP/llama-arm64-smoke"
+            mkdir -p "$TMP/unpack"
+            curl -fsSL "https://api.github.com/repos/ggml-org/llama.cpp/releases?per_page=1" -o "$TMP/releases.json"
+            python3 - "$TMP/releases.json" "$TMP/url" "$TMP/digest" <<'PY'
+          import json,sys
+          releases=json.load(open(sys.argv[1],encoding="utf-8"))
+          assets=releases[0].get("assets",[]) if releases else []
+          asset=next((a for a in assets if "macos-arm64" in a.get("name","") and a.get("name","").endswith(".tar.gz")),None)
+          if not asset or not asset.get("digest","").startswith("sha256:"):
+              raise SystemExit("Official Apple Silicon llama.cpp archive or SHA-256 is missing")
+          open(sys.argv[2],"w").write(asset["browser_download_url"])
+          open(sys.argv[3],"w").write(asset["digest"].split(":",1)[1])
+          PY
+            curl -fL --retry 2 "$(cat "$TMP/url")" -o "$TMP/llama.tar.gz"
+            test "$(shasum -a 256 "$TMP/llama.tar.gz" | awk '{print $1}')" = "$(cat "$TMP/digest")"
+            tar -xzf "$TMP/llama.tar.gz" -C "$TMP/unpack"
+            SERVER="$(find "$TMP/unpack" -type f -name llama-server -print -quit)"
+            test -n "$SERVER"
+            file "$SERVER" | grep -q 'arm64'
+            "$SERVER" --version
+          else
+            echo "Apple Silicon binary smoke skipped: runner architecture is $(uname -m)"
+          fi
+
       - name: Build portable Intel SSE4.2 llama.cpp runtime
         shell: bash
         run: |
