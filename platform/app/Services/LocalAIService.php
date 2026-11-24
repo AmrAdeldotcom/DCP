@@ -319,8 +319,11 @@ PS;
   return ['ok'=>true,'started'=>true,'message'=>'Installer launched. Progress and any errors will appear in Engine activity.'];
  }
 
+ private function llamaModelProfiles():array {
+  return ['qwen3:0.6b'=>'Qwen/Qwen3-0.6B-GGUF:Q8_0','qwen3:1.7b'=>'tensorblock/Qwen_Qwen3-1.7B-GGUF:Q4_K_M','qwen3:4b'=>'Qwen/Qwen3-4B-GGUF:Q4_K_M','llama3.2:3b'=>'bartowski/Llama-3.2-3B-Instruct-GGUF:Q4_K_M'];
+ }
  public function startLlama(string $model):array {
-  $profiles=['qwen3:1.7b'=>'tensorblock/Qwen_Qwen3-1.7B-GGUF:Q4_K_M','qwen3:4b'=>'Qwen/Qwen3-4B-GGUF:Q4_K_M','llama3.2:3b'=>'bartowski/Llama-3.2-3B-Instruct-GGUF:Q4_K_M'];
+  $profiles=$this->llamaModelProfiles();
   if(!isset($profiles[$model]))throw new InvalidArgumentException('This model is not enabled for llama.cpp yet.');
   $state=$this->llamaState();
   if($state&&((($state['managed']??false)===true)||$this->llamaApiReady((int)$state['port'])))return ['ok'=>true,'already_running'=>true,'message'=>'The existing DCP llama.cpp server is already running.','model'=>$state['model']??$model,'base_url'=>'http://127.0.0.1:'.(int)$state['port'].'/v1','port'=>(int)$state['port']];
