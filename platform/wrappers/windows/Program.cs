@@ -205,7 +205,7 @@ internal sealed class MainWindow : Form
                 .FirstOrDefault(x => string.Equals(x.Key, "DCPVersion", StringComparison.OrdinalIgnoreCase))?.Value ?? "0.0.0";
             var currentRevision = int.TryParse(Assembly.GetExecutingAssembly().GetCustomAttributes<AssemblyMetadataAttribute>()
                 .FirstOrDefault(x => string.Equals(x.Key, "DCPPackageRevision", StringComparison.OrdinalIgnoreCase))?.Value, out var parsedRevision)
-                ? parsedRevision : 1;
+                ? parsedRevision : 0;
             var manifestAsset = release.GetProperty("assets").EnumerateArray()
                 .FirstOrDefault(x => string.Equals(x.GetProperty("name").GetString(), "DCP-Windows-update.json", StringComparison.OrdinalIgnoreCase));
             if (manifestAsset.ValueKind == JsonValueKind.Undefined)
@@ -213,6 +213,12 @@ internal sealed class MainWindow : Form
 
             var manifestUrl = manifestAsset.GetProperty("browser_download_url").GetString()
                 ?? throw new InvalidOperationException("Update manifest URL is empty.");
+            if (!Uri.TryCreate(manifestUrl, UriKind.Absolute, out var manifestUri) ||
+                manifestUri.Scheme != Uri.UriSchemeHttps || manifestUri.Host != "github.com" ||
+                !manifestUri.AbsolutePath.StartsWith($"/{Repository}/releases/download/", StringComparison.Ordinal))
+                throw new InvalidOperationException("Update manifest must come from the official DCP GitHub release origin.");
+            if (!Regex.IsMatch(tag, @"^v?\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$"))
+                throw new InvalidOperationException("GitHub release tag is not a valid DCP version tag.");
             using var manifestResponse = await updaterClient.GetAsync(manifestUrl, cancellationToken);
             manifestResponse.EnsureSuccessStatusCode();
             using var manifestStream = await manifestResponse.Content.ReadAsStreamAsync(cancellationToken);
@@ -220,9 +226,12 @@ internal sealed class MainWindow : Form
             var schema = manifest.RootElement.GetProperty("schema").GetInt32();
             if (schema is not (1 or 2))
                 throw new InvalidOperationException("Unsupported update manifest schema.");
+            var manifestVersion = manifest.RootElement.GetProperty("version").GetString() ?? "";
+            if (!string.Equals(manifestVersion.TrimStart('v'), tag.TrimStart('v'), StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("Update manifest version does not match its GitHub release tag.");
             var latestRevision = manifest.RootElement.TryGetProperty("package_revision", out var revisionElement)
-                ? revisionElement.GetInt32() : 1;
-            if (latestRevision < 1)
+                ? revisionElement.GetInt32() : 0;
+            if (latestRevision < 0 || (schema == 2 && latestRevision < 1))
                 throw new InvalidOperationException("Update manifest package revision is invalid.");
             if (!IsNewerRelease(tag, current) &&
                 !(string.Equals(tag.TrimStart('v'), current.TrimStart('v'), StringComparison.OrdinalIgnoreCase) && latestRevision > currentRevision))
@@ -243,6 +252,8 @@ internal sealed class MainWindow : Form
                 var path = item.GetProperty("path").GetString() ?? "";
                 var hash = item.GetProperty("sha256").GetString() ?? "";
                 var size = item.GetProperty("size").GetInt64();
+                if (size < 0 || !Regex.IsMatch(hash, @"^[0-9a-fA-F]{64}$"))
+                    throw new InvalidOperationException("Update manifest contains invalid size or SHA-256: " + path);
                 if (!requiredFiles.TryAdd(path, (hash.ToLowerInvariant(), size)))
                     throw new InvalidOperationException("Duplicate path in latest update manifest: " + path);
             }
@@ -265,7 +276,10 @@ internal sealed class MainWindow : Form
                 using var parentStream = await parentResponse.Content.ReadAsStreamAsync(cancellationToken);
                 using var parentManifest = await JsonDocument.ParseAsync(parentStream, cancellationToken: cancellationToken);
                 var parentTag = parentManifest.RootElement.GetProperty("version").GetString() ?? "";
-                if (string.Equals(parentTag.TrimStart('v'), installedTag.TrimStart('v'), StringComparison.OrdinalIgnoreCase))
+                var parentRevision = parentManifest.RootElement.TryGetProperty("package_revision", out var parentRevisionElement)
+                    ? parentRevisionElement.GetInt32() : 0;
+                if (string.Equals(parentTag.TrimStart('v'), installedTag.TrimStart('v'), StringComparison.OrdinalIgnoreCase) &&
+                    parentRevision == currentRevision)
                 {
                     reachedInstalledVersion = true;
                     break;
@@ -300,7 +314,8 @@ internal sealed class MainWindow : Form
                 if (!IsSafeRelativePath(relative))
                     throw new InvalidOperationException("Unsafe path in update manifest: " + relative);
                 if (relative.StartsWith("platform/data/", StringComparison.OrdinalIgnoreCase) ||
-                    relative.StartsWith("platform/storage/", StringComparison.OrdinalIgnoreCase))
+                    relative.StartsWith("platform/storage/", StringComparison.OrdinalIgnoreCase) ||
+                    relative.StartsWith("DCP-UserData/", StringComparison.OrdinalIgnoreCase))
                     throw new InvalidOperationException("Update manifest attempted to include user data.");
                 var url = downloadRoot + string.Join("/", relative.Split('/').Select(Uri.EscapeDataString));
                 safe.Add((relative, file.Value.Hash, file.Value.Size, url));

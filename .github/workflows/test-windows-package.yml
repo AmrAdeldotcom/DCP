@@ -8,6 +8,8 @@ on:
       - "platform/app/Controllers/PageController.php"
       - "platform/scripts/build-windows.ps1"
       - "platform/scripts/install-runtime-windows.ps1"
+      - "platform/scripts/update-windows.ps1"
+      - "platform/tests/update-windows.ps1"
       - "platform/scripts/verify-runtime.php"
       - "platform/dcp-env/**"
       - "platform/wrappers/windows/**"
@@ -20,6 +22,8 @@ on:
       - "platform/app/Controllers/PageController.php"
       - "platform/scripts/build-windows.ps1"
       - "platform/scripts/install-runtime-windows.ps1"
+      - "platform/scripts/update-windows.ps1"
+      - "platform/tests/update-windows.ps1"
       - "platform/scripts/verify-runtime.php"
       - "platform/dcp-env/**"
       - "platform/wrappers/windows/**"
@@ -95,3 +99,7 @@ jobs:
             throw "Delta update payload directory is missing."
           }
           Write-Host "Clean Windows package verification passed."
+
+      - name: Test Windows updater apply, data preservation and rollback
+        shell: pwsh
+        run: ./platform/tests/update-windows.ps1
