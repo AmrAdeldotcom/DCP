@@ -66,9 +66,19 @@ jobs:
       - name: Build universal macOS application
         run: |
           chmod +x platform/scripts/*.sh platform/wrappers/build-macos.sh
+          APP_VERSION="${GITHUB_REF_NAME#v}"
+          APP_BUILD="$(python3 -c 'import re,sys; m=re.search(r"-(?:alpha|beta)\.(\d+)$",sys.argv[1]); print(m.group(1) if m else "1")' "$APP_VERSION")"
+          python3 - "$APP_VERSION" "$GITHUB_REF_NAME" "$APP_BUILD" <<'PY'
+          import json, sys
+          version, release_tag, build = sys.argv[1:]
+          channel = "alpha" if "-alpha" in version else ("beta" if "-beta" in version else "stable")
+          with open("platform/version.json", "w", encoding="utf-8") as f:
+              json.dump({"version": version, "releaseTag": release_tag, "channel": channel, "build": build}, f, indent=2)
+              f.write("\n")
+          PY
           ./platform/scripts/build-macos.sh
-          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString ${GITHUB_REF_NAME#v}" DCP.app/Contents/Info.plist
-          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${GITHUB_RUN_NUMBER}" DCP.app/Contents/Info.plist
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $APP_VERSION" DCP.app/Contents/Info.plist
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $APP_BUILD" DCP.app/Contents/Info.plist
           codesign --force --deep --sign - DCP.app
           codesign --verify --deep --strict DCP.app
           test -s DCP.app/Contents/Resources/AppIcon.icns
@@ -108,6 +118,15 @@ jobs:
             --exclude '/dcp-env/engines/ollama/windows-x64/***' \
             --exclude '/dcp-env/engines/ollama/macos-x64/***' \
             --exclude '/dcp-env/engines/ollama/macos-arm64/***'
+          STAGE_VERSION="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1], encoding="utf-8"))["version"])' "$STAGE/platform/version.json")"
+          STAGE_BUILD="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1], encoding="utf-8"))["build"])' "$STAGE/platform/version.json")"
+          BUNDLE_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$STAGE/DCP.app/Contents/Info.plist")"
+          BUNDLE_BUILD="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$STAGE/DCP.app/Contents/Info.plist")"
+          test "$STAGE_VERSION" = "${GITHUB_REF_NAME#v}"
+          STAGE_TAG="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1], encoding="utf-8"))["releaseTag"])' "$STAGE/platform/version.json")"
+          test "$STAGE_TAG" = "$GITHUB_REF_NAME"
+          test "$STAGE_VERSION" = "$BUNDLE_VERSION"
+          test "$STAGE_BUILD" = "$BUNDLE_BUILD"
           for arch in macos-x64 macos-arm64; do
             runtime="$STAGE/platform/dcp-env/runtime/php/$arch"
             test -x "$runtime/bin/php"

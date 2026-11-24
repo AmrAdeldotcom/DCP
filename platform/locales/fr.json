@@ -103,7 +103,7 @@
   "terminal_blocked": "Commande bloquée.",
   "about_profession": "Ingénieur informatique et réseaux · Développeur logiciel · Fondateur de DiGiPL",
   "about_mission": "Créer des passerelles pratiques entre l’IA, les logiciels, l’infrastructure et les entreprises numériques.",
-  "about_version": "DCP v1.0.0-alpha.1 · PHP · SQLite · Architecture de plugins",
+  "about_version": "DCP · PHP · SQLite · Architecture de plugins",
   "attach_file": "＋ Joindre un fichier",
   "notifications": "Notifications",
   "mark_all_read": "Tout marquer comme lu",

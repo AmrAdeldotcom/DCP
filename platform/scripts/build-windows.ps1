@@ -5,13 +5,25 @@ $Platform = Split-Path -Parent $PSScriptRoot
 $Project = Join-Path $Platform 'wrappers\windows\DCP.WebView.csproj'
 $Out = Join-Path $Platform 'dist\windows'
 
-if ([string]::IsNullOrWhiteSpace($DCPVersion) -or $DCPVersion -notmatch '^v?\d+\.\d+\.\d+') {
-    $DCPVersion = (& git -C (Split-Path -Parent $Platform) describe --tags --abbrev=0 2>$null)
+$ReleaseTag = $null
+if (-not [string]::IsNullOrWhiteSpace($DCPVersion) -and $DCPVersion -match '^v?\d+\.\d+\.\d+') {
+    $ReleaseTag = $DCPVersion
+    $DCPVersion = $DCPVersion -replace '^v', ''
+} else {
+    $VersionFile = Join-Path $Platform 'version.json'
+    if (-not (Test-Path -LiteralPath $VersionFile)) { throw 'platform/version.json is required to build a version-synchronized package.' }
+    $VersionManifest = Get-Content -LiteralPath $VersionFile -Raw | ConvertFrom-Json
+    $DCPVersion = [string]$VersionManifest.version
+    $ReleaseTag = [string]$VersionManifest.releaseTag
 }
-if ([string]::IsNullOrWhiteSpace($DCPVersion)) { $DCPVersion = 'v1.0.0-alpha.7' }
+if ([string]::IsNullOrWhiteSpace($DCPVersion) -or $DCPVersion -notmatch '^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$') {
+    throw "Invalid DCP version in platform/version.json or Git tag: $DCPVersion"
+}
 
 dotnet publish $Project -c Release -r win-x64 --self-contained true -p:EnableWindowsTargeting=true -p:DCPVersion="$DCPVersion" -o $Out
 if ($LASTEXITCODE -ne 0) { throw 'The DCP Windows application build failed.' }
+$BuiltProductVersion = (Get-Item -LiteralPath (Join-Path $Out 'DCP.exe')).VersionInfo.ProductVersion
+if ($BuiltProductVersion -ne $DCPVersion) { throw "Windows executable version $BuiltProductVersion does not match package version $DCPVersion." }
 
 $Payload = Join-Path $Out 'platform'
 New-Item -ItemType Directory -Force -Path $Payload | Out-Null
@@ -44,6 +56,12 @@ Get-ChildItem $Platform -Force | Where-Object { $_.Name -notin $Exclude } | ForE
   $global:LASTEXITCODE = 0
 }
 
+# Keep all package metadata on the same semantic version as the release tag.
+$Channel = if ($DCPVersion -match '-alpha') { 'alpha' } elseif ($DCPVersion -match '-beta') { 'beta' } else { 'stable' }
+$Build = if ($DCPVersion -match '-(?:alpha|beta)\.(\d+)$') { [string]$Matches[1] } else { '1' }
+$VersionJson = [pscustomobject]@{ version = $DCPVersion; releaseTag = $ReleaseTag; channel = $Channel; build = $Build }
+[IO.File]::WriteAllText((Join-Path $Payload 'version.json'), ($VersionJson | ConvertTo-Json -Depth 3), [Text.UTF8Encoding]::new($false))
+
 # Never ship the developer's SQLite database, encryption keys, logs or local settings.
 $UserData = Join-Path $Out 'DCP-UserData'
 $WindowsUserData = Join-Path $UserData 'Windows'
@@ -71,7 +89,7 @@ $Manifest = Join-Path $Out 'DCP-Windows-update.json'
 $PreviousManifestUrl = $null
 $PayloadRoot = Join-Path $Out 'payload'
 New-Item -ItemType Directory -Force -Path $PayloadRoot | Out-Null
-$PreviousTag = (& git -C $RepoRoot tag --sort=-version:refname | Where-Object { $_ -ne $DCPVersion } | Select-Object -First 1)
+$PreviousTag = (& git -C $RepoRoot tag --sort=-version:refname | Where-Object { $_ -ne $ReleaseTag } | Select-Object -First 1)
 if (-not [string]::IsNullOrWhiteSpace($PreviousTag)) { $PreviousManifestUrl = "https://github.com/AmrAdeldotcom/DCP/releases/download/$PreviousTag/DCP-Windows-update.json" }
 $Changed = @()
 if (-not [string]::IsNullOrWhiteSpace($PreviousTag)) {
@@ -107,6 +125,6 @@ if ($Files.Count -eq 0) {
     $Files += [pscustomobject]@{ path = 'platform/config/app.php'; size = [int64]$Info.Length; sha256 = (Get-FileHash -LiteralPath $InfoPath -Algorithm SHA256).Hash.ToLowerInvariant() }
   }
 }
-[pscustomobject]@{ schema = 1; version = $DCPVersion; previous_manifest_url = $PreviousManifestUrl; files = @($Files) } |
+[pscustomobject]@{ schema = 1; version = $DCPVersion; release_tag = $ReleaseTag; previous_manifest_url = $PreviousManifestUrl; files = @($Files) } |
   ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $Manifest -Encoding utf8
 Write-Host ("Generated delta manifest with {0} changed files." -f $Files.Count)

@@ -1,5 +1,5 @@
 # DCP Plugin and Adapter Development Guide
-Version 1.0.0-alpha.1
+Version: see platform/version.json (single source of truth)
 
 ## Goal
 Extend DCP by adding PHP files, plugin manifests, JSON locale entries and SQLite migrations. The desktop shells are intentionally thin and should not need rebuilding for normal platform, provider, service or UI changes.

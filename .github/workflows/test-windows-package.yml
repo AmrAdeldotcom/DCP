@@ -3,6 +3,9 @@ name: Test clean DCP Windows package
 on:
   push:
     paths:
+      - "platform/version.json"
+      - "platform/config/app.php"
+      - "platform/app/Controllers/PageController.php"
       - "platform/scripts/build-windows.ps1"
       - "platform/scripts/install-runtime-windows.ps1"
       - "platform/scripts/verify-runtime.php"
@@ -12,6 +15,9 @@ on:
       - ".github/workflows/release-windows.yml"
   pull_request:
     paths:
+      - "platform/version.json"
+      - "platform/config/app.php"
+      - "platform/app/Controllers/PageController.php"
       - "platform/scripts/build-windows.ps1"
       - "platform/scripts/install-runtime-windows.ps1"
       - "platform/scripts/verify-runtime.php"
@@ -38,7 +44,7 @@ jobs:
 
       - name: Build clean portable Windows package
         shell: pwsh
-        run: ./platform/scripts/build-windows.ps1 -DCPVersion "1.0.0-ci.1"
+        run: ./platform/scripts/build-windows.ps1
 
       - name: Verify package contents and user-data boundaries
         shell: pwsh
@@ -48,6 +54,7 @@ jobs:
             "DCP.exe",
             "platform/dcp-env/runtime/php/windows-x64/php.exe",
             "platform/public/router.php",
+            "platform/version.json",
             "platform/scripts/install-runtime-windows.ps1",
             "platform/scripts/update-windows.ps1",
             "platform/scripts/verify-runtime.php",
@@ -65,6 +72,13 @@ jobs:
               throw "Per-device user-data directory is missing: $Relative"
             }
           }
+
+          $VersionManifest = Get-Content (Join-Path $Root "platform/version.json") -Raw | ConvertFrom-Json
+          $ProductVersion = (Get-Item -LiteralPath (Join-Path $Root "DCP.exe")).VersionInfo.ProductVersion
+          if ($VersionManifest.version -ne $ProductVersion) { throw "Windows executable version $ProductVersion does not match platform/version.json $($VersionManifest.version)." }
+          if ($VersionManifest.releaseTag -ne "v$($VersionManifest.version)") { throw "Windows release tag does not match its semantic version." }
+          $DeltaManifest = Get-Content (Join-Path $Root "DCP-Windows-update.json") -Raw | ConvertFrom-Json
+          if ($DeltaManifest.version -ne $VersionManifest.version) { throw "Windows delta manifest version does not match platform/version.json." }
 
           $Php = Join-Path $Root "platform/dcp-env/runtime/php/windows-x64/php.exe"
           $Verifier = Join-Path $Root "platform/scripts/verify-runtime.php"

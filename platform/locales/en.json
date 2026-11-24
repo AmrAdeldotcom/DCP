@@ -113,7 +113,7 @@
   "task_not_executed": "Approved tasks wait for a connected agent.",
   "about_profession": "Computer & Network Engineer · Software Developer · Founder of DiGiPL",
   "about_mission": "Building practical bridges between AI, software, infrastructure and digital business.",
-  "about_version": "DCP v1.0.0-alpha.1 · PHP · SQLite · Plugin architecture",
+  "about_version": "DCP · PHP · SQLite · Plugin architecture",
   "attach_file": "＋ Attach",
   "notifications": "Notifications",
   "mark_all_read": "Mark all read"

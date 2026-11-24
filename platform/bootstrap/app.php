@@ -1,6 +1,12 @@
 <?php
 declare(strict_types=1);
 $config=require dirname(__DIR__).'/config/app.php';
+$basePath=rtrim((string)($config['base_path']??''),'/');
+$requestPath=parse_url($_SERVER['REQUEST_URI']??'/',PHP_URL_PATH)?:'/';
+if($basePath!=='' && ($requestPath===$basePath || str_starts_with($requestPath,$basePath.'/'))){
+ $requestPath=substr($requestPath,strlen($basePath))?:'/';
+}
+$_SERVER['DCP_REQUEST_PATH']=$requestPath;
 date_default_timezone_set($config['timezone']);
 umask(0077);
 ini_set('display_errors','0');
@@ -16,7 +22,13 @@ register_shutdown_function(static function()use($config):void{
  @file_put_contents($config['storage'].'/reports/'.$id.'.json',json_encode($record,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE),LOCK_EX);
 });
 
-if(session_status()===PHP_SESSION_NONE){session_name($config['session_name']);session_set_cookie_params(['httponly'=>true,'samesite'=>'Strict','secure'=>false,'path'=>'/']);session_start();}
+if(session_status()===PHP_SESSION_NONE){
+ $forwardedProto=strtolower((string)($_SERVER['HTTP_X_FORWARDED_PROTO']??''));
+ $secureCookie=(!empty($_SERVER['HTTPS'])&&strtolower((string)$_SERVER['HTTPS'])!=='off')||$forwardedProto==='https';
+ session_name($config['session_name']);
+ session_set_cookie_params(['httponly'=>true,'samesite'=>'Strict','secure'=>$secureCookie,'path'=>'/']);
+ session_start();
+}
 require dirname(__DIR__).'/app/Core/Database.php';
 require dirname(__DIR__).'/app/Core/Crypto.php';
 require dirname(__DIR__).'/app/Core/PluginManager.php';
@@ -43,5 +55,5 @@ $plugins=new PluginManager(dirname(__DIR__).'/plugins');
 $crypto=new Crypto($config['key_file']);
 $api=new ApiController($db,$config,$crypto,$plugins);
 $pages=new PageController($db,$config,$plugins);
-if(str_starts_with($_SERVER['REQUEST_URI']??'','/api/')){$api->dispatch();exit;}
+if(str_starts_with($requestPath,'/api/')){$api->dispatch();exit;}
 $pages->render();

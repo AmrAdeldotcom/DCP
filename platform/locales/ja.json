@@ -103,7 +103,7 @@
   "terminal_blocked": "コマンドがブロックされました。",
   "about_profession": "コンピューター・ネットワークエンジニア · ソフトウェア開発者 · DiGiPL 創設者",
   "about_mission": "AI、ソフトウェア、インフラ、デジタルビジネスを実用的につなぐ。",
-  "about_version": "DCP v1.0.0-alpha.1 · PHP · SQLite · プラグインアーキテクチャ",
+  "about_version": "DCP · PHP · SQLite · プラグインアーキテクチャ",
   "attach_file": "＋ ファイルを添付",
   "notifications": "通知",
   "mark_all_read": "すべて既読にする",

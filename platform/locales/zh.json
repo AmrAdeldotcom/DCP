@@ -103,7 +103,7 @@
   "terminal_blocked": "命令已阻止。",
   "about_profession": "计算机与网络工程师 · 软件开发者 · DiGiPL 创始人",
   "about_mission": "在人工智能、软件、基础设施和数字业务之间搭建实用桥梁。",
-  "about_version": "DCP v1.0.0-alpha.1 · PHP · SQLite · 插件架构",
+  "about_version": "DCP · PHP · SQLite · 插件架构",
   "attach_file": "＋ 附加文件",
   "notifications": "通知",
   "mark_all_read": "全部标记为已读",

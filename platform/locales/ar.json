@@ -113,7 +113,7 @@
   "task_not_executed": "المهام المعتمدة تنتظر اتصال وكيل لتنفيذها.",
   "about_profession": "مهندس حاسبات وشبكات · مطور برمجيات · مؤسس DiGiPL",
   "about_mission": "بناء جسور عملية بين الذكاء الاصطناعي والبرمجيات والبنية التحتية والأعمال الرقمية.",
-  "about_version": "DCP إصدار 1.0.0-alpha.1 · PHP · SQLite · بنية الإضافات",
+  "about_version": "DCP · PHP · SQLite · بنية الإضافات",
   "attach_file": "＋ إرفاق ملف",
   "notifications": "الإشعارات",
   "mark_all_read": "تحديد الكل كمقروء"

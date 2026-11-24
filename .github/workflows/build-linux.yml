@@ -5,6 +5,9 @@ on:
   push:
     branches: ['**']
     paths:
+      - 'platform/app/Controllers/PageController.php'
+      - 'platform/config/app.php'
+      - 'platform/version.json'
       - 'platform/**'
       - '.github/workflows/build-linux.yml'
       - 'README.md'
@@ -37,6 +40,12 @@ jobs:
           test -f "$ROOT/DCP.desktop"
           test -f "$ROOT/platform/public/router.php"
           test -f "$ROOT/platform/dcp-env/manifests/php-runtime.json"
+          test -s "$ROOT/platform/version.json"
+          PACKAGE_VERSION="$(php -r '$v=json_decode(file_get_contents($argv[1]),true); echo $v["version"] ?? "";' "$ROOT/platform/version.json")"
+          SOURCE_VERSION="$(php -r '$c=require "platform/config/app.php"; echo $c["version"];')"
+          test "$PACKAGE_VERSION" = "$SOURCE_VERSION"
+          PACKAGE_TAG="$(php -r '$v=json_decode(file_get_contents($argv[1]),true); echo $v["releaseTag"] ?? "";' "$ROOT/platform/version.json")"
+          test "$PACKAGE_TAG" = "v$PACKAGE_VERSION"
           test -d "$ROOT/DCP-UserData/Linux/data"
           test -d "$ROOT/DCP-UserData/Linux/storage"
           test -f "$ROOT/DCP-UserData/README.txt"

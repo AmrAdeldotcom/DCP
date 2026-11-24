@@ -3,6 +3,9 @@ name: Test clean DCP macOS package
 on:
   push:
     paths:
+      - "platform/version.json"
+      - "platform/config/app.php"
+      - "platform/app/Controllers/PageController.php"
       - ".github/workflows/test-macos-package.yml"
       - ".github/workflows/build-php-runtime-macos.yml"
       - ".github/workflows/release-macos.yml"
@@ -15,6 +18,9 @@ on:
       - "platform/wrappers/build-macos.sh"
   pull_request:
     paths:
+      - "platform/version.json"
+      - "platform/config/app.php"
+      - "platform/app/Controllers/PageController.php"
       - ".github/workflows/test-macos-package.yml"
       - ".github/workflows/build-php-runtime-macos.yml"
       - ".github/workflows/release-macos.yml"
@@ -87,8 +93,12 @@ jobs:
           set -euo pipefail
           chmod +x platform/scripts/*.sh platform/wrappers/build-macos.sh
           ./platform/scripts/build-macos.sh
-          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.0.0" DCP.app/Contents/Info.plist
-          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion 1" DCP.app/Contents/Info.plist
+          APP_VERSION="$(python3 -c 'import json;print(json.load(open("platform/version.json", encoding="utf-8"))["version"])')"
+          APP_BUILD="$(python3 -c 'import json;print(json.load(open("platform/version.json", encoding="utf-8"))["build"])')"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $APP_VERSION" DCP.app/Contents/Info.plist
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $APP_BUILD" DCP.app/Contents/Info.plist
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' DCP.app/Contents/Info.plist)" = "$APP_VERSION"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' DCP.app/Contents/Info.plist)" = "$APP_BUILD"
           codesign --force --deep --sign - DCP.app
           codesign --verify --deep --strict DCP.app
           test -s DCP.app/Contents/Resources/AppIcon.icns
@@ -147,6 +157,15 @@ jobs:
             echo "llama.cpp source tree leaked into the portable package." >&2
             exit 1
           fi
+          test -s "$STAGE/platform/version.json"
+          STAGE_VERSION="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1], encoding="utf-8"))["version"])' "$STAGE/platform/version.json")"
+          BUNDLE_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$STAGE/DCP.app/Contents/Info.plist")"
+          test "$STAGE_VERSION" = "$BUNDLE_VERSION"
+          STAGE_BUILD="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1], encoding="utf-8"))["build"])' "$STAGE/platform/version.json")"
+          STAGE_TAG="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1], encoding="utf-8"))["releaseTag"])' "$STAGE/platform/version.json")"
+          BUNDLE_BUILD="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$STAGE/DCP.app/Contents/Info.plist")"
+          test "$STAGE_BUILD" = "$BUNDLE_BUILD"
+          test "$STAGE_TAG" = "v$STAGE_VERSION"
           touch "$STAGE/DCP-UserData/macOS/data/.gitkeep" "$STAGE/DCP-UserData/macOS/storage/.gitkeep"
           (cd "$STAGE" && zip -qry "$OUT" DCP.app platform DCP-UserData)
           test -s "$OUT"

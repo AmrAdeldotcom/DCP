@@ -30,7 +30,7 @@ jobs:
       - name: Build portable Linux application
         run: |
           chmod +x platform/scripts/*.sh
-          platform/scripts/build-linux.sh
+          DCP_VERSION="${GITHUB_REF_NAME#v}" platform/scripts/build-linux.sh
 
       - name: Verify package and linked runtime dependencies
         run: |
@@ -43,6 +43,11 @@ jobs:
           test -f "$ROOT/platform/public/router.php"
           test -f "$ROOT/platform/dcp-env/manifests/php-runtime.json"
           test -f "$ROOT/platform/dcp-env/README.md"
+          test -s "$ROOT/platform/version.json"
+          PACKAGE_VERSION="$(php -r '$v=json_decode(file_get_contents($argv[1]),true); echo $v["version"] ?? "";' "$ROOT/platform/version.json")"
+          test "$PACKAGE_VERSION" = "${GITHUB_REF_NAME#v}"
+          PACKAGE_TAG="$(php -r '$v=json_decode(file_get_contents($argv[1]),true); echo $v["releaseTag"] ?? "";' "$ROOT/platform/version.json")"
+          test "$PACKAGE_TAG" = "$GITHUB_REF_NAME"
           test ! -d "$ROOT/platform/dcp-env/build"
           test -d "$ROOT/DCP-UserData/Linux/data"
           test -d "$ROOT/DCP-UserData/Linux/storage"

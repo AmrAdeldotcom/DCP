@@ -41,6 +41,12 @@ jobs:
           if (!(Test-Path 'platform/dist/windows/platform/scripts/verify-runtime.php')) { throw 'PHP runtime verifier missing from package' }
           if (!(Test-Path 'platform/dist/windows/Install-DCP.ps1')) { throw 'Top-level prerequisite launcher missing from package' }
           if (!(Test-Path 'platform/dist/windows/DCP-Windows-update.json')) { throw 'Delta update manifest missing from package' }
+          $ExpectedVersion = $env:GITHUB_REF_NAME -replace '^v', ''
+          $VersionManifest = Get-Content 'platform/dist/windows/platform/version.json' -Raw | ConvertFrom-Json
+          $DeltaManifest = Get-Content 'platform/dist/windows/DCP-Windows-update.json' -Raw | ConvertFrom-Json
+          $ProductVersion = (Get-Item 'platform/dist/windows/DCP.exe').VersionInfo.ProductVersion
+          if ($VersionManifest.version -ne $ExpectedVersion -or $DeltaManifest.version -ne $ExpectedVersion -or $ProductVersion -ne $ExpectedVersion) { throw 'Windows executable, delta manifest, platform/version.json and release tag versions differ.' }
+          if ($VersionManifest.releaseTag -ne $env:GITHUB_REF_NAME -or $DeltaManifest.release_tag -ne $env:GITHUB_REF_NAME) { throw 'Windows package release tags do not match the Git tag.' }
           if (!(Test-Path 'platform/dist/windows/payload')) { throw 'Delta update payload missing from package' }
           if (!(Test-Path 'platform/dist/windows/DCP-UserData/Windows/data')) { throw 'Windows user-data database directory missing' }
           if (!(Test-Path 'platform/dist/windows/DCP-UserData/Windows/storage')) { throw 'Windows user-data storage directory missing' }

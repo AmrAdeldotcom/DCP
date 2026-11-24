@@ -1,5 +1,5 @@
 # DCP User Guide
-Version 1.0.0-alpha.1
+Version: see platform/version.json (single source of truth)
 
 ## First launch
 1. Open DCP.app on macOS. The app starts a PHP service on 127.0.0.1:18765 and opens the dashboard in WKWebView.

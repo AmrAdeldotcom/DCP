@@ -1,5 +1,5 @@
 # DCP — Desktop Connector Platform
-Version 1.0.0-alpha.7
+Version: see platform/version.json (single source of truth)
 
 ## Product definition
 DCP is a local-first desktop platform that connects AI providers, agent runtimes, MCP tools, local terminals, mail, and paired devices. The PHP platform is the product. Desktop applications are thin WebView shells that start the private PHP service and display the same web application.

@@ -26,6 +26,24 @@ chmod 0755 "$OUT/DCP"
 for item in app bootstrap config locales plugins public docs integrations scripts; do
   [[ ! -e "$ROOT/$item" ]] || cp -R "$ROOT/$item" "$OUT/platform/"
 done
+cp "$ROOT/version.json" "$OUT/platform/version.json"
+VERSION="${DCP_VERSION:-$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1], encoding="utf-8"))["version"])' "$ROOT/version.json")}"
+VERSION="${VERSION#v}"
+if [[ "${GITHUB_REF_TYPE:-}" == "tag" ]]; then
+  RELEASE_TAG="$GITHUB_REF_NAME"
+else
+  RELEASE_TAG="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1], encoding="utf-8")).get("releaseTag", ""))' "$ROOT/version.json")"
+fi
+python3 - "$OUT/platform/version.json" "$VERSION" "$RELEASE_TAG" <<'PY'
+import json, re, sys
+path, version, release_tag = sys.argv[1:]
+channel = "alpha" if "-alpha" in version else ("beta" if "-beta" in version else "stable")
+match = re.search(r"-(?:alpha|beta)\.(\d+)$", version)
+build = match.group(1) if match else "1"
+with open(path, "w", encoding="utf-8") as f:
+    json.dump({"version": version, "releaseTag": release_tag, "channel": channel, "build": build}, f, indent=2)
+    f.write("\n")
+PY
 # Include runtime manifests/installers but never developer caches, built engines or virtual environments.
 if [[ -d "$ROOT/dcp-env" ]]; then
   mkdir -p "$OUT/platform/dcp-env"

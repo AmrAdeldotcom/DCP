@@ -20,7 +20,17 @@ cleanup() {
 }
 trap cleanup EXIT
 
-command -v curl >/dev/null 2>&1 || { echo "curl is required." >&2; exit 1; }
+command -v curl >/dev/null 2>&1 || command -v wget >/dev/null 2>&1 || { echo "curl or wget is required." >&2; exit 1; }
+download_file() {
+  local url="$1" output="$2"
+  if command -v curl >/dev/null 2>&1; then curl -fL --retry 3 "$url" -o "$output"
+  else wget -q --tries=3 "$url" -O "$output"; fi
+}
+download_github_api() {
+  local output="$1"
+  if command -v curl >/dev/null 2>&1; then curl -fsSL -H "Accept: application/vnd.github+json" "$API" -o "$output"
+  else wget -q --tries=3 --header="Accept: application/vnd.github+json" "$API" -O "$output"; fi
+}
 command -v python3 >/dev/null 2>&1 || { echo "Python 3 is required to read GitHub release metadata." >&2; exit 1; }
 
 case "$(uname -s)" in
@@ -37,7 +47,7 @@ case "$(uname -s)" in
     command -v ditto >/dev/null 2>&1 || { echo "macOS ditto is required." >&2; exit 1; }
 
     echo "Finding the latest DCP macOS release..."
-    curl -fsSL -H "Accept: application/vnd.github+json" "$API" -o "$WORK_ROOT/releases.json"
+    download_github_api "$WORK_ROOT/releases.json"
     DOWNLOAD_URL="$(python3 - "$WORK_ROOT/releases.json" "$ASSET" <<'PY'
 import json, sys
 required = {"DCP-Windows-x64.zip", "DCP-macOS-universal.zip", "DCP-Linux-x64.tar.gz", "DCP-Linux-x64.tar.gz.sha256", "DCP-Windows-update.json"}
@@ -52,7 +62,7 @@ raise SystemExit("No complete synchronized DCP release containing Windows, macOS
 PY
 )"
     mkdir -p "$EXTRACT" "$(dirname "$INSTALL_ROOT")"
-    curl -fL --retry 3 "$DOWNLOAD_URL" -o "$ARCHIVE"
+    download_file "$DOWNLOAD_URL" "$ARCHIVE"
     ditto -x -k "$ARCHIVE" "$EXTRACT"
     PACKAGE="$EXTRACT"
     [[ -d "$PACKAGE/DCP.app" && -d "$PACKAGE/platform" ]] || { echo "Invalid macOS package." >&2; exit 1; }
@@ -101,7 +111,7 @@ PY
     command -v apt-get >/dev/null 2>&1 || { echo "Ubuntu/Debian apt-get is required for DCP Linux prerequisites." >&2; exit 1; }
 
     echo "Finding the latest DCP Linux release..."
-    curl -fsSL -H "Accept: application/vnd.github+json" "$API" -o "$WORK_ROOT/releases.json"
+    download_github_api "$WORK_ROOT/releases.json"
     python3 - "$WORK_ROOT/releases.json" "$ASSET" "$ASSET.sha256" "$WORK_ROOT/asset-urls.txt" <<'PY'
 import json, sys
 required = {"DCP-Windows-x64.zip", "DCP-macOS-universal.zip", "DCP-Linux-x64.tar.gz", "DCP-Linux-x64.tar.gz.sha256", "DCP-Windows-update.json"}
@@ -118,8 +128,8 @@ else:
 PY
     mapfile -t URLS < "$WORK_ROOT/asset-urls.txt"
     mkdir -p "$EXTRACT" "$(dirname "$INSTALL_ROOT")"
-    curl -fL --retry 3 "${URLS[0]}" -o "$ARCHIVE"
-    curl -fL --retry 3 "${URLS[1]}" -o "$CHECKSUM"
+    download_file "${URLS[0]}" "$ARCHIVE"
+    download_file "${URLS[1]}" "$CHECKSUM"
     EXPECTED="$(awk '{print $1}' "$CHECKSUM" | head -n1)"
     ACTUAL="$(sha256sum "$ARCHIVE" | awk '{print $1}')"
     [[ "$EXPECTED" =~ ^[a-fA-F0-9]{64}$ && "$ACTUAL" == "$EXPECTED" ]] || { echo "Linux package SHA-256 verification failed." >&2; exit 1; }
@@ -157,7 +167,7 @@ PY
 
     if [[ $EUID -eq 0 ]]; then SUDO=(); else command -v sudo >/dev/null 2>&1 || { echo "sudo is required to install Ubuntu runtime libraries." >&2; exit 1; }; SUDO=(sudo); fi
     "${SUDO[@]}" apt-get update
-    "${SUDO[@]}" apt-get install -y libgtk-3-0t64 libwebkit2gtk-4.1-0 php-cli php-curl php-intl php-mbstring php-sqlite3 php-xml php-gd php-zip
+    "${SUDO[@]}" apt-get install -y curl libgtk-3-0t64 libwebkit2gtk-4.1-0 php-cli php-curl php-intl php-mbstring php-sqlite3 php-xml php-gd php-zip
     chmod +x "$INSTALL_ROOT/DCP" "$INSTALL_ROOT/Run-DCP.sh" "$INSTALL_ROOT/Install-DCP-Launcher.sh"
     "$INSTALL_ROOT/platform/scripts/install-runtime-linux.sh"
     php "$INSTALL_ROOT/platform/scripts/verify-runtime.php"
