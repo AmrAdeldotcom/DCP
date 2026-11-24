@@ -141,6 +141,9 @@ jobs:
           /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $APP_VERSION" DCP.app/Contents/Info.plist
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $APP_BUILD" DCP.app/Contents/Info.plist
           /usr/libexec/PlistBuddy -c "Add :DCPPackageRevision integer $APP_REVISION" DCP.app/Contents/Info.plist || /usr/libexec/PlistBuddy -c "Set :DCPPackageRevision $APP_REVISION" DCP.app/Contents/Info.plist
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' DCP.app/Contents/Info.plist)" = "$APP_VERSION"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' DCP.app/Contents/Info.plist)" = "$APP_BUILD"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :DCPPackageRevision' DCP.app/Contents/Info.plist)" = "$APP_REVISION"
           codesign --force --deep --sign - DCP.app
           codesign --verify --deep --strict DCP.app
           test -s DCP.app/Contents/Resources/AppIcon.icns

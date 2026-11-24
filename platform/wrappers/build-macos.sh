@@ -9,6 +9,14 @@ trap 'rm -rf "$BUILD_TMP"' EXIT
 
 mkdir -p "$CONTENTS/MacOS" "$CONTENTS/Resources"
 cp "$ROOT/platform/wrappers/macos/Info.plist" "$CONTENTS/Info.plist"
+# Keep the native bundle version and package revision sourced from the same
+# manifest used by the platform package and updater.
+APP_VERSION="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1], encoding="utf-8"))["version"])' "$ROOT/platform/version.json")"
+APP_BUILD="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1], encoding="utf-8"))["build"])' "$ROOT/platform/version.json")"
+APP_REVISION="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1], encoding="utf-8"))["packageRevision"])' "$ROOT/platform/version.json")"
+/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $APP_VERSION" "$CONTENTS/Info.plist"
+/usr/libexec/PlistBuddy -c "Set :CFBundleVersion $APP_BUILD" "$CONTENTS/Info.plist"
+/usr/libexec/PlistBuddy -c "Add :DCPPackageRevision integer $APP_REVISION" "$CONTENTS/Info.plist" || /usr/libexec/PlistBuddy -c "Set :DCPPackageRevision $APP_REVISION" "$CONTENTS/Info.plist"
 ICONSET="$BUILD_TMP/AppIcon.iconset"
 mkdir -p "$ICONSET"
 ICON_SOURCE="$ROOT/platform/public/assets/dcp-logo.png"
