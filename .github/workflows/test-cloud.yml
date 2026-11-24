@@ -46,7 +46,7 @@ jobs:
           grep -q '^APP_KEY=$' platform/cloud/.env.example
           grep -q '^APP_KEY_PREVIOUS=$' platform/cloud/.env.example
           grep -q 'openssl rand -base64 48' platform/cloud/DEPLOYMENT.md
-          grep -q 'RewriteRule ^token[.]php$ - [F,L,NC]' platform/cloud/.htaccess
+          grep -Fq 'RewriteRule ^token[.]php$ - [F,L,NC]' platform/cloud/.htaccess
           test ! -e platform/cloud/.env
           grep -q 'pairing_codes' platform/cloud/schema.migrate.sql
           grep -q 'device_pairings' platform/cloud/schema.migrate.sql
