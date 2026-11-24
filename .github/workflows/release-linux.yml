@@ -41,6 +41,8 @@ jobs:
           test -x "$ROOT/Install-DCP-Launcher.sh"
           test -f "$ROOT/DCP.desktop"
           test -f "$ROOT/platform/public/router.php"
+          test -s "$ROOT/platform/update/release-public.pem"
+          test -s "$ROOT/platform/update/manifest.schema.json"
           test -f "$ROOT/platform/app/Core/Database.php"
           test -f "$ROOT/platform/app/Controllers/ApiController.php"
           test -f "$ROOT/platform/dcp-env/manifests/php-runtime.json"

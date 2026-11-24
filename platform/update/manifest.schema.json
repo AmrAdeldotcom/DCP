@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dcp.amradel.com/schemas/update-manifest-v3.json",
+  "title": "DCP signed platform update manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "version", "release_tag", "package_revision", "platform", "architecture", "commit", "key_id", "full", "delta"],
+  "properties": {
+    "schema": {"const": 3},
+    "version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?$"},
+    "release_tag": {"type": "string", "pattern": "^v\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?$"},
+    "package_revision": {"type": "integer", "minimum": 1},
+    "platform": {"enum": ["windows", "linux", "macos"]},
+    "architecture": {"enum": ["x64", "arm64"]},
+    "commit": {"type": "string", "pattern": "^[a-fA-F0-9]{40}$"},
+    "key_id": {"const": "dcp-alpha10-rsa3072-20261124"},
+    "full": {"$ref": "#/$defs/asset"},
+    "delta": {
+      "oneOf": [
+        {"type": "null"},
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["base", "asset", "files", "deleted"],
+          "properties": {
+            "base": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["version", "release_tag", "package_revision"],
+              "properties": {
+                "version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?$"},
+                "release_tag": {"type": "string"},
+                "package_revision": {"type": "integer", "minimum": 0}
+              }
+            },
+            "asset": {"$ref": "#/$defs/asset"},
+            "files": {"type": "array", "maxItems": 5000, "items": {"$ref": "#/$defs/file"}},
+            "deleted": {"type": "array", "maxItems": 5000, "items": {"type": "string", "minLength": 1}}
+          }
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "asset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "url", "size", "sha256"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "url": {"type": "string", "format": "uri"},
+        "size": {"type": "integer", "minimum": 1},
+        "sha256": {"type": "string", "pattern": "^[a-fA-F0-9]{64}$"}
+      }
+    },
+    "file": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "size", "sha256"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "size": {"type": "integer", "minimum": 0},
+        "sha256": {"type": "string", "pattern": "^[a-fA-F0-9]{64}$"}
+      }
+    }
+  }
+}

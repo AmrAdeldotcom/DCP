@@ -57,6 +57,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Packaged PHP runtime verification failed' }
           if (!(Test-Path 'platform/dist/windows/platform/scripts/update-windows.ps1')) { throw 'Self-updater missing' }
           if (!(Test-Path 'platform/dist/windows/DCP-Windows-update.json')) { throw 'Delta manifest missing' }
+          if (!(Test-Path 'platform/dist/windows/platform/update/release-public.pem')) { throw 'Pinned update public key missing from package' }
           if (!(Test-Path 'platform/dist/windows/payload')) { throw 'Delta payload missing' }
           $manifest = Get-Content 'platform/dist/windows/DCP-Windows-update.json' -Raw | ConvertFrom-Json
           if ($manifest.schema -ne 2 -or !$manifest.version -or [int]$manifest.package_revision -lt 1) { throw 'Delta manifest schema/version/revision invalid' }

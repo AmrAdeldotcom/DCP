@@ -24,7 +24,7 @@ NOTICE
 cc "$ROOT/wrappers/linux/dcp-webview.c" -o "$OUT/DCP" $(pkg-config --cflags --libs gtk+-3.0 webkit2gtk-4.1)
 chmod 0755 "$OUT/DCP"
 
-for item in app bootstrap config locales plugins public docs integrations scripts; do
+for item in app bootstrap config locales plugins public docs integrations scripts update; do
   [[ ! -e "$ROOT/$item" ]] || cp -R "$ROOT/$item" "$OUT/platform/"
 done
 cp "$ROOT/version.json" "$OUT/platform/version.json"

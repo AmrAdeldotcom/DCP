@@ -24,6 +24,10 @@ jobs:
     steps:
       - name: Check out source
         uses: actions/checkout@v4
+      - name: Test signed-manifest and delta-package builders
+        run: python3 platform/tests/update-package-build.py
+      - name: Test detached manifest signing and tamper detection
+        run: bash platform/tests/sign-update-manifest.sh
       - name: Install build dependencies
         run: |
           sudo apt-get update
@@ -76,6 +80,8 @@ jobs:
           test -x "$ROOT/Run-DCP.sh"
           test -f "$ROOT/platform/app/Core/Database.php"
           test -f "$ROOT/platform/public/router.php"
+          test -s "$ROOT/platform/update/release-public.pem"
+          test -s "$ROOT/platform/update/manifest.schema.json"
           if ldd "$ROOT/DCP" | grep -q 'not found'; then ldd "$ROOT/DCP"; exit 1; fi
           php "$ROOT/platform/scripts/verify-runtime.php"
       - name: Smoke-test packaged DCP HTTP API on Kali

@@ -74,6 +74,9 @@ jobs:
       - name: Test runtime bootstrap selection and integrity
         run: bash platform/tests/runtime-macos-installer.sh
 
+      - name: Test detached manifest signing and tamper detection
+        run: bash platform/tests/sign-update-manifest.sh
+
       - name: Download matching managed PHP runtime
         uses: actions/download-artifact@v4
         with:
@@ -182,6 +185,8 @@ jobs:
           test "$ACTUAL" = "$EXPECTED"
           PHPRC="$PHP_ROOT/php.ini" PHP_INI_SCAN_DIR="$PHP_ROOT/conf.d" "$PHP_ROOT/bin/php" "$STAGE/platform/scripts/verify-runtime.php"
           touch "$STAGE/DCP-UserData/macOS/data/.gitkeep" "$STAGE/DCP-UserData/macOS/storage/.gitkeep"
+          test -s "$STAGE/platform/update/release-public.pem"
+          test -s "$STAGE/platform/update/manifest.schema.json"
           STAGE_VERSION="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1], encoding="utf-8"))["version"])' "$STAGE/platform/version.json")"
           BUNDLE_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$STAGE/DCP.app/Contents/Info.plist")"
           PACKAGE_REVISION="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1], encoding="utf-8"))["packageRevision"])' "$STAGE/platform/version.json")"

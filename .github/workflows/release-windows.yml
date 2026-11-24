@@ -36,6 +36,8 @@ jobs:
           if (!(Test-Path 'platform/dist/windows/DCP.exe')) { throw 'DCP.exe missing' }
           if (!(Test-Path 'platform/dist/windows/platform/dcp-env/runtime/php/windows-x64/php.exe')) { throw 'Private PHP runtime missing' }
           if (!(Test-Path 'platform/dist/windows/platform/public/router.php')) { throw 'DCP platform payload missing' }
+          if (!(Test-Path 'platform/dist/windows/platform/update/release-public.pem')) { throw 'Pinned update public key missing from package' }
+          if (!(Test-Path 'platform/dist/windows/platform/update/manifest.schema.json')) { throw 'Shared update manifest schema missing from package' }
           if (!(Test-Path 'platform/dist/windows/platform/scripts/install-runtime-windows.ps1')) { throw 'Windows prerequisite installer missing from package' }
           if (!(Test-Path 'platform/dist/windows/platform/scripts/update-windows.ps1')) { throw 'Windows self-updater missing from package' }
           if (!(Test-Path 'platform/dist/windows/platform/scripts/verify-runtime.php')) { throw 'PHP runtime verifier missing from package' }

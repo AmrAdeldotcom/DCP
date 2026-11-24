@@ -58,6 +58,8 @@ jobs:
             "DCP.exe",
             "platform/dcp-env/runtime/php/windows-x64/php.exe",
             "platform/public/router.php",
+            "platform/update/release-public.pem",
+            "platform/update/manifest.schema.json",
             "platform/version.json",
             "platform/scripts/install-runtime-windows.ps1",
             "platform/scripts/update-windows.ps1",
