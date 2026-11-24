@@ -92,6 +92,17 @@ final class DcpUpdateManifest
 
         $expectedFull = self::expectedFullAsset($platform, $architecture);
         self::validateAsset($manifest['full'] ?? null, $tag, $expectedFull);
+        $fullDeleted = $manifest['full']['deleted'] ?? null;
+        if (!is_array($fullDeleted) || !array_is_list($fullDeleted) || count($fullDeleted) > 5000) {
+            throw new RuntimeException('DCP full-package deletion list is invalid.');
+        }
+        $fullSeen = [];
+        foreach ($fullDeleted as $path) {
+            if (!is_string($path)) throw new RuntimeException('DCP full-package deletion entry must be a path string.');
+            self::validateUpdatePath($path);
+            if (isset($fullSeen[$path])) throw new RuntimeException('DCP full-package deletion list contains duplicate paths.');
+            $fullSeen[$path] = true;
+        }
 
         if (isset($manifest['delta']) && $manifest['delta'] !== null) {
             $delta = $manifest['delta'];

@@ -22,12 +22,24 @@ $stage = $root . '/delta-stage';
 mkdir($install . '/platform/app', 0700, true);
 mkdir($user . '/data', 0700, true);
 mkdir($user . '/storage/keys', 0700, true);
+mkdir($user . '/storage/logs', 0700, true);
+mkdir($user . '/settings', 0700, true);
+mkdir($user . '/workspaces/demo', 0700, true);
+mkdir($user . '/models', 0700, true);
 mkdir($stage . '/platform/app', 0700, true);
 try {
     file_put_contents($install . '/platform/app/old.php', 'old-version');
     file_put_contents($install . '/platform/app/remove.php', 'obsolete');
     file_put_contents($install . '/DCP-UserData/Linux/data/dcp.sqlite', 'sqlite-must-survive');
     file_put_contents($install . '/DCP-UserData/Linux/storage/keys/master.key', 'master-key-must-survive');
+    file_put_contents($user . '/storage/logs/updater.log', 'keep-log');
+    file_put_contents($user . '/settings/settings.json', '{"keep":true}');
+    file_put_contents($user . '/workspaces/demo/project.txt', 'keep-workspace');
+    file_put_contents($user . '/models/model.gguf', 'keep-model');
+    $protectedHashes = [];
+    foreach ([$user . '/data/dcp.sqlite', $user . '/storage/keys/master.key', $user . '/storage/logs/updater.log', $user . '/settings/settings.json', $user . '/workspaces/demo/project.txt', $user . '/models/model.gguf'] as $protectedPath) {
+        $protectedHashes[$protectedPath] = hash_file('sha256', $protectedPath);
+    }
     file_put_contents($stage . '/platform/app/new.php', '<?php echo "new";');
     chmod($stage . '/platform/app/new.php', 0755);
     $manifestFiles = [[
@@ -43,6 +55,9 @@ try {
     linux_update_ok(!file_exists($install . '/platform/app/old.php') && !file_exists($install . '/platform/app/remove.php'), 'delta applies signed deletions');
     linux_update_ok(file_get_contents($user . '/data/dcp.sqlite') === 'sqlite-must-survive', 'SQLite user data remains byte-identical');
     linux_update_ok(file_get_contents($user . '/storage/keys/master.key') === 'master-key-must-survive', 'master.key remains byte-identical');
+    foreach ($protectedHashes as $protectedPath => $expectedHash) {
+        linux_update_ok(hash_file('sha256', $protectedPath) === $expectedHash, 'user data preserved: ' . basename($protectedPath));
+    }
     $rollback = $updater->rollbackLatest();
     linux_update_ok(($rollback['ok'] ?? false) && file_get_contents($install . '/platform/app/old.php') === 'old-version', 'latest transaction can be rolled back');
     linux_update_ok(file_get_contents($install . '/platform/app/remove.php') === 'obsolete' && !file_exists($install . '/platform/app/new.php'), 'rollback restores deleted files and removes newly added files');
@@ -77,16 +92,58 @@ try {
     mkdir($install . '/platform/data', 0700, true);
     file_put_contents($install . '/platform/storage/keys/legacy-master.key', 'legacy-key-must-survive');
     file_put_contents($install . '/platform/data/legacy.sqlite', 'legacy-db-must-survive');
+    file_put_contents($install . '/operator-notes.txt', 'user-created install-root file');
     $fullStage = $root . '/full-stage';
     mkdir($fullStage . '/platform/app', 0700, true);
     mkdir($fullStage . '/DCP-UserData/Linux/data', 0700, true);
     file_put_contents($fullStage . '/platform/app/full.php', 'full-package-version');
     file_put_contents($fullStage . '/DCP-UserData/Linux/data/dcp.sqlite', 'attacker-data-must-not-copy');
-    $fullResult = $updater->applyFullPackage($fullStage);
+    $fullResult = $updater->applyFullPackage($fullStage, ['platform/app/old.php', 'platform/app/remove.php']);
     linux_update_ok(($fullResult['strategy'] ?? '') === 'full' && file_get_contents($install . '/platform/app/full.php') === 'full-package-version', 'full package fallback replaces the application file set');
     linux_update_ok(file_get_contents($user . '/data/dcp.sqlite') === 'sqlite-must-survive', 'full package fallback never replaces DCP-UserData');
-    linux_update_ok(!file_exists($install . '/platform/app/old.php') && !file_exists($install . '/platform/app/remove.php'), 'full package fallback removes obsolete application files');
+    linux_update_ok(!file_exists($install . '/platform/app/old.php') && !file_exists($install . '/platform/app/remove.php'), 'full package fallback applies only the signed obsolete-file deletion list');
+    linux_update_ok(file_get_contents($install . '/operator-notes.txt') === 'user-created install-root file', 'full package fallback preserves unrecognized installation-root files');
     linux_update_ok(file_get_contents($install . '/platform/storage/keys/legacy-master.key') === 'legacy-key-must-survive' && file_get_contents($install . '/platform/data/legacy.sqlite') === 'legacy-db-must-survive', 'full package fallback preserves legacy platform storage and data directories');
+    $healthy = $updater->markLatestHealthy();
+    linux_update_ok(($healthy['ok'] ?? false) === true, 'committed update is marked healthy only after explicit health verification');
+
+    // Simulate power loss after a replacement has been renamed but before the
+    // transaction can mark itself committed. Recovery must restore the journal.
+    $crashId = gmdate('Ymd\THis\Z') . '-crash-test';
+    $crashBackup = $user . '/storage/updates/backups/' . $crashId;
+    mkdir($crashBackup . '/files/platform/app', 0700, true);
+    file_put_contents($install . '/platform/app/crash.php', 'partially-applied');
+    file_put_contents($crashBackup . '/files/platform/app/crash.php', 'before-crash');
+    file_put_contents($install . '/platform/app/crash-new.php', 'partially-created');
+    file_put_contents($install . '/platform/app/.dcp-update-crash-temp', 'partial-temp');
+    $crashJournal = [
+        'schema' => 1, 'id' => $crashId, 'strategy' => 'delta', 'status' => 'applying',
+        'operations' => [
+            ['path' => 'platform/app/crash.php', 'existed' => true, 'mode' => 0644, 'applied' => true, 'temporary' => 'platform/app/.dcp-update-crash-temp'],
+            ['path' => 'platform/app/crash-new.php', 'existed' => false, 'mode' => 0644, 'applied' => true],
+        ],
+    ];
+    file_put_contents($crashBackup . '/journal.json', json_encode($crashJournal, JSON_THROW_ON_ERROR));
+    linux_update_ok($updater->hasIncompleteTransactions(), 'interrupted update journal is detected');
+    $recovery = $updater->recoverInterruptedTransactions();
+    linux_update_ok(($recovery['recovered'] ?? 0) === 1, 'interrupted transaction is automatically recovered');
+    linux_update_ok(file_get_contents($install . '/platform/app/crash.php') === 'before-crash' && !file_exists($install . '/platform/app/crash-new.php'), 'crash recovery restores originals and removes incomplete new files');
+    linux_update_ok(!file_exists($install . '/platform/app/.dcp-update-crash-temp'), 'crash recovery removes incomplete same-directory temporary files');
+
+    // Simulate a process crash after file application committed but before the
+    // post-update health gate could mark the snapshot healthy.
+    $pendingId = gmdate('Ymd\THis\Z') . '-health-pending';
+    $pendingBackup = $user . '/storage/updates/backups/' . $pendingId;
+    mkdir($pendingBackup . '/files/platform/app', 0700, true);
+    file_put_contents($install . '/platform/app/pending-health.php', 'new-unhealthy');
+    file_put_contents($pendingBackup . '/files/platform/app/pending-health.php', 'old-healthy');
+    file_put_contents($pendingBackup . '/journal.json', json_encode([
+        'schema' => 1, 'id' => $pendingId, 'strategy' => 'delta', 'status' => 'committed', 'health_status' => 'pending',
+        'operations' => [['path' => 'platform/app/pending-health.php', 'existed' => true, 'mode' => 0644, 'applied' => true]],
+    ], JSON_THROW_ON_ERROR));
+    linux_update_ok($updater->hasIncompleteTransactions(), 'committed update awaiting health confirmation is treated as incomplete');
+    $healthRecovery = $updater->recoverInterruptedTransactions();
+    linux_update_ok(($healthRecovery['recovered'] ?? 0) === 1 && file_get_contents($install . '/platform/app/pending-health.php') === 'old-healthy', 'startup recovery rolls back a committed update whose health check was interrupted');
 
     $symlinkInstall = $root . '/symlink-install';
     $symlinkUser = $symlinkInstall . '/DCP-UserData/Linux';

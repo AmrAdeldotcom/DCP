@@ -7,6 +7,12 @@ require_once __DIR__ . '/lib/LinuxUpdateTransaction.php';
 const DCP_RELEASE_REPOSITORY = 'AmrAdeldotcom/DCP';
 const DCP_LINUX_MANIFEST = 'DCP-Linux-update.json';
 const DCP_LINUX_SIGNATURE = 'DCP-Linux-update.json.sig';
+const DCP_RELEASE_OPTIONAL = [
+    'DCP-Windows-x64-delta.zip',
+    'DCP-Linux-x64-delta.tar.gz',
+    'DCP-macOS-Intel-delta.zip',
+    'DCP-macOS-AppleSilicon-delta.zip',
+];
 const DCP_RELEASE_REQUIRED = [
     'DCP-Windows-x64.zip',
     'DCP-macOS-Intel.zip',
@@ -47,6 +53,17 @@ final class DcpLinuxUpdater
 
     public function check(): array
     {
+        $lock = $this->acquireUpdateLock();
+        try {
+            $this->recoverInterruptedTransactions();
+            return $this->checkUnlocked();
+        } finally {
+            $this->releaseUpdateLock($lock);
+        }
+    }
+
+    private function checkUnlocked(): array
+    {
         $versionData = $this->installedVersion();
         $release = $this->latestCompleteRelease();
         if ($release === null) {
@@ -71,6 +88,10 @@ final class DcpLinuxUpdater
         $manifest = $inspection['manifest'];
         if (($manifest['release_tag'] ?? '') !== $tag) {
             throw new RuntimeException('Signed Linux manifest does not belong to the selected GitHub release.');
+        }
+        $deltaAssetAvailable = $this->assertManifestAssetsPresent($manifest, $assets);
+        if ($inspection['strategy'] === 'delta' && !$deltaAssetAvailable) {
+            $inspection['strategy'] = 'full';
         }
         $latestVersion = (string)$manifest['version'];
         $latestRevision = (int)$manifest['package_revision'];
@@ -102,56 +123,137 @@ final class DcpLinuxUpdater
 
     public function apply(): array
     {
-        $check = $this->check();
-        if (empty($check['available'])) {
-            return $check;
-        }
-        $manifest = $check['manifest'];
-        $strategy = (string)$check['strategy'];
-        $asset = $strategy === 'delta' ? $manifest['delta']['asset'] : $manifest['full'];
-        $work = sys_get_temp_dir() . '/dcp-linux-update-' . bin2hex(random_bytes(8));
-        $archive = $work . '/' . basename((string)$asset['name']);
-        $stage = $work . '/payload';
-        if (!mkdir($work, 0700, true)) {
-            throw new RuntimeException('Could not create a private DCP update staging directory.');
-        }
-        $criticalSnapshot = [];
+        $lock = $this->acquireUpdateLock();
         try {
-            $criticalSnapshot = $this->snapshotCriticalData($work);
-            $this->downloadToFile((string)$asset['url'], $archive, (int)$asset['size']);
-            DcpUpdateManifest::verifyAssetFile($archive, $asset);
-            $this->extractArchive($archive, $stage, $strategy === 'full');
-            $transaction = new DcpLinuxUpdateTransaction($this->root, $this->userData);
-            if ($strategy === 'delta') {
-                $result = $transaction->applyDelta(
-                    $stage,
-                    $manifest['delta']['files'],
-                    $manifest['delta']['deleted']
-                );
-            } else {
-                $result = $transaction->applyFullPackage($stage);
+            $this->assertNoRunningDcpProcesses();
+            $this->recoverInterruptedTransactions();
+            $check = $this->checkUnlocked();
+            if (empty($check['available'])) {
+                return $check;
             }
+            $manifest = $check['manifest'];
+            $strategy = (string)$check['strategy'];
+            $asset = $strategy === 'delta' ? $manifest['delta']['asset'] : $manifest['full'];
+            $work = sys_get_temp_dir() . '/dcp-linux-update-' . bin2hex(random_bytes(8));
+            $archive = $work . '/' . basename((string)$asset['name']);
+            $stage = $work . '/payload';
+            if (!mkdir($work, 0700, true)) {
+                throw new RuntimeException('Could not create a private DCP update staging directory.');
+            }
+            $criticalSnapshot = [];
             try {
-                $this->healthCheck($work);
-                $result['healthCheck'] = 'passed';
-            } catch (Throwable $healthError) {
-                $rollbackFailure = null;
-                try { $transaction->rollbackLatest(); } catch (Throwable $error) { $rollbackFailure = $error; }
-                try { $this->restoreCriticalData($criticalSnapshot); } catch (Throwable $error) {
-                    throw new RuntimeException('Post-update health check failed and critical user-data restoration also failed: ' . $error->getMessage(), 0, $healthError);
+                $criticalSnapshot = $this->snapshotCriticalData($work);
+                $this->downloadToFile((string)$asset['url'], $archive, (int)$asset['size']);
+                DcpUpdateManifest::verifyAssetFile($archive, $asset);
+                $this->extractArchive($archive, $stage, $strategy === 'full');
+                $transaction = new DcpLinuxUpdateTransaction($this->root, $this->userData);
+                if ($strategy === 'delta') {
+                    $result = $transaction->applyDelta(
+                        $stage,
+                        $manifest['delta']['files'],
+                        $manifest['delta']['deleted']
+                    );
+                } else {
+                    $result = $transaction->applyFullPackage($stage, $manifest['full']['deleted']);
                 }
-                if ($rollbackFailure !== null) {
-                    throw new RuntimeException('Post-update health check failed; critical user data was restored, but application rollback failed: ' . $rollbackFailure->getMessage(), 0, $healthError);
+                try {
+                    $this->healthCheck($work);
+                    $appliedVersion = $this->installedVersion();
+                    if ($appliedVersion['version'] !== (string)$manifest['version']
+                        || $appliedVersion['packageRevision'] !== (int)$manifest['package_revision']) {
+                        throw new RuntimeException('Installed version metadata does not match the signed update manifest.');
+                    }
+                    $transaction->markLatestHealthy();
+                    $result['healthCheck'] = 'passed';
+                } catch (Throwable $healthError) {
+                    $rollbackFailure = null;
+                    try { $transaction->rollbackLatest(); } catch (Throwable $error) { $rollbackFailure = $error; }
+                    try { $this->restoreCriticalData($criticalSnapshot); } catch (Throwable $error) {
+                        throw new RuntimeException('Post-update health check failed and critical user-data restoration also failed: ' . $error->getMessage(), 0, $healthError);
+                    }
+                    if ($rollbackFailure !== null) {
+                        throw new RuntimeException('Post-update health check failed; critical user data was restored, but application rollback failed: ' . $rollbackFailure->getMessage(), 0, $healthError);
+                    }
+                    throw new RuntimeException('Post-update health check failed; previous application files and critical SQLite/key files were restored: ' . $healthError->getMessage(), 0, $healthError);
                 }
-                throw new RuntimeException('Post-update health check failed; previous application files and critical SQLite/key files were restored: ' . $healthError->getMessage(), 0, $healthError);
+                $result['version'] = $manifest['version'];
+                $result['packageRevision'] = $manifest['package_revision'];
+                $result['releaseTag'] = $manifest['release_tag'];
+                $result['message'] = 'Verified DCP package update applied. Launch DCP again to start the updated version.';
+                return $result;
+            } finally {
+                $this->removeTree($work);
             }
-            $result['version'] = $manifest['version'];
-            $result['packageRevision'] = $manifest['package_revision'];
-            $result['releaseTag'] = $manifest['release_tag'];
-            $result['message'] = 'Verified DCP package update applied. Launch DCP again to start the updated version.';
-            return $result;
         } finally {
-            $this->removeTree($work);
+            $this->releaseUpdateLock($lock);
+        }
+    }
+
+    private function acquireUpdateLock()
+    {
+        $updates = $this->userData . '/storage/updates';
+        $this->ensureSafeUserDataDirectory($updates);
+        $path = $updates . '/updater.lock';
+        if (is_link($path) || (file_exists($path) && !is_file($path))) {
+            throw new RuntimeException('DCP updater lock path is not a regular file.');
+        }
+        $handle = fopen($path, 'c+b');
+        if ($handle === false) throw new RuntimeException('Could not open the DCP updater lock.');
+        chmod($path, 0600);
+        if (!flock($handle, LOCK_EX | LOCK_NB)) {
+            fclose($handle);
+            throw new RuntimeException('Another DCP update or recovery operation is already running.');
+        }
+        return $handle;
+    }
+
+    private function releaseUpdateLock($handle): void
+    {
+        if (is_resource($handle)) {
+            flock($handle, LOCK_UN);
+            fclose($handle);
+        }
+    }
+
+    private function recoverInterruptedTransactions(): void
+    {
+        $transaction = new DcpLinuxUpdateTransaction($this->root, $this->userData);
+        if (!$transaction->hasIncompleteTransactions()) return;
+        $this->assertNoRunningDcpProcesses();
+        $result = $transaction->recoverInterruptedTransactions();
+        if (($result['recovered'] ?? 0) < 1) {
+            throw new RuntimeException('An interrupted DCP update was detected but could not be recovered.');
+        }
+    }
+
+    private function assertNoRunningDcpProcesses(): void
+    {
+        $binary = realpath($this->root . '/DCP');
+        $router = realpath($this->root . '/platform/public/router.php') ?: $this->root . '/platform/public/router.php';
+        $pipes = [];
+        $process = proc_open(['ps', '-axo', 'pid=,args='], [0 => ['file', '/dev/null', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
+        if (!is_resource($process)) throw new RuntimeException('Could not inspect running processes; refusing to update while process state is unknown.');
+        $stdout = stream_get_contents($pipes[1]); fclose($pipes[1]);
+        $stderr = stream_get_contents($pipes[2]); fclose($pipes[2]);
+        $code = proc_close($process);
+        if ($code !== 0 || !is_string($stdout)) {
+            throw new RuntimeException('Could not inspect running processes; refusing to update: ' . trim((string)$stderr));
+        }
+        $matchesPath = static function (string $arguments, string $path): bool {
+            return preg_match('/(?:^|\\s)' . preg_quote($path, '/') . '(?:\\s|$)/', $arguments) === 1;
+        };
+        $found = [];
+        foreach (preg_split('/\\R/', $stdout) ?: [] as $line) {
+            if (!preg_match('/^\\s*(\\d+)\\s+(.*)$/', $line, $match)) continue;
+            $pid = (int)$match[1];
+            if ($pid < 1 || $pid === getmypid()) continue;
+            $arguments = $match[2];
+            $isDcpBinary = $binary !== false && $matchesPath($arguments, $binary);
+            $isDcpPhpServer = $matchesPath($arguments, $router);
+            if ($isDcpBinary || $isDcpPhpServer) $found[] = $pid;
+        }
+        if ($found !== []) {
+            throw new RuntimeException('DCP must be closed before updating. Running DCP process IDs: ' . implode(', ', $found) . '. No process was stopped.');
         }
     }
 
@@ -196,7 +298,7 @@ final class DcpLinuxUpdater
         foreach ($release['assets'] as $asset) {
             if (!is_array($asset) || !is_string($asset['name'] ?? null)) continue;
             $name = $asset['name'];
-            if (!in_array($name, DCP_RELEASE_REQUIRED, true)) continue;
+            if (!in_array($name, array_merge(DCP_RELEASE_REQUIRED, DCP_RELEASE_OPTIONAL), true)) continue;
             $url = (string)($asset['browser_download_url'] ?? '');
             $expected = 'https://github.com/' . DCP_RELEASE_REPOSITORY . '/releases/download/' . $tag . '/' . rawurlencode($name);
             if (!hash_equals($expected, $url)) {
@@ -210,6 +312,26 @@ final class DcpLinuxUpdater
         return $assets;
     }
 
+
+    private function assertManifestAssetsPresent(array $manifest, array $assets): bool
+    {
+        $full = $manifest['full'] ?? null;
+        if (!is_array($full)) throw new RuntimeException('A signed update manifest contains no full-package fallback.');
+        $fullName = (string)($full['name'] ?? '');
+        if ($fullName === '' || !isset($assets[$fullName]) || !hash_equals((string)$assets[$fullName], (string)($full['url'] ?? ''))) {
+            throw new RuntimeException('A signed update manifest references a full package absent from the selected GitHub release.');
+        }
+        $delta = $manifest['delta'] ?? null;
+        if (!is_array($delta)) return false;
+        $asset = $delta['asset'] ?? null;
+        if (!is_array($asset)) throw new RuntimeException('A signed delta manifest contains incomplete asset metadata.');
+        $name = (string)($asset['name'] ?? '');
+        if ($name === '' || !isset($assets[$name])) return false;
+        if (!hash_equals((string)$assets[$name], (string)($asset['url'] ?? ''))) {
+            throw new RuntimeException('A signed delta manifest asset URL does not match the selected GitHub release.');
+        }
+        return true;
+    }
 
     private function verifySynchronizedManifests(array $assets, string $tag, array $linuxManifest): void
     {
@@ -232,6 +354,7 @@ final class DcpLinuxUpdater
                 (int)$linuxManifest['package_revision']
             );
             $other = $inspection['manifest'];
+            $this->assertManifestAssetsPresent($other, $assets);
             foreach (['version', 'release_tag', 'package_revision', 'commit'] as $field) {
                 if (($other[$field] ?? null) !== ($linuxManifest[$field] ?? null)) {
                     throw new RuntimeException('Signed release manifests are not synchronized across platforms: ' . $name . ' (' . $field . ' mismatch).');
@@ -431,6 +554,13 @@ final class DcpLinuxUpdater
 
     private function healthCheck(string $work): void
     {
+        $nativeApp = $this->root . '/DCP';
+        $nativeHandle = is_file($nativeApp) ? fopen($nativeApp, 'rb') : false;
+        $nativeMagic = $nativeHandle === false ? '' : fread($nativeHandle, 4);
+        if (is_resource($nativeHandle)) fclose($nativeHandle);
+        if (!is_executable($nativeApp) || $nativeMagic !== "\x7fELF") {
+            throw new RuntimeException('Updated native DCP Linux executable is missing, non-executable or not an ELF binary.');
+        }
         $verify = proc_open([PHP_BINARY, $this->root . '/platform/scripts/verify-runtime.php'], [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes, $this->root);
         if (!is_resource($verify)) throw new RuntimeException('Could not run the post-update PHP runtime verification.');
         fclose($pipes[0]); $stdout = stream_get_contents($pipes[1]); fclose($pipes[1]); $stderr = stream_get_contents($pipes[2]); fclose($pipes[2]);
@@ -444,8 +574,10 @@ final class DcpLinuxUpdater
         $log = $work . '/health-check.log';
         $environment = getenv();
         if (!is_array($environment)) $environment = [];
+        $healthUserData = $work . '/health-user-data';
+        if (!mkdir($healthUserData, 0700, true)) throw new RuntimeException('Could not create isolated health-check user data.');
         $environment['DCP_MODE'] = 'desktop';
-        $environment['DCP_USER_DATA_DIR'] = $this->userData;
+        $environment['DCP_USER_DATA_DIR'] = $healthUserData;
         $server = proc_open(
             [PHP_BINARY, '-S', '127.0.0.1:' . $port, '-t', $this->root . '/platform/public', $this->root . '/platform/public/router.php'],
             [0 => ['file', '/dev/null', 'r'], 1 => ['file', $log, 'a'], 2 => ['file', $log, 'a']],

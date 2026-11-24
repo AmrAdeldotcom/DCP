@@ -65,6 +65,7 @@ try {
             'url' => 'https://github.com/AmrAdeldotcom/DCP/releases/download/' . $tag . '/DCP-Linux-x64.tar.gz',
             'size' => strlen($fullBytes),
             'sha256' => hash('sha256', $fullBytes),
+            'deleted' => ['platform/docs/old-note.md'],
         ],
         'delta' => [
             'base' => ['version' => '1.0.0-alpha.9', 'release_tag' => 'v1.0.0-alpha.9', 'package_revision' => 0],
@@ -119,6 +120,14 @@ try {
             'unsafe update path is rejected: ' . $unsafePath
         );
     }
+
+    $unsafeFullDeletion = $manifest;
+    $unsafeFullDeletion['full']['deleted'] = ['DCP-UserData/Linux/data/dcp.sqlite'];
+    [$fullDeleteBytes, $fullDeleteSignature] = $sign($unsafeFullDeletion);
+    manifest_rejected(
+        static fn() => DcpUpdateManifest::inspect($fullDeleteBytes, $fullDeleteSignature, $publicPath, 'linux', 'x64', '1.0.0-alpha.9', 0, hash_file('sha256', $publicPath)),
+        'full-package fallback cannot delete user data'
+    );
 
     $wrongOrigin = $manifest;
     $wrongOrigin['full']['url'] = 'https://example.invalid/DCP-Linux-x64.tar.gz';

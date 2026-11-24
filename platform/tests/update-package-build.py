@@ -63,6 +63,7 @@ def main() -> int:
         assert parsed['schema'] == 3 and parsed['platform'] == 'linux' and parsed['architecture'] == 'x64'
         assert parsed['delta']['base']['package_revision'] == 0
         assert parsed['full']['sha256'] == hashlib.sha256(full.read_bytes()).hexdigest()
+        assert parsed['full']['deleted'] == ['platform/app/old.php']
         assert parsed['delta']['asset']['name'] == 'DCP-Linux-x64-delta.tar.gz'
         print('PASS: schema 3 manifest binds platform, exact base revision, full fallback and asset hashes')
     print('ALL UPDATE PACKAGE BUILD TESTS PASSED')

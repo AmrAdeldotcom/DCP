@@ -105,6 +105,10 @@ if [[ "${DCP_DISABLE_UPDATE_CHECK:-0}" != "1" ]]; then
       fi
     fi
   else
+    if grep -Eqi 'interrupted DCP update|DCP must be closed before updating|update recovery' "$UPDATE_LOG"; then
+      echo "DCP startup is blocked because an interrupted update needs recovery. Close every DCP window and run: php platform/scripts/update-linux.php --check" >&2
+      exit 1
+    fi
     echo "DCP update check failed; continuing offline with the installed package." >>"$UPDATE_LOG"
   fi
 fi

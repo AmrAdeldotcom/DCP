@@ -31,7 +31,25 @@ download_github_api() {
   if command -v curl >/dev/null 2>&1; then curl -fsSL -H "Accept: application/vnd.github+json" "$API" -o "$output"
   else wget -q --tries=3 --header="Accept: application/vnd.github+json" "$API" -O "$output"; fi
 }
-command -v python3 >/dev/null 2>&1 || { echo "Python 3 is required to read GitHub release metadata." >&2; exit 1; }
+if ! command -v python3 >/dev/null 2>&1; then
+  case "$(uname -s)" in
+    Linux)
+      if command -v apt-get >/dev/null 2>&1; then
+        if [[ $EUID -eq 0 ]]; then SUDO=(); else command -v sudo >/dev/null 2>&1 || { echo "sudo is required to install Python 3." >&2; exit 1; }; SUDO=(sudo); fi
+        "${SUDO[@]}" apt-get update
+        "${SUDO[@]}" apt-get install -y python3
+      elif command -v dnf >/dev/null 2>&1; then
+        if [[ $EUID -eq 0 ]]; then SUDO=(); else command -v sudo >/dev/null 2>&1 || { echo "sudo is required to install Python 3." >&2; exit 1; }; SUDO=(sudo); fi
+        "${SUDO[@]}" dnf install -y python3
+      else
+        echo "Python 3 is required to read GitHub release metadata and extract verified updates." >&2; exit 1
+      fi
+      ;;
+    *)
+      echo "Python 3 is required to read GitHub release metadata." >&2; exit 1
+      ;;
+  esac
+fi
 
 case "$(uname -s)" in
   Darwin)
@@ -171,7 +189,7 @@ PY
 
     if [[ $EUID -eq 0 ]]; then SUDO=(); else command -v sudo >/dev/null 2>&1 || { echo "sudo is required to install Ubuntu runtime libraries." >&2; exit 1; }; SUDO=(sudo); fi
     "${SUDO[@]}" apt-get update
-    "${SUDO[@]}" apt-get install -y curl libgtk-3-0t64 libwebkit2gtk-4.1-0 php-cli php-curl php-intl php-mbstring php-sqlite3 php-xml php-gd php-zip
+    "${SUDO[@]}" apt-get install -y python3 curl libgtk-3-0t64 libwebkit2gtk-4.1-0 php-cli php-curl php-intl php-mbstring php-sqlite3 php-xml php-gd php-zip
     chmod +x "$INSTALL_ROOT/DCP" "$INSTALL_ROOT/Run-DCP.sh" "$INSTALL_ROOT/Install-DCP-Launcher.sh"
     "$INSTALL_ROOT/platform/scripts/install-runtime-linux.sh"
     php "$INSTALL_ROOT/platform/scripts/verify-runtime.php"

@@ -23,9 +23,25 @@ mkdir($root, 0700, true);
 mkdir($work, 0700, true);
 try {
     symlink(realpath(dirname(__DIR__)), $root . '/platform');
+    file_put_contents($root . '/DCP', "\x7fELF" . str_repeat("\0", 64));
+    chmod($root . '/DCP', 0755);
     mkdir($root . '/DCP-UserData/Linux/data', 0700, true);
     mkdir($root . '/DCP-UserData/Linux/storage', 0700, true);
     $updater = new DcpLinuxUpdater($root);
+    $assetCheck = new ReflectionMethod(DcpLinuxUpdater::class, 'assertManifestAssetsPresent');
+    $assetCheck->setAccessible(true);
+    $fullUrl = 'https://github.com/AmrAdeldotcom/DCP/releases/download/v1.0.0-alpha.10/DCP-Linux-x64.tar.gz';
+    $deltaUrl = 'https://github.com/AmrAdeldotcom/DCP/releases/download/v1.0.0-alpha.10/DCP-Linux-x64-delta.tar.gz';
+    $signedAssets = [
+        'full' => ['name' => 'DCP-Linux-x64.tar.gz', 'url' => $fullUrl],
+        'delta' => ['asset' => ['name' => 'DCP-Linux-x64-delta.tar.gz', 'url' => $deltaUrl]],
+    ];
+    linux_health_ok($assetCheck->invoke($updater, $signedAssets, ['DCP-Linux-x64.tar.gz' => $fullUrl]) === false, 'missing optional delta asset selects the signed full-package fallback');
+    linux_health_ok($assetCheck->invoke($updater, $signedAssets, ['DCP-Linux-x64.tar.gz' => $fullUrl, 'DCP-Linux-x64-delta.tar.gz' => $deltaUrl]) === true, 'exact official delta asset enables the delta strategy');
+    $badDeltaOriginRejected = false;
+    try { $assetCheck->invoke($updater, $signedAssets, ['DCP-Linux-x64.tar.gz' => $fullUrl, 'DCP-Linux-x64-delta.tar.gz' => 'https://example.invalid/delta.tar.gz']); }
+    catch (Throwable) { $badDeltaOriginRejected = true; }
+    linux_health_ok($badDeltaOriginRejected, 'a delta asset with a non-release URL is rejected instead of silently falling back');
     $dbPath = $root . '/DCP-UserData/Linux/data/dcp.sqlite';
     $keyDir = $root . '/DCP-UserData/Linux/storage/keys';
     mkdir($keyDir, 0700, true);
@@ -45,9 +61,27 @@ try {
     $method = new ReflectionMethod(DcpLinuxUpdater::class, 'healthCheck');
     $method->setAccessible(true);
     $method->invoke($updater, $work);
-    linux_health_ok(is_file($root . '/DCP-UserData/Linux/data/dcp.sqlite'), 'post-update HTTP health check boots the packaged API and initializes the isolated SQLite store');
-    linux_health_ok(is_file($root . '/DCP-UserData/Linux/storage/keys/master.key'), 'post-update HTTP health check initializes the isolated encryption key');
+    linux_health_ok(!file_exists($root . '/DCP-UserData/Linux/data/dcp.sqlite') && !file_exists($root . '/DCP-UserData/Linux/storage/keys/master.key'), 'post-update health check does not create or mutate the real user database or master key');
+    linux_health_ok(is_file($work . '/health-user-data/data/dcp.sqlite'), 'post-update HTTP health check boots the API using disposable isolated SQLite data');
+    linux_health_ok(is_file($work . '/health-user-data/storage/keys/master.key'), 'post-update HTTP health check creates its encryption key only inside disposable data');
     linux_health_ok(is_file($work . '/health-check.log'), 'post-update HTTP health check records a local diagnostic log');
+
+    $router = realpath($root . '/platform/public/router.php');
+    $public = dirname((string)$router);
+    $server = proc_open([PHP_BINARY, '-S', '127.0.0.1:0', '-t', $public, $router], [0 => ['file', '/dev/null', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $serverPipes, $root);
+    if (!is_resource($server)) throw new RuntimeException('Could not start process-guard fixture.');
+    try {
+        $guard = new ReflectionMethod(DcpLinuxUpdater::class, 'assertNoRunningDcpProcesses');
+        $guard->setAccessible(true);
+        $blocked = false;
+        try { $guard->invoke($updater); } catch (ReflectionException|Throwable) { $blocked = true; }
+        $state = proc_get_status($server);
+        linux_health_ok($blocked && !empty($state['running']), 'updater refuses to modify files while the packaged DCP PHP server is running and does not kill it');
+    } finally {
+        proc_terminate($server);
+        foreach ($serverPipes as $pipe) if (is_resource($pipe)) fclose($pipe);
+        proc_close($server);
+    }
     echo "ALL LINUX UPDATER HEALTH TESTS PASSED" . PHP_EOL;
 } finally {
     linux_health_remove($root);

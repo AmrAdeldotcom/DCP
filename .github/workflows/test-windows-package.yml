@@ -10,6 +10,7 @@ on:
       - "platform/scripts/install-runtime-windows.ps1"
       - "platform/scripts/update-windows.ps1"
       - "platform/tests/update-windows.ps1"
+      - "platform/tests/windows-update-client/**"
       - "platform/scripts/verify-runtime.php"
       - "platform/dcp-env/**"
       - "platform/wrappers/windows/**"
@@ -24,6 +25,7 @@ on:
       - "platform/scripts/install-runtime-windows.ps1"
       - "platform/scripts/update-windows.ps1"
       - "platform/tests/update-windows.ps1"
+      - "platform/tests/windows-update-client/**"
       - "platform/scripts/verify-runtime.php"
       - "platform/dcp-env/**"
       - "platform/wrappers/windows/**"
@@ -45,6 +47,13 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "10.0.x"
+
+      - name: Test signed Windows updater archive safety and version selection
+        run: dotnet run --project platform/tests/windows-update-client/DCP.WindowsUpdater.Tests.csproj --configuration Release
+
+      - name: Test Windows transactional apply, deletion, rollback and user-data preservation
+        shell: pwsh
+        run: pwsh -NoProfile -File platform/tests/update-windows.ps1
 
       - name: Build clean portable Windows package
         shell: pwsh

@@ -39,6 +39,10 @@ for required in "${required_files[@]}"; do
   }
 done
 
+command -v python3 >/dev/null 2>&1 || {
+  echo "Python 3 is required for verified Linux update archive extraction." >&2
+  exit 1
+}
 [[ -x "$PACKAGE_ROOT/DCP" && -x "$PACKAGE_ROOT/Run-DCP.sh" ]] || {
   echo "Linux launcher files are not executable." >&2
   exit 1

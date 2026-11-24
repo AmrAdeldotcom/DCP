@@ -75,6 +75,7 @@ def main() -> int:
     full_path = Path(args.full_package)
     full_name = FULL_NAMES[key]
     delta = None
+    full_deleted: list[str] = []
     if args.delta_package or args.delta_index or args.base_version or args.base_tag or args.base_revision is not None:
         if not all([args.delta_package, args.delta_index, args.base_version, args.base_tag]) or args.base_revision is None:
             raise ValueError("Delta package, index and exact base version/tag/revision must be supplied together")
@@ -98,6 +99,7 @@ def main() -> int:
             path = str(path); safe_update_path(path)
             if path in seen: raise ValueError(f"Delta path is both replaced and deleted: {path}")
             seen.add(path); deleted.append(path)
+        full_deleted = sorted(deleted)
         delta = {
             "base": {"version": args.base_version, "release_tag": args.base_tag, "package_revision": args.base_revision},
             "asset": asset(Path(args.delta_package), tag, DELTA_NAMES[key]),
@@ -105,6 +107,8 @@ def main() -> int:
             "deleted": sorted(deleted),
         }
 
+    full_asset = asset(full_path, tag, full_name)
+    full_asset["deleted"] = full_deleted
     manifest = {
         "schema": 3,
         "version": version,
@@ -114,7 +118,7 @@ def main() -> int:
         "architecture": args.architecture,
         "commit": args.commit.lower(),
         "key_id": KEY_ID,
-        "full": asset(full_path, tag, full_name),
+        "full": full_asset,
         "delta": delta,
     }
     output = Path(args.output)
