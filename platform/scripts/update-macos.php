@@ -408,9 +408,9 @@ final class DcpMacOSUpdater
         return in_array($machine, ['arm64', 'aarch64'], true) ? 'arm64' : 'x64';
     }
 
-    private static function checkUpdate(string $root, string $currentVersion, int $currentRevision): array
+    private static function checkUpdate(string $root, string $currentVersion, int $currentRevision, ?array $verifiedRelease = null): array
     {
-        $release = self::verifyRelease($root);
+        $release = $verifiedRelease ?? self::verifyRelease($root);
         if ($release === []) return ['available' => false, 'message' => 'No complete synchronized signed DCP release is available.'];
         $manifest = $release['manifest'];
         $latestVersion = (string)$manifest['version'];
@@ -660,7 +660,7 @@ final class DcpMacOSUpdater
         try {
             $release = self::verifyRelease($root);
             if ($release === []) return ['available' => false, 'message' => 'No complete synchronized signed DCP release is available.'];
-            $check = self::checkUpdate($root, $currentVersion, $currentRevision);
+            $check = self::checkUpdate($root, $currentVersion, $currentRevision, $release);
             if (empty($check['available'])) return $check;
             $pendingRoot = self::pendingPackageRoot($root, (string)$release['tag']);
             $cached = self::hasPendingPackage($root, $release, $currentVersion, $currentRevision);

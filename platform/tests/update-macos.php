@@ -127,6 +127,14 @@ try {
     ];
     $pendingMethod = new ReflectionMethod(DcpMacOSUpdater::class, 'hasPendingPackage');
     $pendingMethod->setAccessible(true);
+    $checkMethod = new ReflectionMethod(DcpMacOSUpdater::class, 'checkUpdate');
+    $checkMethod->setAccessible(true);
+    $verifiedCheck = $checkMethod->invoke(null, $pendingInstall, '1.0.0-alpha.9', 0, $pendingRelease);
+    checkMacUpdate(($verifiedCheck['available'] ?? false) === true && ($verifiedCheck['strategy'] ?? '') === 'delta',
+        'macOS download selection reuses one already verified release snapshot without a second feed lookup');
+    $fallbackCheck = $checkMethod->invoke(null, $pendingInstall, '1.0.0-alpha.9', 1, $pendingRelease);
+    checkMacUpdate(($fallbackCheck['available'] ?? false) === true && ($fallbackCheck['strategy'] ?? '') === 'full',
+        'macOS download selection switches to full fallback when the installed Delta base revision differs');
     checkMacUpdate(!$pendingMethod->invoke(null, $pendingInstall, $pendingRelease, '1.0.0-alpha.9', 0),
         'macOS updater does not treat an absent pending package as cached');
     $pendingRoot = $pendingInstall . '/DCP-UserData/macOS/storage/updates/pending/' . hash('sha256', $tag);

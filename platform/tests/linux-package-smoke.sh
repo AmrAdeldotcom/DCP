@@ -47,6 +47,15 @@ command -v python3 >/dev/null 2>&1 || {
   echo "Linux launcher files are not executable." >&2
   exit 1
 }
+bash -n "$PACKAGE_ROOT/Run-DCP.sh" "$PACKAGE_ROOT/Install-DCP-Launcher.sh"
+grep -Fq 'DCP_DISABLE_UPDATE_WATCH:-0' "$PACKAGE_ROOT/Run-DCP.sh" || {
+  echo "Linux launcher does not safely default the optional update watcher under set -u." >&2
+  exit 1
+}
+grep -Fq "=== '--download')" "$PLATFORM/scripts/update-linux.php" || {
+  echo "Packaged Linux updater is missing its signed download/cache mode." >&2
+  exit 1
+}
 if ldd "$PACKAGE_ROOT/DCP" | grep -q 'not found'; then
   echo "Linux DCP binary has unresolved shared-library dependencies." >&2
   ldd "$PACKAGE_ROOT/DCP" >&2
