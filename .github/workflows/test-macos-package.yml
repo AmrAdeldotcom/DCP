@@ -179,6 +179,10 @@ jobs:
           touch "$STAGE/DCP-UserData/macOS/data/.gitkeep" "$STAGE/DCP-UserData/macOS/storage/.gitkeep"
           STAGE_VERSION="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1], encoding="utf-8"))["version"])' "$STAGE/platform/version.json")"
           BUNDLE_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$STAGE/DCP.app/Contents/Info.plist")"
+          PACKAGE_REVISION="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1], encoding="utf-8"))["packageRevision"])' "$STAGE/platform/version.json")"
+          BUNDLE_REVISION="$(/usr/libexec/PlistBuddy -c 'Print :DCPPackageRevision' "$STAGE/DCP.app/Contents/Info.plist")"
+          test "$PACKAGE_REVISION" -ge 1
+          test "$PACKAGE_REVISION" = "$BUNDLE_REVISION"
           test "$STAGE_VERSION" = "$BUNDLE_VERSION"
           (cd "$STAGE" && zip -qry "$OUT" DCP.app platform DCP-UserData)
           test -s "$OUT"

@@ -59,7 +59,7 @@ jobs:
           if (!(Test-Path 'platform/dist/windows/DCP-Windows-update.json')) { throw 'Delta manifest missing' }
           if (!(Test-Path 'platform/dist/windows/payload')) { throw 'Delta payload missing' }
           $manifest = Get-Content 'platform/dist/windows/DCP-Windows-update.json' -Raw | ConvertFrom-Json
-          if ($manifest.schema -ne 1 -or !$manifest.version) { throw 'Delta manifest schema/version invalid' }
+          if ($manifest.schema -ne 2 -or !$manifest.version -or [int]$manifest.package_revision -lt 1) { throw 'Delta manifest schema/version/revision invalid' }
           $versionManifest = Get-Content 'platform/dist/windows/platform/version.json' -Raw | ConvertFrom-Json
           $productVersion = (Get-Item 'platform/dist/windows/DCP.exe').VersionInfo.ProductVersion
           if ($manifest.version -ne $versionManifest.version -or $productVersion -ne $versionManifest.version) { throw 'Windows executable, delta manifest and platform/version.json versions differ.' }

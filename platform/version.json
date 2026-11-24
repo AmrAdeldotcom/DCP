@@ -1,6 +1,7 @@
 {
-  "version": "1.0.0-alpha.9",
-  "releaseTag": "v1.0.0-alpha.9",
+  "version": "1.0.0-alpha.10",
+  "releaseTag": "v1.0.0-alpha.10",
   "channel": "alpha",
-  "build": "9"
+  "build": "10",
+  "packageRevision": 1
 }

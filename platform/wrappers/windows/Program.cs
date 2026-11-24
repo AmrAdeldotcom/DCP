@@ -203,12 +203,9 @@ internal sealed class MainWindow : Form
             var tag = release.GetProperty("tag_name").GetString() ?? "";
             var current = Assembly.GetExecutingAssembly().GetCustomAttributes<AssemblyMetadataAttribute>()
                 .FirstOrDefault(x => string.Equals(x.Key, "DCPVersion", StringComparison.OrdinalIgnoreCase))?.Value ?? "0.0.0";
-            if (!IsNewerRelease(tag, current))
-            {
-                AppendLog($"Background release check: installed {current}; latest compatible release {tag}; up to date.");
-                return;
-            }
-
+            var currentRevision = int.TryParse(Assembly.GetExecutingAssembly().GetCustomAttributes<AssemblyMetadataAttribute>()
+                .FirstOrDefault(x => string.Equals(x.Key, "DCPPackageRevision", StringComparison.OrdinalIgnoreCase))?.Value, out var parsedRevision)
+                ? parsedRevision : 1;
             var manifestAsset = release.GetProperty("assets").EnumerateArray()
                 .FirstOrDefault(x => string.Equals(x.GetProperty("name").GetString(), "DCP-Windows-update.json", StringComparison.OrdinalIgnoreCase));
             if (manifestAsset.ValueKind == JsonValueKind.Undefined)
@@ -220,8 +217,19 @@ internal sealed class MainWindow : Form
             manifestResponse.EnsureSuccessStatusCode();
             using var manifestStream = await manifestResponse.Content.ReadAsStreamAsync(cancellationToken);
             using var manifest = await JsonDocument.ParseAsync(manifestStream, cancellationToken: cancellationToken);
-            if (manifest.RootElement.GetProperty("schema").GetInt32() != 1)
+            var schema = manifest.RootElement.GetProperty("schema").GetInt32();
+            if (schema is not (1 or 2))
                 throw new InvalidOperationException("Unsupported update manifest schema.");
+            var latestRevision = manifest.RootElement.TryGetProperty("package_revision", out var revisionElement)
+                ? revisionElement.GetInt32() : 1;
+            if (latestRevision < 1)
+                throw new InvalidOperationException("Update manifest package revision is invalid.");
+            if (!IsNewerRelease(tag, current) &&
+                !(string.Equals(tag.TrimStart('v'), current.TrimStart('v'), StringComparison.OrdinalIgnoreCase) && latestRevision > currentRevision))
+            {
+                AppendLog($"Background release check: installed {current} revision {currentRevision}; latest {tag} revision {latestRevision}; up to date.");
+                return;
+            }
 
             var files = manifest.RootElement.GetProperty("files").EnumerateArray().ToArray();
             if (files.Length == 0 || files.Length > 5000)

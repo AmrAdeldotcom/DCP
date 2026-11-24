@@ -10,10 +10,12 @@
     <ApplicationIcon>../../public/assets/dcp.ico</ApplicationIcon>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <InformationalVersion Condition="'$(DCPVersion)' != ''">$(DCPVersion)</InformationalVersion>
-    <InformationalVersion Condition="'$(DCPVersion)' == ''">1.0.0-alpha.9</InformationalVersion>
+    <InformationalVersion Condition="'$(DCPVersion)' == ''">1.0.0-alpha.10</InformationalVersion>
+    <DCPPackageRevision Condition="'$(DCPPackageRevision)' == ''">1</DCPPackageRevision>
   </PropertyGroup>
   <ItemGroup>
     <AssemblyMetadata Include="DCPVersion" Value="$(DCPVersion)" Condition="'$(DCPVersion)' != ''" />
+    <AssemblyMetadata Include="DCPPackageRevision" Value="$(DCPPackageRevision)" />
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.3650.58" />
   </ItemGroup>
 </Project>

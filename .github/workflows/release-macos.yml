@@ -115,9 +115,11 @@ jobs:
           python3 - "$APP_VERSION" "$GITHUB_REF_NAME" "$APP_BUILD" <<'PYMETA'
           import json,sys
           version,tag,build=sys.argv[1:]
+          source=json.load(open("platform/version.json",encoding="utf-8"))
+          revision=int(source.get("packageRevision",1))
           channel="alpha" if "-alpha" in version else ("beta" if "-beta" in version else "stable")
           with open("platform/version.json","w",encoding="utf-8") as f:
-              json.dump({"version":version,"releaseTag":tag,"channel":channel,"build":build},f,indent=2)
+              json.dump({"version":version,"releaseTag":tag,"channel":channel,"build":build,"packageRevision":revision},f,indent=2)
               f.write("\n")
           PYMETA
           ./platform/scripts/build-macos.sh
@@ -125,6 +127,8 @@ jobs:
           APP_BUILD="$(python3 -c 'import json;print(json.load(open("platform/version.json", encoding="utf-8"))["build"])')"
           /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $APP_VERSION" DCP.app/Contents/Info.plist
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $APP_BUILD" DCP.app/Contents/Info.plist
+          APP_REVISION="$(python3 -c 'import json;print(json.load(open("platform/version.json", encoding="utf-8"))["packageRevision"])')"
+          /usr/libexec/PlistBuddy -c "Add :DCPPackageRevision integer $APP_REVISION" DCP.app/Contents/Info.plist || /usr/libexec/PlistBuddy -c "Set :DCPPackageRevision $APP_REVISION" DCP.app/Contents/Info.plist
           codesign --force --deep --sign - DCP.app
           codesign --verify --deep --strict DCP.app
           test -s DCP.app/Contents/Resources/AppIcon.icns

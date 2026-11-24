@@ -79,6 +79,7 @@ jobs:
           if ($VersionManifest.releaseTag -ne "v$($VersionManifest.version)") { throw "Windows release tag does not match its semantic version." }
           $DeltaManifest = Get-Content (Join-Path $Root "DCP-Windows-update.json") -Raw | ConvertFrom-Json
           if ($DeltaManifest.version -ne $VersionManifest.version) { throw "Windows delta manifest version does not match platform/version.json." }
+          if ([int]$VersionManifest.packageRevision -lt 1 -or [int]$DeltaManifest.package_revision -ne [int]$VersionManifest.packageRevision) { throw "Windows package revision metadata differs." }
 
           $Php = Join-Path $Root "platform/dcp-env/runtime/php/windows-x64/php.exe"
           $Verifier = Join-Path $Root "platform/scripts/verify-runtime.php"

@@ -46,6 +46,7 @@ jobs:
           $DeltaManifest = Get-Content 'platform/dist/windows/DCP-Windows-update.json' -Raw | ConvertFrom-Json
           $ProductVersion = (Get-Item 'platform/dist/windows/DCP.exe').VersionInfo.ProductVersion
           if ($VersionManifest.version -ne $ExpectedVersion -or $DeltaManifest.version -ne $ExpectedVersion -or $ProductVersion -ne $ExpectedVersion) { throw 'Windows executable, delta manifest, platform/version.json and release tag versions differ.' }
+          if ([int]$VersionManifest.packageRevision -lt 1 -or [int]$DeltaManifest.package_revision -ne [int]$VersionManifest.packageRevision) { throw 'Windows package revision metadata differs.' }
           if ($VersionManifest.releaseTag -ne $env:GITHUB_REF_NAME -or $DeltaManifest.release_tag -ne $env:GITHUB_REF_NAME) { throw 'Windows package release tags do not match the Git tag.' }
           if (!(Test-Path 'platform/dist/windows/payload')) { throw 'Delta update payload missing from package' }
           if (!(Test-Path 'platform/dist/windows/DCP-UserData/Windows/data')) { throw 'Windows user-data database directory missing' }

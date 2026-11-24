@@ -41,8 +41,10 @@ path, version, release_tag = sys.argv[1:]
 channel = "alpha" if "-alpha" in version else ("beta" if "-beta" in version else "stable")
 match = re.search(r"-(?:alpha|beta)\.(\d+)$", version)
 build = match.group(1) if match else "1"
+source = json.load(open(path, encoding="utf-8"))
+revision = int(source.get("packageRevision", 1))
 with open(path, "w", encoding="utf-8") as f:
-    json.dump({"version": version, "releaseTag": release_tag, "channel": channel, "build": build}, f, indent=2)
+    json.dump({"version": version, "releaseTag": release_tag, "channel": channel, "build": build, "packageRevision": revision}, f, indent=2)
     f.write("\n")
 PY
 # Include runtime manifests/installers but never developer caches, built engines or virtual environments.

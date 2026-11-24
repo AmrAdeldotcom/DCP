@@ -48,6 +48,8 @@ jobs:
           test "$PACKAGE_VERSION" = "$SOURCE_VERSION"
           PACKAGE_TAG="$(php -r '$v=json_decode(file_get_contents($argv[1]),true); echo $v["releaseTag"] ?? "";' "$ROOT/platform/version.json")"
           test "$PACKAGE_TAG" = "v$PACKAGE_VERSION"
+          PACKAGE_REVISION="$(php -r '$v=json_decode(file_get_contents($argv[1]),true); echo $v["packageRevision"] ?? 0;' "$ROOT/platform/version.json")"
+          test "$PACKAGE_REVISION" -ge 1
           test -d "$ROOT/DCP-UserData/Linux/data"
           test -d "$ROOT/DCP-UserData/Linux/storage"
           test -f "$ROOT/DCP-UserData/README.txt"
