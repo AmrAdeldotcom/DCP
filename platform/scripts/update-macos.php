@@ -349,7 +349,14 @@ final class DcpMacOSUpdater
             'DCP-macOS-AppleSilicon-delta.zip',
         ];
 
-        foreach ($tags as $tag) {
+        foreach ($tags as $index => $tag) {
+            $firstManifest = self::officialAssetUrl($tag, 'DCP-Windows-update-v3.json');
+            if (!self::curlExists($firstManifest)) {
+                // Atomic release publication means a newest legacy release has
+                // no synchronized schema-3 updater metadata in older tags.
+                if ($index === 0) return [];
+                continue;
+            }
             $releaseAssets = [];
             foreach (self::REQUIRED_ASSETS as $name) {
                 $releaseAssets[$name] = self::officialAssetUrl($tag, $name);

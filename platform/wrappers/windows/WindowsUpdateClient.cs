@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -29,18 +30,29 @@ internal static class WindowsUpdateClient
         "DCP-Linux-x64.tar.gz",
         "DCP-macOS-Intel.zip",
         "DCP-macOS-AppleSilicon.zip",
-        "DCP-Windows-update.json",
-        "DCP-Windows-update.json.sig",
-        "DCP-Linux-update.json",
-        "DCP-Linux-update.json.sig",
-        "DCP-macOS-Intel-update.json",
-        "DCP-macOS-Intel-update.json.sig",
-        "DCP-macOS-AppleSilicon-update.json",
-        "DCP-macOS-AppleSilicon-update.json.sig"
+        "DCP-Windows-update-v3.json",
+        "DCP-Windows-update-v3.json.sig",
+        "DCP-Linux-update-v3.json",
+        "DCP-Linux-update-v3.json.sig",
+        "DCP-macOS-Intel-update-v3.json",
+        "DCP-macOS-Intel-update-v3.json.sig",
+        "DCP-macOS-AppleSilicon-update-v3.json",
+        "DCP-macOS-AppleSilicon-update-v3.json.sig"
     ];
 
     internal sealed record UpdateFile(string path, long size, string sha256);
     private sealed record DownloadAsset(string Name, string Url, long Size, string Sha256);
+
+    internal static bool TryAttachApiToken(HttpRequestMessage request, string? token = null)
+    {
+        if (!string.Equals(request.RequestUri?.Host, "api.github.com", StringComparison.OrdinalIgnoreCase))
+            return false;
+        token ??= Environment.GetEnvironmentVariable("DCP_GITHUB_API_TOKEN");
+        if (string.IsNullOrWhiteSpace(token) || !Regex.IsMatch(token, @"^[A-Za-z0-9_.-]{20,255}$"))
+            return false;
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        return true;
+    }
 
     public static async Task<WindowsUpdatePreparation?> PrepareAsync(
         string installRoot,
@@ -83,10 +95,10 @@ internal static class WindowsUpdateClient
 
         var manifests = new[]
         {
-            ("DCP-Windows-update.json", "windows", "x64"),
-            ("DCP-Linux-update.json", "linux", "x64"),
-            ("DCP-macOS-Intel-update.json", "macos", "x64"),
-            ("DCP-macOS-AppleSilicon-update.json", "macos", "arm64")
+            ("DCP-Windows-update-v3.json", "windows", "x64"),
+            ("DCP-Linux-update-v3.json", "linux", "x64"),
+            ("DCP-macOS-Intel-update-v3.json", "macos", "x64"),
+            ("DCP-macOS-AppleSilicon-update-v3.json", "macos", "arm64")
         };
 
         foreach (var (name, platform, architecture) in manifests)
@@ -239,6 +251,7 @@ internal static class WindowsUpdateClient
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
         request.Headers.UserAgent.ParseAdd("DCP-Desktop-Updater/2.0");
         request.Headers.Accept.ParseAdd("application/vnd.github+json");
+        TryAttachApiToken(request);
         using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, timeout.Token);
         response.EnsureSuccessStatusCode();
         if (response.RequestMessage?.RequestUri?.Scheme != Uri.UriSchemeHttps)

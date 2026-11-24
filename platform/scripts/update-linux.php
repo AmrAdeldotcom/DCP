@@ -277,10 +277,13 @@ final class DcpLinuxUpdater
     {
         $feed = $this->request('https://github.com/' . DCP_RELEASE_REPOSITORY . '/releases.atom', 2 * 1024 * 1024);
         $tags = DcpGitHubReleaseFeed::tags($feed, DCP_RELEASE_REPOSITORY);
-        foreach ($tags as $tag) {
+        foreach ($tags as $index => $tag) {
             $manifestUrl = DcpGitHubReleaseFeed::assetUrl(DCP_RELEASE_REPOSITORY, $tag, DCP_LINUX_MANIFEST);
             $signatureUrl = DcpGitHubReleaseFeed::assetUrl(DCP_RELEASE_REPOSITORY, $tag, DCP_LINUX_SIGNATURE);
             if (!$this->assetExists($manifestUrl) || !$this->assetExists($signatureUrl)) {
+                // Releases are published atomically. If the newest published tag
+                // has no schema-3 manifest, older tags cannot contain a newer update.
+                if ($index === 0) return null;
                 continue;
             }
 

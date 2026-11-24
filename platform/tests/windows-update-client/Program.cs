@@ -16,6 +16,13 @@ var deltaUrl = $"https://github.com/AmrAdeldotcom/DCP/releases/download/{tag}/{d
 var fullHash = new string('a', 64);
 var deltaHash = new string('b', 64);
 var assets = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { [fullName] = fullUrl };
+using (var apiRequest = new HttpRequestMessage(HttpMethod.Get, "https://api.github.com/repos/AmrAdeldotcom/DCP/releases"))
+{
+    Check(WindowsUpdateClient.TryAttachApiToken(apiRequest, "ghs_" + new string('A', 36)), "optional GitHub token is attached to api.github.com requests");
+    Check(apiRequest.Headers.Authorization?.Scheme == "Bearer", "GitHub API token uses Bearer authorization");
+}
+using (var assetRequest = new HttpRequestMessage(HttpMethod.Get, "https://github.com/AmrAdeldotcom/DCP/releases/download/v1.0.0-alpha.10/package.zip"))
+    Check(!WindowsUpdateClient.TryAttachApiToken(assetRequest, "ghs_" + new string('A', 36)), "GitHub API token is not forwarded to release asset hosts");
 
 using var manifest = JsonDocument.Parse($$"""
 {

@@ -58,7 +58,7 @@ PY
 REFERENCE_VERSION=""
 REFERENCE_REVISION=""
 REFERENCE_TAG=""
-for spec in   "windows|x64|DCP-Windows-x64.zip|DCP-Windows-x64-delta.zip|DCP-Windows-update.json"   "linux|x64|DCP-Linux-x64.tar.gz|DCP-Linux-x64-delta.tar.gz|DCP-Linux-update.json"   "macos|x64|DCP-macOS-Intel.zip|DCP-macOS-Intel-delta.zip|DCP-macOS-Intel-update.json"   "macos|arm64|DCP-macOS-AppleSilicon.zip|DCP-macOS-AppleSilicon-delta.zip|DCP-macOS-AppleSilicon-update.json"; do
+for spec in   "windows|x64|DCP-Windows-x64.zip|DCP-Windows-x64-delta.zip|DCP-Windows-update-v3.json"   "linux|x64|DCP-Linux-x64.tar.gz|DCP-Linux-x64-delta.tar.gz|DCP-Linux-update-v3.json"   "macos|x64|DCP-macOS-Intel.zip|DCP-macOS-Intel-delta.zip|DCP-macOS-Intel-update-v3.json"   "macos|arm64|DCP-macOS-AppleSilicon.zip|DCP-macOS-AppleSilicon-delta.zip|DCP-macOS-AppleSilicon-update-v3.json"; do
   IFS='|' read -r platform architecture full_name delta_name manifest_name <<< "$spec"
   current_archive="$CURRENT_ASSETS/$full_name"
   [[ -s "$current_archive" ]] || { echo "Required full package is missing: $full_name" >&2; exit 1; }
@@ -118,10 +118,10 @@ python3 - "$OUTPUT_ASSETS" "$TAG" "$COMMIT" <<'PY'
 import hashlib,json,pathlib,sys
 root=pathlib.Path(sys.argv[1]); tag=sys.argv[2]; commit=sys.argv[3]
 names=[
- ("DCP-Windows-update.json","DCP-Windows-x64.zip","DCP-Windows-x64-delta.zip"),
- ("DCP-Linux-update.json","DCP-Linux-x64.tar.gz","DCP-Linux-x64-delta.tar.gz"),
- ("DCP-macOS-Intel-update.json","DCP-macOS-Intel.zip","DCP-macOS-Intel-delta.zip"),
- ("DCP-macOS-AppleSilicon-update.json","DCP-macOS-AppleSilicon.zip","DCP-macOS-AppleSilicon-delta.zip"),
+ ("DCP-Windows-update-v3.json","DCP-Windows-x64.zip","DCP-Windows-x64-delta.zip"),
+ ("DCP-Linux-update-v3.json","DCP-Linux-x64.tar.gz","DCP-Linux-x64-delta.tar.gz"),
+ ("DCP-macOS-Intel-update-v3.json","DCP-macOS-Intel.zip","DCP-macOS-Intel-delta.zip"),
+ ("DCP-macOS-AppleSilicon-update-v3.json","DCP-macOS-AppleSilicon.zip","DCP-macOS-AppleSilicon-delta.zip"),
 ]
 reference=None
 for manifest_name,full_name,delta_name in names:
@@ -144,7 +144,7 @@ print("PASS: all four platform manifests are synchronized and all included asset
 PY
 
 PUBLIC_KEY="${DCP_UPDATE_PUBLIC_KEY_PATH:-$ROOT/platform/update/release-public.pem}"
-for manifest in "$OUTPUT_ASSETS"/DCP-*-update.json; do
+for manifest in "$OUTPUT_ASSETS"/DCP-*-update-v3.json; do
   openssl dgst -sha256 -verify "$PUBLIC_KEY" \
     -signature "$manifest.sig" "$manifest" >/dev/null
 done

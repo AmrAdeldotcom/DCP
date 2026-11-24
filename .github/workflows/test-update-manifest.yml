@@ -39,6 +39,8 @@ jobs:
           php -l platform/scripts/lib/UpdateManifest.php
           php -l platform/tests/update-manifest.php
           php platform/tests/update-manifest.php
+          php -l platform/tests/github-release-feed.php
+          php platform/tests/github-release-feed.php
 
       - name: Validate delta and manifest builders
         run: |

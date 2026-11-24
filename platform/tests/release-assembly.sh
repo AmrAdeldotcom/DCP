@@ -82,10 +82,10 @@ python3 - "$WORK/out-delta" <<'PY'
 import hashlib,json,pathlib,sys
 root=pathlib.Path(sys.argv[1])
 names=[
- ('DCP-Windows-update.json','DCP-Windows-x64.zip','DCP-Windows-x64-delta.zip'),
- ('DCP-Linux-update.json','DCP-Linux-x64.tar.gz','DCP-Linux-x64-delta.tar.gz'),
- ('DCP-macOS-Intel-update.json','DCP-macOS-Intel.zip','DCP-macOS-Intel-delta.zip'),
- ('DCP-macOS-AppleSilicon-update.json','DCP-macOS-AppleSilicon.zip','DCP-macOS-AppleSilicon-delta.zip'),
+ ('DCP-Windows-update-v3.json','DCP-Windows-x64.zip','DCP-Windows-x64-delta.zip'),
+ ('DCP-Linux-update-v3.json','DCP-Linux-x64.tar.gz','DCP-Linux-x64-delta.tar.gz'),
+ ('DCP-macOS-Intel-update-v3.json','DCP-macOS-Intel.zip','DCP-macOS-Intel-delta.zip'),
+ ('DCP-macOS-AppleSilicon-update-v3.json','DCP-macOS-AppleSilicon.zip','DCP-macOS-AppleSilicon-delta.zip'),
 ]
 for manifest_name,full_name,delta_name in names:
  m=json.loads((root/manifest_name).read_text())
@@ -99,8 +99,7 @@ for manifest_name,full_name,delta_name in names:
  assert m['full']['sha256']==hashlib.sha256((root/full_name).read_bytes()).hexdigest()
 print('PASS: four synchronized signed manifests select exact Alpha9 Delta base, include file changes/deletions, exclude user data and bind full package hashes')
 PY
-for manifest in "$WORK"/*.none; do :; done
-for manifest in "$WORK/out-delta"/DCP-*-update.json; do
+for manifest in "$WORK/out-delta"/DCP-*-update-v3.json; do
   openssl dgst -sha256 -verify "$WORK/public.pem" -signature "$manifest.sig" "$manifest" >/dev/null
 done
 echo 'PASS: all four detached manifest signatures verify'
@@ -111,7 +110,7 @@ bash "$ROOT/platform/scripts/assemble-signed-release.sh" \
 python3 - "$WORK/out-full" <<'PY'
 import json,pathlib,sys
 root=pathlib.Path(sys.argv[1])
-for p in root.glob('DCP-*-update.json'):
+for p in root.glob('DCP-*-update-v3.json'):
  m=json.loads(p.read_text())
  assert m['delta'] is None
  assert m['full']['size']>0
@@ -124,7 +123,7 @@ bash "$ROOT/platform/scripts/assemble-signed-release.sh" \
 python3 - "$WORK/out-revision" <<'PY'
 import json,pathlib,sys
 root=pathlib.Path(sys.argv[1])
-for p in root.glob('DCP-*-update.json'):
+for p in root.glob('DCP-*-update-v3.json'):
  m=json.loads(p.read_text())
  assert m['version']=='1.0.0-alpha.10' and m['package_revision']==2
  assert m['delta'] is not None
