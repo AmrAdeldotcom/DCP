@@ -23,6 +23,8 @@ assert(jobs.dig('macos', 'uses') == './.github/workflows/release-macos.yml', 're
 publish = jobs.fetch('publish-signed-release')
 assert(%w[linux windows macos].all? { |name| Array(publish['needs']).include?(name) }, 'signed release waits for every platform package')
 steps = publish.fetch('steps')
+merge_guard = steps.find { |step| step['name'].to_s.include?('Require release tag commit') }
+assert(merge_guard && merge_guard['run'].include?('git merge-base --is-ancestor'), 'release signing is blocked until the tag commit is merged into the default branch')
 download = steps.find { |step| step['uses'].to_s.start_with?('actions/download-artifact@') }
 assert(download && download.dig('with', 'pattern') == 'dcp-*-package-release', 'release assembly downloads only platform package artifacts')
 assembly = steps.find { |step| step['name'].to_s.include?('Build and sign synchronized') }
