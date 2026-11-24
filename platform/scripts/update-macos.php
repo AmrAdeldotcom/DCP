@@ -739,25 +739,48 @@ final class DcpMacOSUpdater
         return str_contains($command, basename(__FILE__)) && str_contains($command, '--apply');
     }
 
+    private static function installationPathCandidates(string $root): array
+    {
+        $paths = [rtrim($root, '/')];
+        $resolved = realpath($root);
+        if (is_string($resolved) && $resolved !== '') $paths[] = rtrim($resolved, '/');
+        return array_values(array_unique($paths));
+    }
+
     private static function processMatchesDcpApp(int $pid, string $root): bool
     {
         if ($pid < 2) return false;
-        $expected = $root . '/DCP.app/Contents/MacOS/DCP';
-        $command = shell_exec('/bin/ps -p ' . $pid . ' -o command=');
+        // macOS may expose the same /var path as /private/var in realpath(),
+        // while argv[0] retains the lexical path used by open(1). Accept only
+        // exact executable tokens under either spelling of this same root.
+        $expectedPaths = array_map(
+            static fn(string $candidate): string => $candidate . '/DCP.app/Contents/MacOS/DCP',
+            self::installationPathCandidates($root)
+        );
+        $command = shell_exec('/bin/ps -p ' . $pid . ' -o args=');
         if (!is_string($command)) return false;
         $command = ltrim(trim($command), "\\\"'");
-        return str_starts_with($command, $expected)
-            && (strlen($command) === strlen($expected) || ctype_space($command[strlen($expected)]));
+        foreach ($expectedPaths as $expected) {
+            if (str_starts_with($command, $expected) &&
+                (strlen($command) === strlen($expected) || ctype_space($command[strlen($expected)]))) return true;
+        }
+        return false;
     }
 
     private static function assertNoRunningDcpProcesses(string $root, int $ignorePid = 0): void
     {
-        $app = $root . '/DCP.app/Contents/MacOS/DCP';
-        $router = realpath($root . '/platform/public/router.php') ?: $root . '/platform/public/router.php';
+        $appPaths = array_map(
+            static fn(string $candidate): string => $candidate . '/DCP.app/Contents/MacOS/DCP',
+            self::installationPathCandidates($root)
+        );
+        $routerPaths = array_map(
+            static fn(string $candidate): string => (realpath($candidate . '/platform/public/router.php') ?: $candidate . '/platform/public/router.php'),
+            self::installationPathCandidates($root)
+        );
         $output = shell_exec('/bin/ps -axo pid=,args=');
         if (!is_string($output) || $output === '') throw new RuntimeException('Could not inspect macOS processes; refusing to update.');
-        foreach (preg_split('/\\R/', $output) ?: [] as $line) {
-            if (!preg_match('/^\\s*(\\d+)\\s+(.*)$/', $line, $match)) continue;
+        foreach (preg_split('/\R/', $output) ?: [] as $line) {
+            if (!preg_match('/^\s*(\d+)\s+(.*)$/', $line, $match)) continue;
             $pid = (int)$match[1];
             if ($pid < 2 || $pid === getmypid()) continue;
             $args = $match[2];
@@ -767,8 +790,10 @@ final class DcpMacOSUpdater
                 }
                 continue;
             }
-            $isApp = str_contains($args, $app);
-            $isRouter = str_contains($args, $router);
+            $isApp = false;
+            foreach ($appPaths as $app) if (str_contains($args, $app)) { $isApp = true; break; }
+            $isRouter = false;
+            foreach ($routerPaths as $router) if (str_contains($args, $router)) { $isRouter = true; break; }
             if ($isApp || $isRouter) {
                 throw new RuntimeException('Close DCP before applying a macOS update. Running process: ' . $pid . '. No process was stopped.');
             }
@@ -846,21 +871,56 @@ final class DcpMacOSUpdater
 
     public static function stopCurrentApp(string $root): void
     {
-        $pidFile = self::assertNoSymlinkPath($root, 'DCP-UserData/macOS/storage/runtime-pid.txt');
-        $pid = is_file($pidFile) ? (int)trim((string)file_get_contents($pidFile)) : 0;
-        if ($pid < 2 || !self::processMatchesDcpApp($pid, $root)) return;
-        if (!function_exists('posix_kill')) throw new RuntimeException('POSIX process control is unavailable; refusing to stop DCP.app.');
-        if (!posix_kill($pid, SIGTERM)) throw new RuntimeException('Could not request graceful DCP.app shutdown.');
-        $deadline = time() + 15;
-        while (self::processMatchesDcpApp($pid, $root) && time() < $deadline) sleep(1);
-        if (self::processMatchesDcpApp($pid, $root)) {
-            // Re-check executable identity immediately before the only forced stop.
-            if (!self::processMatchesDcpApp($pid, $root)) return;
-            if (!posix_kill($pid, SIGKILL)) throw new RuntimeException('DCP.app did not exit after SIGTERM; forced stop failed.');
-            $deadline = time() + 5;
-            while (self::processMatchesDcpApp($pid, $root) && time() < $deadline) usleep(200000);
-            if (self::processMatchesDcpApp($pid, $root)) throw new RuntimeException('DCP.app process did not exit; refusing to mutate its files.');
+        $requestedRoot = rtrim($root, '/');
+        $root = realpath($root) ?: throw new RuntimeException('DCP installation root is missing.');
+        // runtime-pid.txt is a hint, not the source of truth: an app can fail
+        // before writing it. Enumerate only processes whose argv[0] is the exact
+        // DCP.app executable under this installation root.
+        self::assertNoSymlinkPath($root, 'DCP-UserData/macOS/storage/runtime-pid.txt');
+        $output = shell_exec('/bin/ps -axo pid=,args=');
+        if (!is_string($output) || $output === '') throw new RuntimeException('Could not inspect macOS processes; refusing to mutate DCP files.');
+        $expectedPaths = array_map(
+            static fn(string $candidate): string => $candidate . '/DCP.app/Contents/MacOS/DCP',
+            self::installationPathCandidates($requestedRoot)
+        );
+        $pids = [];
+        foreach (preg_split('/\R/', $output) ?: [] as $line) {
+            if (!preg_match('/^\s*(\d+)\s+(.*)$/', $line, $match)) continue;
+            $pid = (int)$match[1];
+            if ($pid < 2 || $pid === getmypid()) continue;
+            $command = ltrim(trim($match[2]), "\\\"'");
+            foreach ($expectedPaths as $expected) {
+                if (str_starts_with($command, $expected) &&
+                    (strlen($command) === strlen($expected) || ctype_space($command[strlen($expected)]))) {
+                    $pids[$pid] = true;
+                    break;
+                }
+            }
         }
+        if ($pids !== [] && !function_exists('posix_kill')) {
+            throw new RuntimeException('POSIX process control is unavailable; refusing to stop DCP.app.');
+        }
+        foreach (array_keys($pids) as $pid) {
+            // Revalidate executable identity immediately before every signal.
+            if (!self::processMatchesDcpApp($pid, $requestedRoot)) continue;
+            if (!posix_kill($pid, SIGTERM)) {
+                if (self::processMatchesDcpApp($pid, $requestedRoot)) throw new RuntimeException('Could not request graceful DCP.app shutdown.');
+                continue;
+            }
+            $deadline = microtime(true) + 15.0;
+            while (self::processMatchesDcpApp($pid, $requestedRoot) && microtime(true) < $deadline) usleep(200000);
+            if (self::processMatchesDcpApp($pid, $requestedRoot)) {
+                // Never signal a reused PID: confirm the exact bundle executable again.
+                if (!self::processMatchesDcpApp($pid, $requestedRoot)) continue;
+                if (!posix_kill($pid, SIGKILL)) throw new RuntimeException('DCP.app did not exit after SIGTERM; forced stop failed.');
+                $deadline = microtime(true) + 5.0;
+                while (self::processMatchesDcpApp($pid, $requestedRoot) && microtime(true) < $deadline) usleep(200000);
+                if (self::processMatchesDcpApp($pid, $requestedRoot)) throw new RuntimeException('DCP.app process did not exit; refusing to mutate its files.');
+            }
+        }
+        // A PHP router left behind by an abnormal app exit is not killed here.
+        // Refuse the rollback rather than touching files while it is still live.
+        self::assertNoRunningDcpProcesses($requestedRoot, 0);
     }
 
     private static function isApiHealthy(int $port): bool

@@ -227,6 +227,32 @@ try {
     fclose($lockHandle);
     checkMacUpdate($busyRecovery === -2, 'startup recovery refuses to race an active updater lock');
 
+    $processFixture = $root . '/process-ownership';
+    $fakeApp = $processFixture . '/DCP.app/Contents/MacOS/DCP';
+    $processStorage = $processFixture . '/DCP-UserData/macOS/storage';
+    mkdir(dirname($fakeApp), 0700, true);
+    mkdir($processStorage, 0700, true);
+    $fakeCommand = '/usr/bin/nohup /bin/bash -c ' . escapeshellarg('exec -a "$1" /bin/sleep 60') .
+        ' dcp-test ' . escapeshellarg($fakeApp) . ' >/dev/null 2>&1 & echo $!';
+    exec($fakeCommand, $fakePidOutput, $fakePidStatus);
+    $fakePid = (int)trim((string)($fakePidOutput[0] ?? '0'));
+    if ($fakePidStatus !== 0 || $fakePid < 2) throw new RuntimeException('Could not start isolated DCP process fixture.');
+    usleep(200000);
+    DcpMacOSUpdater::stopCurrentApp($processFixture);
+    $fakeStillRunning = is_string(shell_exec('/bin/ps -p ' . $fakePid . ' -o pid=')) &&
+        trim((string)shell_exec('/bin/ps -p ' . $fakePid . ' -o pid=')) !== '';
+    checkMacUpdate(!$fakeStillRunning, 'rollback process guard stops only the exact DCP.app executable even without runtime-pid.txt');
+
+    $unrelatedCommand = '/usr/bin/nohup /bin/sleep 60 >/dev/null 2>&1 & echo $!';
+    exec($unrelatedCommand, $unrelatedPidOutput, $unrelatedPidStatus);
+    $unrelatedPid = (int)trim((string)($unrelatedPidOutput[0] ?? '0'));
+    if ($unrelatedPidStatus !== 0 || $unrelatedPid < 2) throw new RuntimeException('Could not start unrelated process fixture.');
+    file_put_contents($processStorage . '/runtime-pid.txt', (string)$unrelatedPid);
+    DcpMacOSUpdater::stopCurrentApp($processFixture);
+    $unrelatedStillRunning = trim((string)shell_exec('/bin/ps -p ' . $unrelatedPid . ' -o pid=')) !== '';
+    checkMacUpdate($unrelatedStillRunning, 'a stale DCP PID file never terminates an unrelated process');
+    if (function_exists('posix_kill')) @posix_kill($unrelatedPid, SIGTERM);
+
     echo 'ALL MACOS UPDATE CONTRACT TESTS PASSED (' . $assertions . ' assertions)' . PHP_EOL;
 } finally {
     $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST);
