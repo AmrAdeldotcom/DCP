@@ -742,7 +742,8 @@ try {
         $log = static function (string $message) use ($logPath): void {
             @file_put_contents($logPath, '[' . gmdate('c') . '] ' . $message . PHP_EOL, FILE_APPEND | LOCK_EX);
         };
-        $log('Background release watcher started; polling GitHub every 300 seconds.');
+        $log('Background release watcher started; waiting 30 seconds for the DCP UI to finish launching before polling every 300 seconds.');
+        sleep(30);
         while (true) {
             try {
                 $check = $updater->download();
