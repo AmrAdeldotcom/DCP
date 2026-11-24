@@ -756,6 +756,10 @@ try {
                         if (function_exists('exec') && function_exists('shell_exec') && trim((string)shell_exec('command -v notify-send 2>/dev/null')) !== '') {
                             exec('notify-send ' . escapeshellarg('DCP updated') . ' ' . escapeshellarg('Installed ' . $tag . '. Reopen DCP to use the new version.') . ' >/dev/null 2>&1 &');
                         }
+                        // This process may have replaced its own updater script and PHP runtime.
+                        // Exit so the next DCP launch starts a fresh watcher from the new package.
+                        $log('Background updater exiting after successful apply; next DCP launch will start the updated watcher.');
+                        exit(0);
                     } catch (Throwable $error) {
                         $log('Update remains pending until DCP exits: ' . $error->getMessage());
                     }
