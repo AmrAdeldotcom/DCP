@@ -32,11 +32,13 @@ jobs:
         run: |
           chmod +x platform/scripts/*.sh
           platform/scripts/build-linux.sh
-      - name: Upload Linux package
+      - name: Archive Linux package with executable permissions
+        run: tar -czf DCP-Linux-distro-test.tar.gz -C platform/dist/linux .
+      - name: Upload Linux package archive
         uses: actions/upload-artifact@v4
         with:
           name: dcp-linux-distro-test-package
-          path: platform/dist/linux/
+          path: DCP-Linux-distro-test.tar.gz
           if-no-files-found: error
           retention-days: 3
 
@@ -54,11 +56,16 @@ jobs:
         run: |
           apt-get update
           DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends bash ca-certificates coreutils curl file libgtk-3-0 libwebkit2gtk-4.1-0 php-cli php-curl php-intl php-mbstring php-sqlite3 php-xml php-gd php-zip procps tar
-      - name: Download portable Linux package
+      - name: Download portable Linux package archive
         uses: actions/download-artifact@v4
         with:
           name: dcp-linux-distro-test-package
-          path: platform/dist/linux
+          path: ${{ runner.temp }}/dcp-linux-artifact
+      - name: Extract Linux package preserving executable permissions
+        shell: bash
+        run: |
+          mkdir -p platform/dist/linux
+          tar -xzf "${{ runner.temp }}/dcp-linux-artifact/DCP-Linux-distro-test.tar.gz" -C platform/dist/linux
       - name: Verify Kali libraries and package contents
         shell: bash
         run: |
