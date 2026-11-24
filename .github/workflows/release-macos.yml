@@ -1,16 +1,10 @@
-name: Build and publish DCP native macOS releases
+name: Build DCP native macOS release package artifacts
 
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_call:
 
 permissions:
-  contents: write
-
-concurrency:
-  group: dcp-release-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: false
+  contents: read
 
 jobs:
   managed-php-runtime:
@@ -180,41 +174,16 @@ jobs:
           fi
           shasum -a 256 "$OUT"
 
+      - name: Create architecture-specific package checksum
+        shell: bash
+        run: shasum -a 256 '${{ matrix.package }}' > '${{ matrix.package }}.sha256'
+
       - name: Upload architecture-specific package for release assembly
         uses: actions/upload-artifact@v4
         with:
           name: dcp-macos-${{ matrix.arch }}-package-release
-          path: ${{ matrix.package }}
+          path: |
+            ${{ matrix.package }}
+            ${{ matrix.package }}.sha256
           if-no-files-found: error
           retention-days: 3
-
-  publish-macos-release:
-    needs: [macos-native-package]
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Download both native macOS packages
-        uses: actions/download-artifact@v4
-        with:
-          pattern: dcp-macos-*-package-release
-          path: release-assets
-          merge-multiple: true
-
-      - name: Verify synchronized macOS release assets
-        shell: bash
-        run: |
-          set -euo pipefail
-          test -s release-assets/DCP-macOS-Intel.zip
-          test -s release-assets/DCP-macOS-AppleSilicon.zip
-          sha256sum release-assets/DCP-macOS-Intel.zip release-assets/DCP-macOS-AppleSilicon.zip
-
-      - name: Publish both native macOS packages together
-        uses: softprops/action-gh-release@v2
-        with:
-          name: DCP ${{ github.ref_name }}
-          generate_release_notes: true
-          overwrite_files: true
-          prerelease: ${{ contains(github.ref_name, '-alpha.') || contains(github.ref_name, '-beta.') }}
-          make_latest: false
-          files: |
-            release-assets/DCP-macOS-Intel.zip
-            release-assets/DCP-macOS-AppleSilicon.zip

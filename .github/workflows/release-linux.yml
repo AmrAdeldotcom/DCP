@@ -1,16 +1,10 @@
-name: Build and publish DCP Linux release
+name: Build DCP Linux release package artifact
 
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_call:
 
 permissions:
-  contents: write
-
-concurrency:
-  group: dcp-release-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: false
+  contents: read
 
 jobs:
   linux-x64:
@@ -83,14 +77,12 @@ jobs:
           test -s DCP-Linux-x64.tar.gz
           test -s DCP-Linux-x64.tar.gz.sha256
 
-      - name: Publish Linux package to GitHub Release
-        uses: softprops/action-gh-release@v2
+      - name: Upload Linux package for synchronized signed release assembly
+        uses: actions/upload-artifact@v4
         with:
-          name: DCP ${{ github.ref_name }}
-          generate_release_notes: true
-          overwrite_files: true
-          prerelease: ${{ contains(github.ref_name, '-alpha.') || contains(github.ref_name, '-beta.') }}
-          make_latest: false
-          files: |
+          name: dcp-linux-x64-package-release
+          path: |
             DCP-Linux-x64.tar.gz
             DCP-Linux-x64.tar.gz.sha256
+          if-no-files-found: error
+          retention-days: 3

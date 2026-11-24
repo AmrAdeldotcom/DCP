@@ -1,0 +1,100 @@
+name: Build and publish DCP signed cross-platform release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: dcp-signed-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  linux:
+    uses: ./.github/workflows/release-linux.yml
+
+  windows:
+    uses: ./.github/workflows/release-windows.yml
+
+  macos:
+    uses: ./.github/workflows/release-macos.yml
+
+  publish-signed-release:
+    name: Assemble and publish all signed updater manifests
+    needs: [linux, windows, macos]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out release source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Download all four native full packages
+        uses: actions/download-artifact@v4
+        with:
+          pattern: dcp-*-package-release
+          path: release-inputs
+          merge-multiple: true
+
+      - name: Verify all required package artifacts arrived
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in DCP-Windows-x64.zip DCP-Linux-x64.tar.gz DCP-macOS-Intel.zip DCP-macOS-AppleSilicon.zip; do
+            test -s "release-inputs/$file" || { echo "Required package artifact missing: $file" >&2; exit 1; }
+          done
+
+      - name: Download the immediately preceding release packages for Delta generation
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DCP_UPDATE_BASE_TAG: ${{ vars.DCP_UPDATE_BASE_TAG }}
+        run: |
+          set -euo pipefail
+          mkdir -p base-assets
+          BASE_TAG="$DCP_UPDATE_BASE_TAG"
+          if [[ -z "$BASE_TAG" ]]; then
+            BASE_TAG="$(gh release list --limit 100 --json tagName,isDraft,publishedAt | jq -r --arg current "$GITHUB_REF_NAME" '[.[] | select(.isDraft == false and .tagName != $current)] | sort_by(.publishedAt) | reverse | .[0].tagName // empty')"
+          fi
+          echo "Selected Delta base release: ${BASE_TAG:-none}"
+          echo "base_tag=$BASE_TAG" >> "$GITHUB_OUTPUT"
+          if [[ -n "$BASE_TAG" ]]; then
+            for file in DCP-Windows-x64.zip DCP-Linux-x64.tar.gz DCP-macOS-Intel.zip DCP-macOS-AppleSilicon.zip; do
+              if ! gh release download "$BASE_TAG" --pattern "$file" --dir base-assets; then
+                echo "::warning::Base asset $file is unavailable; this architecture will use the signed full-package fallback."
+              fi
+            done
+          fi
+        id: base
+
+      - name: Build and sign synchronized schema-3 manifests and Delta packages
+        shell: bash
+        env:
+          DCP_RELEASE_SIGNING_PRIVATE_KEY_B64: ${{ secrets.DCP_RELEASE_SIGNING_PRIVATE_KEY_B64 }}
+          BASE_TAG: ${{ steps.base.outputs.base_tag }}
+        run: |
+          set -euo pipefail
+          bash platform/scripts/assemble-signed-release.sh \
+            "$GITHUB_REF_NAME" "$GITHUB_SHA" \
+            release-inputs base-assets release-assets "$BASE_TAG"
+
+      - name: Publish all platform packages, Delta assets and signed manifests atomically
+        uses: softprops/action-gh-release@v2
+        with:
+          name: DCP ${{ github.ref_name }}
+          generate_release_notes: true
+          overwrite_files: true
+          fail_on_unmatched_files: true
+          prerelease: ${{ contains(github.ref_name, '-alpha.') || contains(github.ref_name, '-beta.') }}
+          make_latest: false
+          files: |
+            release-assets/*

@@ -43,11 +43,17 @@ jobs:
       - name: Validate delta and manifest builders
         run: |
           set -euo pipefail
-          python -m py_compile platform/scripts/build-update-manifest.py platform/scripts/build-delta-package.py platform/tests/update-package-build.py
+          python -m py_compile platform/scripts/build-update-manifest.py platform/scripts/build-delta-package.py platform/scripts/compare-semver.py platform/tests/update-package-build.py
           python platform/tests/update-package-build.py
 
       - name: Verify detached signing and tamper rejection
         run: bash platform/tests/sign-update-manifest.sh
+
+      - name: Verify four-platform signed release assembly and full fallback
+        run: bash platform/tests/release-assembly.sh
+
+      - name: Verify atomic cross-platform release workflow wiring
+        run: ruby platform/tests/release-workflow-contract.rb
 
       - name: Verify production signing secret matches the pinned public key
         if: github.event_name != 'pull_request'
