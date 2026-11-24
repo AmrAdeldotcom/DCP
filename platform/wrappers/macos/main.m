@@ -160,6 +160,64 @@
     }
     self.phpTask.environment=environment;
     self.phpEnvironment=[environment copy];
+
+    // Recover an interrupted package transaction before starting the PHP API.
+    NSString *installRoot=self.platformURL.URLByDeletingLastPathComponent.path;
+    NSString *updaterScript=[self.platformURL URLByAppendingPathComponent:@"scripts/update-macos.php"].path;
+    NSTask *recovery=[NSTask new];
+    recovery.executableURL=[NSURL fileURLWithPath:php];
+    recovery.arguments=@[updaterScript,@"--recover",@"--root",installRoot,@"--pid",[NSString stringWithFormat:@"%d",getpid()]];
+    recovery.environment=environment;
+    NSPipe *recoveryErrors=[NSPipe pipe];
+    recovery.standardOutput=[NSFileHandle fileHandleWithNullDevice];
+    recovery.standardError=recoveryErrors;
+    NSError *recoveryLaunchError=nil;
+    if(![recovery launchAndReturnError:&recoveryLaunchError]) {
+        [self.webView loadHTMLString:@"<h2>DCP update recovery could not start</h2><p>Check DCP-UserData/macOS/storage/logs/updater.log before retrying.</p>" baseURL:nil];
+        return;
+    }
+    NSData *recoveryErrorData=[recoveryErrors.fileHandleForReading readDataToEndOfFile];
+    [recovery waitUntilExit];
+    NSInteger recoveryStatus=recovery.terminationStatus;
+    if(recoveryStatus==10) {
+        // Recovery rolled the package back. Do not launch the replacement while
+        // this old startup process is still alive: its process guard would see
+        // two DCP instances and refuse to start the API. A detached helper waits
+        // for this exact executable/PID to disappear before reopening the bundle.
+        NSString *appExecutable=[NSBundle mainBundle].executablePath ?: @"";
+        NSString *appBundle=[NSBundle mainBundle].bundleURL.path ?: @"";
+        NSTask *relauncher=[NSTask new];
+        relauncher.executableURL=[NSURL fileURLWithPath:@"/bin/bash"];
+        relauncher.arguments=@[
+            @"-c",
+            @"pid=\"$1\"; expected=\"$2\"; app=\"$3\"; while /bin/ps -p \"$pid\" -o command= | /usr/bin/grep -Fq \"$expected\"; do /bin/sleep 0.2; done; /usr/bin/open -n -a \"$app\"",
+            @"dcp-recovery-relaunch",
+            [NSString stringWithFormat:@"%d",getpid()],
+            appExecutable,
+            appBundle
+        ];
+        relauncher.standardInput=[NSFileHandle fileHandleWithNullDevice];
+        relauncher.standardOutput=[NSFileHandle fileHandleWithNullDevice];
+        relauncher.standardError=[NSFileHandle fileHandleWithNullDevice];
+        NSError *relaunchError=nil;
+        if(![relauncher launchAndReturnError:&relaunchError]) {
+            [self.webView loadHTMLString:@"<h2>DCP recovery completed</h2><p>The previous package was restored, but automatic relaunch could not start. Close this window and reopen DCP.</p>" baseURL:nil];
+            return;
+        }
+        [NSApp terminate:nil];
+        return;
+    }
+    if(recoveryStatus==11) {
+        [NSApp terminate:nil];
+        return;
+    }
+    if(recoveryStatus!=0 && recoveryStatus!=12) {
+        NSString *details=[[NSString alloc] initWithData:recoveryErrorData encoding:NSUTF8StringEncoding] ?: @"Recovery snapshot retained; inspect updater.log.";
+        NSString *safeDetails=[details stringByReplacingOccurrencesOfString:@"<" withString:@"&lt;"];
+        [self.webView loadHTMLString:[NSString stringWithFormat:@"<h2>DCP update recovery needs attention</h2><p>%@</p><p>Do not delete DCP-UserData/macOS/storage/updates/backups.</p>",safeDetails] baseURL:nil];
+        return;
+    }
+
     NSString *runtimePortPath=[storageDir.path stringByAppendingPathComponent:@"runtime-port.txt"];
     NSString *runtimePidPath=[storageDir.path stringByAppendingPathComponent:@"runtime-pid.txt"];
     [[NSString stringWithFormat:@"%ld\n",(long)self.port] writeToFile:runtimePortPath atomically:YES encoding:NSUTF8StringEncoding error:nil];

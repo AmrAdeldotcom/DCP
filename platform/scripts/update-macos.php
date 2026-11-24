@@ -1,6 +1,9 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/lib/UpdateManifest.php';
+require_once __DIR__ . '/lib/LinuxUpdateTransaction.php';
+
 /**
  * Signed, transactional macOS package updater.
  *
@@ -114,6 +117,7 @@ final class DcpMacOSUpdater
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_MAXREDIRS => 5,
+            CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTPS,
             CURLOPT_CONNECTTIMEOUT => 8,
             CURLOPT_TIMEOUT => 25,
             CURLOPT_USERAGENT => 'DCP-macOS-Updater/2.0',
@@ -128,9 +132,10 @@ final class DcpMacOSUpdater
         ]);
         $ok = curl_exec($curl);
         $status = (int)curl_getinfo($curl, CURLINFO_RESPONSE_CODE);
+        $effective = (string)curl_getinfo($curl, CURLINFO_EFFECTIVE_URL);
         $error = curl_error($curl);
         curl_close($curl);
-        if ($ok === false || $status < 200 || $status >= 300) {
+        if ($ok === false || $status < 200 || $status >= 300 || parse_url($effective, PHP_URL_SCHEME) !== 'https') {
             throw new RuntimeException('HTTPS request failed (' . $status . '): ' . $error);
         }
         return $body;
@@ -149,6 +154,7 @@ final class DcpMacOSUpdater
         curl_setopt_array($curl, [
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_MAXREDIRS => 5,
+            CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTPS,
             CURLOPT_CONNECTTIMEOUT => 8,
             CURLOPT_TIMEOUT => 1200,
             CURLOPT_USERAGENT => 'DCP-macOS-Updater/2.0',
@@ -166,12 +172,13 @@ final class DcpMacOSUpdater
         ]);
         $ok = curl_exec($curl);
         $status = (int)curl_getinfo($curl, CURLINFO_RESPONSE_CODE);
+        $effective = (string)curl_getinfo($curl, CURLINFO_EFFECTIVE_URL);
         $error = curl_error($curl);
         curl_close($curl);
         fflush($handle);
         fclose($handle);
         $digest = hash_final($hash);
-        if ($ok === false || $status < 200 || $status >= 300 || $written !== $size ||
+        if ($ok === false || $status < 200 || $status >= 300 || parse_url($effective, PHP_URL_SCHEME) !== 'https' || $written !== $size ||
             !hash_equals(strtolower((string)$asset['sha256']), strtolower($digest))) {
             @unlink($destination);
             throw new RuntimeException('DCP package download failed signed size/SHA-256 verification: ' . $error);
@@ -406,7 +413,12 @@ final class DcpMacOSUpdater
             $entryPath = $entry->getPathName();
             if (!str_starts_with($entryPath, $prefix)) throw new RuntimeException('DCP ZIP entry escaped the archive namespace.');
             $relative = str_replace(DIRECTORY_SEPARATOR, '/', substr($entryPath, strlen($prefix)));
+            $isDirectory = $entry->isDir();
+            if ($isDirectory) $relative = rtrim($relative, '/');
             self::validateArchivePath($relative);
+            if (method_exists($entry, 'isLink') && $entry->isLink()) throw new RuntimeException('DCP ZIP contains a symbolic link: ' . $relative);
+            $entryMode = method_exists($entry, 'getPerms') ? ($entry->getPerms() & 0170000) : 0;
+            if ($entryMode !== 0 && !in_array($entryMode, [0100000, 0040000], true)) throw new RuntimeException('DCP ZIP contains a special file: ' . $relative);
             $userData = self::isUserDataPath($relative);
             if ($userData) {
                 if ($fullPackage) continue;
@@ -419,7 +431,7 @@ final class DcpMacOSUpdater
             $target = $root . '/' . $relative;
             $parent = dirname($target);
             if (!is_dir($parent) && !mkdir($parent, 0755, true) && !is_dir($parent)) throw new RuntimeException('Could not create DCP staging subdirectory.');
-            if ($entry->isDir()) {
+            if ($isDirectory) {
                 if (!is_dir($target) && !mkdir($target, 0755, true) && !is_dir($target)) throw new RuntimeException('Could not create DCP package directory.');
                 continue;
             }
@@ -592,110 +604,229 @@ final class DcpMacOSUpdater
     {
         $root = realpath($root) ?: throw new RuntimeException('DCP installation root is missing.');
         $userData = $root . '/DCP-UserData/macOS';
-        $backupRelative = 'DCP-UserData/macOS/storage/updates/backups';
-        $backupParent = self::assertNoSymlinkPath($root, $backupRelative);
-        if (!is_dir($backupParent) && !mkdir($backupParent, 0700, true) && !is_dir($backupParent)) throw new RuntimeException('Could not create DCP rollback storage.');
-        if (is_link($backupParent)) throw new RuntimeException('DCP rollback storage must not be a symlink.');
-        $backupRoot = $backupParent . '/' . gmdate('Ymd\THis\Z') . '-' . bin2hex(random_bytes(3));
-        if (!mkdir($backupRoot, 0700, true)) throw new RuntimeException('Could not create DCP rollback snapshot.');
-        $appPath = $root . '/DCP.app';
-        $appBackup = $backupRoot . '/DCP.app';
-        $appBackedUp = false;
-        $applied = [];
-        $mutationStarted = false;
-        $critical = [];
+        $transaction = new DcpLinuxUpdateTransaction($root, $userData);
+        $strategy = (string)($package['strategy'] ?? 'delta');
+        $manifest = $package['manifest'] ?? [];
+        $committed = false;
+        $result = null;
         try {
-            $critical = self::snapshotCriticalData($root, $backupRoot);
-            self::copyTree($appPath, $appBackup);
-            $appBackedUp = true;
-            $stage = $package['stage'];
-            foreach ($package['manifest']['files'] as $file) {
-                $relative = (string)$file['path'];
-                self::validateUpdatePath($relative);
-                $source = $stage . '/' . $relative;
-                $target = self::assertNoSymlinkPath($root, $relative);
-                if (!is_file($source)) throw new RuntimeException('Staged DCP update file is missing: ' . $relative);
-                if (!is_dir(dirname($target)) && !mkdir(dirname($target), 0755, true) && !is_dir(dirname($target))) throw new RuntimeException('Could not create DCP update target directory.');
-                $exists = file_exists($target);
-                if ($exists && !is_file($target)) throw new RuntimeException('DCP update target is not a regular file: ' . $relative);
-                if ($exists && !str_starts_with($relative, 'DCP.app/')) {
-                    $backup = $backupRoot . '/files/' . $relative;
-                    if (!is_dir(dirname($backup)) && !mkdir(dirname($backup), 0700, true) && !is_dir(dirname($backup))) throw new RuntimeException('Could not create DCP file backup directory.');
-                    if (!copy($target, $backup)) throw new RuntimeException('Could not back up DCP file: ' . $relative);
-                }
-                $applied[] = ['path' => $relative, 'exists' => $exists];
-                $mutationStarted = true;
-                $temporary = $target . '.dcp-update-' . bin2hex(random_bytes(4));
-                if (!copy($source, $temporary) || !rename($temporary, $target)) {
-                    @unlink($temporary);
-                    throw new RuntimeException('Could not atomically replace DCP file: ' . $relative);
-                }
-                @chmod($target, fileperms($source) & 0777);
+            if ($strategy === 'delta') {
+                $result = $transaction->applyDelta($package['stage'], $manifest['files'] ?? [], $manifest['deleted'] ?? []);
+            } elseif ($strategy === 'full') {
+                $result = $transaction->applyFullPackage($package['stage'], $manifest['deleted'] ?? []);
+            } else {
+                throw new RuntimeException('Unsupported DCP macOS update strategy: ' . $strategy);
             }
-            foreach ($package['manifest']['deleted'] as $relative) {
-                self::validateUpdatePath((string)$relative);
-                $target = self::assertNoSymlinkPath($root, (string)$relative);
-                if (!file_exists($target)) continue;
-                if (!is_file($target)) throw new RuntimeException('DCP deletion target is not a regular file: ' . $relative);
-                if (!str_starts_with((string)$relative, 'DCP.app/')) {
-                    $backup = $backupRoot . '/files/' . $relative;
-                    if (!is_dir(dirname($backup)) && !mkdir(dirname($backup), 0700, true) && !is_dir(dirname($backup))) throw new RuntimeException('Could not create DCP deletion backup directory.');
-                    if (!copy($target, $backup)) throw new RuntimeException('Could not back up deleted DCP file: ' . $relative);
-                }
-                $applied[] = ['path' => (string)$relative, 'exists' => true];
-                $mutationStarted = true;
-                if (!unlink($target)) throw new RuntimeException('Could not remove obsolete DCP file: ' . $relative);
-            }
-
+            $committed = true;
             if ($nativeChecks) {
-                self::runCommand(['/usr/bin/codesign', '--force', '--deep', '--sign', '-', $appPath]);
-                self::runCommand(['/usr/bin/codesign', '--verify', '--deep', '--strict', $appPath]);
-                @unlink(self::assertNoSymlinkPath($root, 'DCP-UserData/macOS/storage/runtime-port.txt'));
-                @unlink(self::assertNoSymlinkPath($root, 'DCP-UserData/macOS/storage/runtime-pid.txt'));
-                self::launchApp($appPath);
-                if (!self::waitForHealthyApi($root, 40, 500000)) throw new RuntimeException('Updated DCP /api/status did not become healthy.');
+                self::runCommand(['/usr/bin/codesign', '--force', '--deep', '--sign', '-', '--timestamp=none', $root . '/DCP.app']);
+                self::runCommand(['/usr/bin/codesign', '--verify', '--deep', '--strict', $root . '/DCP.app']);
+                self::writeUpdaterState($root, 'health-check', (string)($manifest['release_tag'] ?? ''));
+                self::launchApp($root . '/DCP.app');
+                if (!self::waitForHealthyApi($root, 40, 500000)) throw new RuntimeException('Updated DCP.app did not remain healthy for 12 seconds.');
             } elseif ($healthCheck !== null && !$healthCheck()) {
                 throw new RuntimeException('Injected DCP post-update health check failure.');
             }
-            self::pruneBackups($backupParent, 2);
-            return $backupRoot;
+            $transaction->markLatestHealthy();
+            $backupId = (string)($result['backup'] ?? '');
+            if ($backupId === '') throw new RuntimeException('DCP update transaction did not return its rollback snapshot ID.');
+            return $userData . '/storage/updates/backups/' . $backupId;
         } catch (Throwable $error) {
-            try {
-                if ($nativeChecks) self::stopCurrentApp($root);
-                $entries = array_reverse($applied);
-                foreach ($entries as $operation) {
-                    $relative = $operation['path'];
-                    if (str_starts_with($relative, 'DCP.app/')) continue;
-                    $target = self::assertNoSymlinkPath($root, $relative);
-                    $backup = $backupRoot . '/files/' . $relative;
-                    if ($operation['exists']) {
-                        if (!is_file($backup)) throw new RuntimeException('DCP rollback file is missing: ' . $relative);
-                        if (!is_dir(dirname($target)) && !mkdir(dirname($target), 0755, true) && !is_dir(dirname($target))) throw new RuntimeException('Could not create rollback target directory.');
-                        $temporary = $target . '.dcp-rollback-' . bin2hex(random_bytes(4));
-                        if (!copy($backup, $temporary) || !rename($temporary, $target)) {
-                            @unlink($temporary);
-                            throw new RuntimeException('Could not restore DCP file: ' . $relative);
-                        }
-                    } elseif (is_file($target) && !unlink($target)) {
-                        throw new RuntimeException('Could not remove newly installed DCP file: ' . $relative);
+            if ($committed) {
+                try {
+                    if ($nativeChecks) self::stopCurrentApp($root);
+                    $transaction->rollbackLatest();
+                    if ($nativeChecks) {
+                        self::runCommand(['/usr/bin/codesign', '--force', '--deep', '--sign', '-', '--timestamp=none', $root . '/DCP.app']);
+                        self::runCommand(['/usr/bin/codesign', '--verify', '--deep', '--strict', $root . '/DCP.app']);
+                        self::writeUpdaterState($root, 'health-check', (string)($manifest['release_tag'] ?? ''));
+                        self::launchApp($root . '/DCP.app');
+                        if (!self::waitForHealthyApi($root, 40, 500000)) throw new RuntimeException('The previous DCP.app was restored but did not pass its restart health check.');
                     }
+                    self::log('Journaled DCP package rollback completed: ' . $error->getMessage());
+                } catch (Throwable $rollbackError) {
+                    throw new RuntimeException('DCP update failed and journaled rollback needs recovery: ' . $rollbackError->getMessage(), 99, $error);
                 }
-                if ($appBackedUp) {
-                    self::removeTree($appPath);
-                    self::copyTree($appBackup, $appPath);
-                }
-                self::restoreCriticalData($root, $critical);
-                if ($nativeChecks) {
-                    self::runCommand(['/usr/bin/codesign', '--force', '--deep', '--sign', '-', $appPath]);
-                    self::runCommand(['/usr/bin/codesign', '--verify', '--deep', '--strict', $appPath]);
-                }
-                self::pruneBackups($backupParent, 2);
-                self::log('Update rolled back successfully: ' . $error->getMessage());
-            } catch (Throwable $rollbackError) {
-                self::log('CRITICAL: rollback failed; recovery snapshot retained at ' . $backupRoot . ': ' . $rollbackError->getMessage());
-                throw new RuntimeException('DCP update failed and rollback needs manual recovery. Snapshot: ' . $backupRoot, 99, $error);
             }
             throw $error;
+        }
+    }
+
+    private static function acquireUpdateLock(string $root)
+    {
+        $updates = self::assertNoSymlinkPath($root, 'DCP-UserData/macOS/storage/updates');
+        if (!is_dir($updates) && !mkdir($updates, 0700, true) && !is_dir($updates)) throw new RuntimeException('Could not create DCP macOS updater state directory.');
+        if (is_link($updates)) throw new RuntimeException('DCP macOS updater state directory may not be a symlink.');
+        $path = $updates . '/updater.lock';
+        if (is_link($path) || (file_exists($path) && !is_file($path))) throw new RuntimeException('DCP macOS updater lock path is unsafe.');
+        $handle = fopen($path, 'c+b');
+        if ($handle === false) throw new RuntimeException('Could not open the DCP macOS updater lock.');
+        chmod($path, 0600);
+        if (!flock($handle, LOCK_EX | LOCK_NB)) {
+            fclose($handle);
+            throw new RuntimeException('Another DCP macOS update or recovery is already running.', 11);
+        }
+        return $handle;
+    }
+
+    private static function releaseUpdateLock($handle): void
+    {
+        if (is_resource($handle)) { flock($handle, LOCK_UN); fclose($handle); }
+    }
+
+    private static function updaterStatePath(string $root): string
+    {
+        return self::assertNoSymlinkPath($root, 'DCP-UserData/macOS/storage/updates/updater-state.json');
+    }
+
+    private static function writeUpdaterState(string $root, string $phase, ?string $releaseTag = null): void
+    {
+        $path = self::updaterStatePath($root);
+        $directory = dirname($path);
+        if (!is_dir($directory) && !mkdir($directory, 0700, true) && !is_dir($directory)) {
+            throw new RuntimeException('Could not create DCP updater state directory.');
+        }
+        $state = [
+            'schema' => 1,
+            'pid' => getmypid(),
+            'phase' => $phase,
+            'release_tag' => $releaseTag,
+            'updated_at' => time(),
+        ];
+        $temporary = $path . '.tmp-' . bin2hex(random_bytes(6));
+        $handle = fopen($temporary, 'xb');
+        if ($handle === false) throw new RuntimeException('Could not write DCP updater state.');
+        try {
+            chmod($temporary, 0600);
+            $bytes = json_encode($state, JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+            if (fwrite($handle, $bytes) !== strlen($bytes) || !fflush($handle)) {
+                throw new RuntimeException('Could not flush DCP updater state.');
+            }
+            if (function_exists('fsync')) @fsync($handle);
+        } catch (Throwable $error) {
+            fclose($handle);
+            @unlink($temporary);
+            throw $error;
+        }
+        fclose($handle);
+        if (!rename($temporary, $path)) {
+            @unlink($temporary);
+            throw new RuntimeException('Could not atomically publish DCP updater state.');
+        }
+        chmod($path, 0600);
+    }
+
+    private static function readUpdaterState(string $root): ?array
+    {
+        $path = self::updaterStatePath($root);
+        if (!is_file($path)) return null;
+        $state = json_decode((string)file_get_contents($path), true);
+        return is_array($state) && ($state['schema'] ?? null) === 1 ? $state : null;
+    }
+
+    private static function removeUpdaterState(string $root): void
+    {
+        $path = self::updaterStatePath($root);
+        if (is_file($path) && !unlink($path)) throw new RuntimeException('Could not clear DCP updater state.');
+    }
+
+    private static function isUpdaterProcessActive(array $state): bool
+    {
+        $pid = (int)($state['pid'] ?? 0);
+        if ($pid < 2) return false;
+        $command = shell_exec('/bin/ps -p ' . $pid . ' -o command=');
+        if (!is_string($command)) return false;
+        return str_contains($command, basename(__FILE__)) && str_contains($command, '--apply');
+    }
+
+    private static function processMatchesDcpApp(int $pid, string $root): bool
+    {
+        if ($pid < 2) return false;
+        $expected = $root . '/DCP.app/Contents/MacOS/DCP';
+        $command = shell_exec('/bin/ps -p ' . $pid . ' -o command=');
+        if (!is_string($command)) return false;
+        $command = ltrim(trim($command), "\\\"'");
+        return str_starts_with($command, $expected)
+            && (strlen($command) === strlen($expected) || ctype_space($command[strlen($expected)]));
+    }
+
+    private static function assertNoRunningDcpProcesses(string $root, int $ignorePid = 0): void
+    {
+        $app = $root . '/DCP.app/Contents/MacOS/DCP';
+        $router = realpath($root . '/platform/public/router.php') ?: $root . '/platform/public/router.php';
+        $output = shell_exec('/bin/ps -axo pid=,args=');
+        if (!is_string($output) || $output === '') throw new RuntimeException('Could not inspect macOS processes; refusing to update.');
+        foreach (preg_split('/\\R/', $output) ?: [] as $line) {
+            if (!preg_match('/^\\s*(\\d+)\\s+(.*)$/', $line, $match)) continue;
+            $pid = (int)$match[1];
+            if ($pid < 2 || $pid === getmypid()) continue;
+            $args = $match[2];
+            if ($pid === $ignorePid) {
+                if (!self::processMatchesDcpApp($pid, $root)) {
+                    throw new RuntimeException('Recovery PID does not belong to the installed DCP.app.');
+                }
+                continue;
+            }
+            $isApp = str_contains($args, $app);
+            $isRouter = str_contains($args, $router);
+            if ($isApp || $isRouter) {
+                throw new RuntimeException('Close DCP before applying a macOS update. Running process: ' . $pid . '. No process was stopped.');
+            }
+        }
+    }
+
+    private static function waitForAppExit(int $pid, string $root): void
+    {
+        if ($pid < 2 || $pid === getmypid()) return;
+        $deadline = time() + 120;
+        while (self::processMatchesDcpApp($pid, $root) && time() < $deadline) sleep(1);
+        if (self::processMatchesDcpApp($pid, $root)) throw new RuntimeException('Timed out waiting for the previous DCP.app process to exit.');
+    }
+
+    public static function recoverInterrupted(string $root, int $ignorePid = 0, bool $nativeChecks = true): int
+    {
+        $root = realpath($root) ?: throw new RuntimeException('DCP installation root is missing.');
+        try {
+            $lock = self::acquireUpdateLock($root);
+        } catch (RuntimeException $error) {
+            if ($error->getCode() !== 11) throw $error;
+            $state = self::readUpdaterState($root);
+            if (is_array($state) && ($state['phase'] ?? '') === 'health-check' && self::isUpdaterProcessActive($state)) {
+                try {
+                    self::assertNoRunningDcpProcesses($root, $ignorePid);
+                    return -1; // An active updater deliberately launched this app for its health check.
+                } catch (Throwable) {
+                    return -2; // Another DCP instance is already running.
+                }
+            }
+            return -2; // An update is active; this app instance must not start.
+        }
+        try {
+            self::assertNoRunningDcpProcesses($root, $ignorePid);
+            $transaction = new DcpLinuxUpdateTransaction($root, $root . '/DCP-UserData/macOS');
+            $state = self::readUpdaterState($root);
+            if (!$transaction->hasIncompleteTransactions()) {
+                if ($nativeChecks && ($state['phase'] ?? '') === 'recovery-required') {
+                    self::runCommand(['/usr/bin/codesign', '--force', '--deep', '--sign', '-', '--timestamp=none', $root . '/DCP.app']);
+                    self::runCommand(['/usr/bin/codesign', '--verify', '--deep', '--strict', $root . '/DCP.app']);
+                }
+                self::removeUpdaterState($root);
+                return 0;
+            }
+            try {
+                $result = $transaction->recoverInterruptedTransactions();
+                if ($nativeChecks && ($result['recovered'] ?? 0) > 0) {
+                    self::runCommand(['/usr/bin/codesign', '--force', '--deep', '--sign', '-', '--timestamp=none', $root . '/DCP.app']);
+                    self::runCommand(['/usr/bin/codesign', '--verify', '--deep', '--strict', $root . '/DCP.app']);
+                }
+                self::removeUpdaterState($root);
+                self::log('Recovered interrupted macOS package transactions: ' . (int)($result['recovered'] ?? 0));
+                return (int)($result['recovered'] ?? 0);
+            } catch (Throwable $error) {
+                throw new RuntimeException('Interrupted DCP update recovery failed: ' . $error->getMessage(), 99, $error);
+            }
+        } finally {
+            self::releaseUpdateLock($lock);
         }
     }
 
@@ -706,44 +837,67 @@ final class DcpMacOSUpdater
         if ($status !== 0) throw new RuntimeException('DCP update command failed: ' . implode("\n", $output));
     }
 
-    private static function launchApp(string $appPath): void
+    private static function launchApp(string $appPath, bool $newInstance = false): void
     {
-        $command = '/usr/bin/open -a ' . escapeshellarg($appPath) . ' >/dev/null 2>&1 &';
+        $newFlag = $newInstance ? '-n ' : '';
+        $command = '/usr/bin/open ' . $newFlag . '-a ' . escapeshellarg($appPath) . ' >/dev/null 2>&1 &';
         exec($command);
     }
 
-    private static function stopCurrentApp(string $root): void
+    public static function stopCurrentApp(string $root): void
     {
         $pidFile = self::assertNoSymlinkPath($root, 'DCP-UserData/macOS/storage/runtime-pid.txt');
         $pid = is_file($pidFile) ? (int)trim((string)file_get_contents($pidFile)) : 0;
-        if ($pid > 1 && $pid !== getmypid()) {
-            $expectedExecutable = $root . '/DCP.app/Contents/MacOS/DCP';
-            $command = shell_exec('/bin/ps -p ' . $pid . ' -o command=');
-            if (!is_string($command) || !str_contains($command, $expectedExecutable)) return;
-            @posix_kill($pid, SIGTERM);
-            usleep(500000);
-            if (@posix_kill($pid, 0)) @posix_kill($pid, SIGKILL);
+        if ($pid < 2 || !self::processMatchesDcpApp($pid, $root)) return;
+        if (!function_exists('posix_kill')) throw new RuntimeException('POSIX process control is unavailable; refusing to stop DCP.app.');
+        if (!posix_kill($pid, SIGTERM)) throw new RuntimeException('Could not request graceful DCP.app shutdown.');
+        $deadline = time() + 15;
+        while (self::processMatchesDcpApp($pid, $root) && time() < $deadline) sleep(1);
+        if (self::processMatchesDcpApp($pid, $root)) {
+            // Re-check executable identity immediately before the only forced stop.
+            if (!self::processMatchesDcpApp($pid, $root)) return;
+            if (!posix_kill($pid, SIGKILL)) throw new RuntimeException('DCP.app did not exit after SIGTERM; forced stop failed.');
+            $deadline = time() + 5;
+            while (self::processMatchesDcpApp($pid, $root) && time() < $deadline) usleep(200000);
+            if (self::processMatchesDcpApp($pid, $root)) throw new RuntimeException('DCP.app process did not exit; refusing to mutate its files.');
         }
+    }
+
+    private static function isApiHealthy(int $port): bool
+    {
+        $curl = curl_init('http://127.0.0.1:' . $port . '/api/status');
+        if ($curl === false) return false;
+        curl_setopt_array($curl, [CURLOPT_RETURNTRANSFER => true, CURLOPT_CONNECTTIMEOUT => 1, CURLOPT_TIMEOUT => 2]);
+        $body = curl_exec($curl);
+        $status = (int)curl_getinfo($curl, CURLINFO_RESPONSE_CODE);
+        curl_close($curl);
+        if (!is_string($body) || $status !== 200) return false;
+        $json = json_decode($body, true);
+        return is_array($json) && ($json['ok'] ?? false) === true;
+    }
+
+    private static function isDcpAppRunning(string $root): bool
+    {
+        $pidFile = self::assertNoSymlinkPath($root, 'DCP-UserData/macOS/storage/runtime-pid.txt');
+        $pid = is_file($pidFile) ? (int)trim((string)file_get_contents($pidFile)) : 0;
+        return self::processMatchesDcpApp($pid, $root);
     }
 
     private static function waitForHealthyApi(string $root, int $attempts, int $sleepMicros): bool
     {
         $portFile = self::assertNoSymlinkPath($root, 'DCP-UserData/macOS/storage/runtime-port.txt');
+        $pidFile = self::assertNoSymlinkPath($root, 'DCP-UserData/macOS/storage/runtime-pid.txt');
         for ($attempt = 0; $attempt < $attempts; $attempt++) {
-            if (is_file($portFile)) {
+            $pid = is_file($pidFile) ? (int)trim((string)file_get_contents($pidFile)) : 0;
+            if ($pid > 1 && self::processMatchesDcpApp($pid, $root) && is_file($portFile)) {
                 $port = (int)trim((string)file_get_contents($portFile));
-                if ($port >= 1 && $port <= 65535) {
-                    $curl = curl_init('http://127.0.0.1:' . $port . '/api/status');
-                    if ($curl !== false) {
-                        curl_setopt_array($curl, [CURLOPT_RETURNTRANSFER => true, CURLOPT_CONNECTTIMEOUT => 1, CURLOPT_TIMEOUT => 2]);
-                        $body = curl_exec($curl);
-                        $status = (int)curl_getinfo($curl, CURLINFO_RESPONSE_CODE);
-                        curl_close($curl);
-                        if (is_string($body) && $status === 200) {
-                            $json = json_decode($body, true);
-                            if (is_array($json) && ($json['ok'] ?? false) === true) return true;
-                        }
+                if ($port >= 1 && $port <= 65535 && self::isApiHealthy($port)) {
+                    $stableUntil = time() + 12;
+                    while (time() < $stableUntil) {
+                        if (!self::processMatchesDcpApp($pid, $root) || !self::isApiHealthy($port)) return false;
+                        sleep(1);
                     }
+                    return self::processMatchesDcpApp($pid, $root) && self::isApiHealthy($port);
                 }
             }
             usleep($sleepMicros);
@@ -760,44 +914,63 @@ final class DcpMacOSUpdater
 
     private static function apply(string $root, string $currentVersion, int $currentRevision, int $pid): void
     {
-        if ($pid > 1 && $pid !== getmypid()) {
-            $deadline = time() + 120;
-            while (@posix_kill($pid, 0) && time() < $deadline) sleep(1);
-            if (@posix_kill($pid, 0)) throw new RuntimeException('Timed out waiting for the previous DCP.app process to exit.');
-        }
-        $userData = $root . '/DCP-UserData/macOS';
-        @unlink(self::assertNoSymlinkPath($root, 'DCP-UserData/macOS/storage/runtime-port.txt'));
-        @unlink(self::assertNoSymlinkPath($root, 'DCP-UserData/macOS/storage/runtime-pid.txt'));
-        $release = self::verifyRelease($root);
-        if ($release === []) { self::launchApp($root . '/DCP.app'); return; }
-        $manifest = $release['manifest'];
-        $latestVersion = (string)$manifest['version'];
-        $latestRevision = (int)$manifest['package_revision'];
-        if (self::compareVersions($latestVersion, $currentVersion) < 0 ||
-            (self::compareVersions($latestVersion, $currentVersion) === 0 && $latestRevision <= $currentRevision)) {
-            self::launchApp($root . '/DCP.app');
-            return;
-        }
+        $root = realpath($root) ?: throw new RuntimeException('DCP installation root is missing.');
+        $lock = self::acquireUpdateLock($root);
         $package = null;
+        $release = null;
+        $preserveState = false;
         try {
+            self::writeUpdaterState($root, 'waiting-for-app-exit');
+            self::waitForAppExit($pid, $root);
+            self::assertNoRunningDcpProcesses($root, 0);
+            $userData = $root . '/DCP-UserData/macOS';
+            @unlink(self::assertNoSymlinkPath($root, 'DCP-UserData/macOS/storage/runtime-port.txt'));
+            @unlink(self::assertNoSymlinkPath($root, 'DCP-UserData/macOS/storage/runtime-pid.txt'));
+            $release = self::verifyRelease($root);
+            if ($release === []) {
+                self::writeUpdaterState($root, 'health-check');
+                self::launchApp($root . '/DCP.app');
+                return;
+            }
+            $manifest = $release['manifest'];
+            $latestVersion = (string)$manifest['version'];
+            $latestRevision = (int)$manifest['package_revision'];
+            if (self::compareVersions($latestVersion, $currentVersion) < 0 ||
+                (self::compareVersions($latestVersion, $currentVersion) === 0 && $latestRevision <= $currentRevision)) {
+                self::writeUpdaterState($root, 'health-check', $release['tag']);
+                self::launchApp($root . '/DCP.app');
+                return;
+            }
+            self::writeUpdaterState($root, 'downloading', $release['tag']);
             $package = self::downloadAndStage($root, $release, $currentVersion, $currentRevision);
+            self::writeUpdaterState($root, 'applying', $release['tag']);
             self::applyTransaction($root, $package, $package['work_root']);
             @unlink($userData . '/storage/updates/last-failed-release.json');
             self::log('Update installed: ' . $latestVersion . ' revision ' . $latestRevision . ' using ' . $package['strategy'] . '.');
         } catch (Throwable $error) {
-            $failureDirectory = $userData . '/storage/updates';
-            if (!is_dir($failureDirectory)) @mkdir($failureDirectory, 0700, true);
-            @file_put_contents($failureDirectory . '/last-failed-release.json', json_encode(['tag' => $release['tag'], 'time' => time()], JSON_UNESCAPED_SLASHES) . PHP_EOL, LOCK_EX);
+            if ($error->getCode() === 99) {
+                $preserveState = true;
+                try { self::writeUpdaterState($root, 'recovery-required', is_array($release) ? $release['tag'] : null); } catch (Throwable) {}
+            }
+            if (is_array($release)) {
+                $failureDirectory = $root . '/DCP-UserData/macOS/storage/updates';
+                if (!is_dir($failureDirectory)) @mkdir($failureDirectory, 0700, true);
+                @file_put_contents($failureDirectory . '/last-failed-release.json', json_encode(['tag' => $release['tag'], 'time' => time()], JSON_UNESCAPED_SLASHES) . PHP_EOL, LOCK_EX);
+            }
             self::log('Update failed: ' . $error->getMessage());
             throw $error;
         } finally {
             if (is_array($package) && isset($package['work_root'])) self::removeTree($package['work_root']);
+            if (!$preserveState) {
+                try { self::removeUpdaterState($root); } catch (Throwable $error) { self::log($error->getMessage()); }
+            }
+            self::releaseUpdateLock($lock);
         }
     }
 
     public static function main(array $argv): int
     {
-        $options = getopt('', ['check', 'apply', 'root:', 'version:', 'revision:', 'pid:']);
+        $options = getopt('', ['check', 'apply', 'recover', 'root:', 'version:', 'revision:', 'pid:']);
         $root = realpath((string)($options['root'] ?? '')) ?: '';
         $version = (string)($options['version'] ?? '0.0.0');
         $revision = (int)($options['revision'] ?? 0);
@@ -812,17 +985,28 @@ final class DcpMacOSUpdater
                 echo json_encode($result, JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . PHP_EOL;
                 return 0;
             }
+            if (isset($options['recover'])) {
+                $recovered = self::recoverInterrupted($root, (int)($options['pid'] ?? 0), true);
+                if ($recovered === -1) return 12;
+                if ($recovered === -2) return 11;
+                if ($recovered > 0) {
+                    // The native wrapper schedules a relaunch only after its current
+                    // process exits; opening here races the still-running app instance.
+                    return 10;
+                }
+                return 0;
+            }
             if (isset($options['apply'])) {
                 self::apply($root, $version, $revision, (int)($options['pid'] ?? 0));
                 return 0;
             }
-            fwrite(STDERR, "Use --check or --apply.\n");
+            fwrite(STDERR, "Use --check, --recover or --apply.\n");
             return 2;
         } catch (Throwable $error) {
             self::log($error->getMessage());
             fwrite(STDERR, 'DCP macOS updater: ' . $error->getMessage() . PHP_EOL);
-            if (isset($options['apply']) && $error->getCode() !== 99) self::launchApp($root . '/DCP.app');
-            return 1;
+            if (isset($options['apply']) && !in_array($error->getCode(), [11, 99], true)) self::launchApp($root . '/DCP.app');
+            return in_array($error->getCode(), [11, 99], true) ? $error->getCode() : 1;
         }
     }
 }

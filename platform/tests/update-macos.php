@@ -155,7 +155,9 @@ try {
         file_get_contents($successFixture['install'] . '/DCP-UserData/macOS/data/dcp.sqlite-wal') === 'real wal fixture' &&
         file_get_contents($successFixture['install'] . '/DCP-UserData/macOS/storage/keys/master.key') === 'real encryption key fixture',
         'successful transaction preserves SQLite, WAL and master.key');
-    checkMacUpdate(file_get_contents($successBackup . '/DCP.app/Contents/Info.plist') === 'old app metadata', 'successful transaction retains a full app rollback snapshot');
+    checkMacUpdate(file_get_contents($successBackup . '/files/DCP.app/Contents/Info.plist') === 'old app metadata', 'successful transaction retains the previous app bundle files in its rollback snapshot');
+    $successJournal = json_decode((string)file_get_contents($successBackup . '/journal.json'), true);
+    checkMacUpdate(is_array($successJournal) && ($successJournal['status'] ?? '') === 'committed' && ($successJournal['health_status'] ?? '') === 'passed', 'successful transaction marks its durable journal healthy');
 
     $rollbackFixture = makeMacTransactionFixture($root, 'transaction-rollback');
     putenv('DCP_INSTALL_ROOT=' . $rollbackFixture['install']);
@@ -172,6 +174,58 @@ try {
     checkMacUpdate(file_get_contents($rollbackFixture['install'] . '/DCP-UserData/macOS/data/dcp.sqlite') === 'real database fixture' &&
         file_get_contents($rollbackFixture['install'] . '/DCP-UserData/macOS/storage/keys/master.key') === 'real encryption key fixture',
         'rollback preserves SQLite and master.key');
+
+    $crashFixture = makeMacTransactionFixture($root, 'transaction-crash-recovery');
+    $backupRoot = $crashFixture['install'] . '/DCP-UserData/macOS/storage/updates/backups/20261124T170000Z-crash';
+    mkdir($backupRoot . '/files/DCP.app/Contents', 0700, true);
+    mkdir($backupRoot . '/files/platform/app', 0700, true);
+    copy($crashFixture['install'] . '/DCP.app/Contents/Info.plist', $backupRoot . '/files/DCP.app/Contents/Info.plist');
+    copy($crashFixture['install'] . '/platform/app/index.php', $backupRoot . '/files/platform/app/index.php');
+    copy($crashFixture['install'] . '/platform/app/removed.php', $backupRoot . '/files/platform/app/removed.php');
+    file_put_contents($crashFixture['install'] . '/DCP.app/Contents/Info.plist', 'partially updated app');
+    file_put_contents($crashFixture['install'] . '/platform/app/index.php', 'partially updated platform');
+    file_put_contents($crashFixture['install'] . '/platform/app/new.php', 'partially installed file');
+    unlink($crashFixture['install'] . '/platform/app/removed.php');
+    $crashJournal = [
+        'schema' => 1,
+        'id' => basename($backupRoot),
+        'strategy' => 'delta',
+        'status' => 'applying',
+        'health_status' => 'pending',
+        'created_at' => gmdate(DATE_ATOM),
+        'operations' => [
+            ['path' => 'DCP.app/Contents/Info.plist', 'existed' => true, 'mode' => 0644, 'applied' => true],
+            ['path' => 'platform/app/index.php', 'existed' => true, 'mode' => 0644, 'applied' => true],
+            ['path' => 'platform/app/new.php', 'existed' => false, 'mode' => 0644, 'applied' => true],
+            ['path' => 'platform/app/removed.php', 'existed' => true, 'mode' => 0644, 'applied' => true],
+        ],
+    ];
+    file_put_contents($backupRoot . '/journal.json', json_encode($crashJournal, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+    putenv('DCP_INSTALL_ROOT=' . $crashFixture['install']);
+    $recovered = DcpMacOSUpdater::recoverInterrupted($crashFixture['install'], 0, false);
+    checkMacUpdate($recovered === 1, 'startup recovery detects and replays an interrupted macOS transaction journal');
+    checkMacUpdate(file_get_contents($crashFixture['install'] . '/DCP.app/Contents/Info.plist') === 'old app metadata' &&
+        file_get_contents($crashFixture['install'] . '/platform/app/index.php') === 'old application' &&
+        !file_exists($crashFixture['install'] . '/platform/app/new.php') &&
+        file_get_contents($crashFixture['install'] . '/platform/app/removed.php') === 'old file to delete',
+        'crash recovery restores old app and platform files and removes partial additions');
+    $recoveredJournal = json_decode((string)file_get_contents($backupRoot . '/journal.json'), true);
+    checkMacUpdate(is_array($recoveredJournal) && ($recoveredJournal['status'] ?? '') === 'rolled_back',
+        'crash recovery durably marks the interrupted journal rolled back');
+    checkMacUpdate(file_get_contents($crashFixture['install'] . '/DCP-UserData/macOS/data/dcp.sqlite') === 'real database fixture' &&
+        file_get_contents($crashFixture['install'] . '/DCP-UserData/macOS/storage/keys/master.key') === 'real encryption key fixture',
+        'crash recovery leaves the user database and encryption key untouched');
+    $recoverScript = realpath(__DIR__ . '/../scripts/update-macos.php');
+    $recoverCommand = escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($recoverScript) . ' --recover --root ' . escapeshellarg($crashFixture['install']);
+    exec($recoverCommand . ' 2>&1', $recoverOutput, $recoverStatus);
+    checkMacUpdate($recoverStatus === 0, 'macOS updater CLI accepts --recover when no interrupted transaction remains');
+    $lockPath = $crashFixture['install'] . '/DCP-UserData/macOS/storage/updates/updater.lock';
+    $lockHandle = fopen($lockPath, 'c');
+    if ($lockHandle === false || !flock($lockHandle, LOCK_EX | LOCK_NB)) throw new RuntimeException('Could not acquire updater lock test fixture.');
+    $busyRecovery = DcpMacOSUpdater::recoverInterrupted($crashFixture['install'], 0, false);
+    flock($lockHandle, LOCK_UN);
+    fclose($lockHandle);
+    checkMacUpdate($busyRecovery === -2, 'startup recovery refuses to race an active updater lock');
 
     echo 'ALL MACOS UPDATE CONTRACT TESTS PASSED (' . $assertions . ' assertions)' . PHP_EOL;
 } finally {
