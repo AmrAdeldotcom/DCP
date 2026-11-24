@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
   "project": "DCP — Desktop Connector Platform",
-  "updatedAt": "2026-11-24T05:00:00+02:00",
-  "session": "DC10",
+  "updatedAt": "2026-11-24T18:58:54+02:00",
+  "session": "DC18",
   "repository": "/Volumes/Data/ChatGPT/DCP",
-  "branch": "fix/alpha7-localai-cloud-pairing",
-  "headCommit": "e3b8bf2db2e827c07a227f39ec2b4cbb33682a23",
-  "latestReleaseTag": "v1.0.0-alpha.8",
-  "workingTree": "dirty; local Q005 macOS OpenSSL license-path correction and project memory updates are uncommitted; unrelated cloud/web-entry/LocalAI changes preserved",
+  "branch": "feature/alpha10-package-revision",
+  "headCommit": "804b66b0477dadf5673c893237137304b4b41bdf",
+  "latestReleaseTag": "v1.0.0-alpha.9",
+  "workingTree": "DC18 source commit 4ddb91e and documentation checkpoint are committed; untracked macOS updater prototype, duplicate test-update-manifest workflow and proposal documents remain intentionally unstaged.",
   "device": {
     "name": "Amrs-Mac-Pro",
     "id": "a23231bf-eabc-441c-a6e2-560e3ae7f957",
@@ -17,38 +17,130 @@
   },
   "activeTask": "Q005",
   "activeTaskStatus": "partial",
-  "nextTask": "Commit/push macOS 12.0 minimum compatibility correction; rerun native Intel/ARM64 runtime and package CI; close Q005 only after all package gates pass, then Q006 LocalAI and Q007 Cloud.",
-  "nextTaskFile": "PROJECT-MEMORY/tasks/Q005-managed-php-macos.md",
+  "nextTask": "Finish Kali and native macOS CI on 4ddb91e; replace the untracked macOS updater prototype with a journaled packaged updater wired to main.m; wire signed schema-3 manifests/delta/full assets into a unified release workflow; configure the production signing secret; then perform Alpha9→Alpha10 and forced rollback/data-preservation acceptance on Ubuntu, Windows and Mac Intel (Apple Silicon via native CI).",
+  "nextTaskFile": "WORK-QUEUE.md",
   "followingTask": "Q006",
+  "latestSessionCheckpoint": {
+    "conversation": "DC18",
+    "date": "2026-11-24",
+    "timestamp": "2026-11-24T18:58:54+02:00",
+    "release": {
+      "tag": "v1.0.0-alpha.9",
+      "releaseId": 456688871,
+      "tagCommit": "8b5bf08d6291897338ca322432ccf1962e0c2ed1",
+      "assets": 6,
+      "status": "published and unchanged; no tag or asset was modified"
+    },
+    "alpha10": {
+      "branch": "feature/alpha10-package-revision",
+      "head": "4ddb91e38a0a919cfe7d7bc01cfc5a74f1a88f50",
+      "commits": [
+        "3f37d4d",
+        "8190261",
+        "ec170a6",
+        "d1e6f1a",
+        "59257c0",
+        "46a0753",
+        "7a70284",
+        "2f5a5d5",
+        "33bf482",
+        "4ddb91e"
+      ],
+      "status": "pushed; not merged or released"
+    },
+    "manifestFoundation": {
+      "schema": 3,
+      "keyId": "dcp-alpha10-rsa3072-20261124",
+      "publicKeySha256": "bd56b87af22d81bdff536dfa332d2cdc4bf27da7f387af84cb4bdd4d201fdd67",
+      "privateKeyStorage": "macOS Login Keychain; no private key material in repo or memory",
+      "githubSecret": "DCP_RELEASE_SIGNING_PRIVATE_KEY_B64 still requires manual repository Actions secret setup",
+      "implemented": "pinned RSA-SHA256 schema-3 verifier, delta/full manifest builder, detached signing script, Windows native verifier and Linux packaged updater verifier/transaction; release assembly still not wired"
+    },
+    "linuxUpdater": {
+      "status": "implemented and pushed; CI pending Kali confirmation",
+      "features": [
+        "per-install flock",
+        "DCP process guard; refuses, never kills",
+        "isolated health-check user data",
+        "fsynced pre-mutation journal",
+        "atomic same-directory replacement",
+        "crash recovery for interrupted apply and pending health",
+        "signed full deletion list",
+        "missing delta asset full fallback",
+        "PHP/runtime/native ELF/API/version health check"
+      ]
+    },
+    "windowsUpdater": {
+      "status": "native schema-3 client and full fallback selection pushed",
+      "features": [
+        "pinned manifest key",
+        "synchronized cross-platform manifests",
+        "official GitHub release URLs",
+        "platform/architecture and SHA-256/size",
+        "exact version+packageRevision base",
+        "full fallback for base mismatch or absent delta",
+        "PowerShell atomic replacement",
+        "transactional rollback and user-data preservation"
+      ],
+      "tests": "C# updater contract and PowerShell transaction tests passed locally and in clean Windows package CI"
+    },
+    "ci": {
+      "45442801370": "SUCCESS on 4ddb91e: Windows application build",
+      "45442801525": "SUCCESS on 4ddb91e: clean Windows package; signed updater contract tests and transactional update/rollback tests passed",
+      "45442801373": "SUCCESS on 4ddb91e: Ubuntu 24.04 Linux package build",
+      "45442801543": "SUCCESS on 4ddb91e: Cloud PHP validation",
+      "45442801351": "IN PROGRESS at checkpoint: Ubuntu package build passed; Kali runtime dependency install still running after Python3 dependency fix",
+      "45442801352": "IN PROGRESS at checkpoint: Intel PHP/llama build running; Apple Silicon PHP/llama queued",
+      "45439878530": "FAILED on 33bf482 because Python3 was absent in minimal Kali container; explicit Python3 install added in 4ddb91e",
+      "45435155319": "SUCCESS on 2f5a5d5: native Intel x86_64 and Apple Silicon arm64 package jobs passed"
+    },
+    "localValidation": "All passed on Amrs-Mac-Pro: platform suite; manifest/signature/tamper; delta builder; Linux extraction, transaction, crash recovery, isolated health and process guard; Windows PowerShell apply/full fallback/rollback/data preservation; Windows C# contract tests; Windows app dotnet build; PHP lint, JS syntax, Python compile, Bash/Zsh syntax, PowerShell parser and git diff --check. Temporary install-root Linux updater check failed closed with no complete signed release and was removed.",
+    "network": {
+      "state": "online",
+      "checkedAt": "2026-11-24T16:54:26Z",
+      "sshWindows": "verified via explicit SSH config as dcpadmin",
+      "sshUbuntu": "verified via explicit SSH config as amr; Ubuntu 24.04 x86_64, Python3/PHP present, no DCP process",
+      "resumeMarkerPresent": false,
+      "monitor": "com.digipl.dcp-network-watchdog; 600-second local transition recorder only, cannot reopen ChatGPT"
+    },
+    "next": "Finish run 45442801351 and 45442801352; implement safe macOS adapter/wrapper recovery; wire signed release assembly; then target device upgrade/rollback/data-preservation acceptance."
+  },
   "knownConstraints": [
-    "Current machines in scope are Mac and Windows; defer Linux implementation and preserve Linux/Kali updater compatibility.",
     "Work only in /Volumes/Data/ChatGPT/DCP.",
-    "Preserve installed alpha.8 copy until new layout is verified.",
-    "Do not change, stop, replace or reconfigure existing Apache, PHP, Homebrew services, Ollama or other user services.",
-    "Do not expose public tunnels until web entry authentication, rate limits and private-path protections are verified.",
-    "Never put secrets, credentials, .env files, keys, SQLite databases or runtime state in Git or project Markdown.",
-    "Do not commit, push, release or deploy without explicit approval and release gates.",
-    "Do not compile large runtimes on this Mac; disk has only about 8.3 GiB free.",
-    "SSH lab configuration and dcp-lab key are on /Volumes/Data/ChatGPT/DCP-Lab-SSH/; preserve the user's external-drive SSH organization preference."
+    "Preserve the existing Windows installation and its SQLite/master key until replacement launch and data decryption are verified; keep a timestamped rollback backup.",
+    "No public tunnel exposure until web entry authentication, private-path denial, rate limits and route isolation are verified.",
+    "Never put secrets, credentials, .env files, API keys, tokens, private keys, SQLite databases or runtime state in Git or project Markdown.",
+    "Do not stop, replace, reconfigure or hijack existing Apache, PHP, Homebrew services, Ollama or other user services.",
+    "Use the existing external SSH organization at /Volumes/Data/ChatGPT/DCP-Lab-SSH/; never move private keys into the repo.",
+    "Do not compile large runtimes locally; /Volumes/Data has about 8.1 GiB free and is 99% used.",
+    "No production migration/deployment until backup, schema review, rollback and web-entry security gates are met.",
+    "Never stage the whole dirty worktree; Q005 version, Q006 LocalAI and Q007 cloud changes must be reviewed and committed in isolated units.",
+    "Never rewrite the published v1.0.0-alpha.9 tag or silently replace its Linux asset; a corrected release needs a new approved tag/version.",
+    "Do not merge the release branch into default main automatically: main is behind and the merge includes accumulated product changes beyond the four-file Linux fix."
   ],
   "verifiedBaseline": {
-    "platformTests": "php platform/tests/run.php — ALL PLATFORM TESTS PASSED on 2026-11-23",
-    "runtimeInstallerTests": "bash platform/tests/runtime-macos-installer.sh — 6/6 passed",
-    "phpLint": "All platform PHP files linted successfully on 2026-11-23",
-    "javascriptSyntax": "node --check platform/public/assets/app.js passed",
-    "shellSyntax": "bash -n for macOS installer, tests and bootstrap/build scripts passed",
-    "wrapperCompile": "macOS Objective-C wrapper compiled for x86_64 target 10.15 and arm64 target 11.0",
-    "workflowSyntax": "Ruby YAML parsing passed for build-php-runtime-macos.yml, release-macos.yml, test-windows-package.yml and php-macos.craft.yml; actionlint unavailable",
-    "manifestJson": "php-runtime.json and runtime.json parsed successfully",
-    "gitDiffCheck": "git diff --check passed",
-    "hostRuntime": "Host PHP 8.5.9 with all required extensions; verify-runtime.php passed"
+    "platformTests": "php platform/tests/run.php — ALL PLATFORM TESTS PASSED after DC12 LocalAI runtime candidate tests (Linux x64, Intel Mac SSE4.2/AVX2, Apple Silicon).",
+    "phpLint": "All PHP files under platform linted successfully in DC11.",
+    "javascriptSyntax": "node --check platform/public/assets/app.js passed in DC11.",
+    "shellSyntax": "bash -n passed for Install-DCP-Online.sh, Linux llama.cpp/Ollama installers and macOS runtime installers.",
+    "powershellSyntax": "PowerShell parser passed for platform/scripts/update-windows.ps1, platform/tests/update-windows.ps1 and platform/scripts/build-windows.ps1; Windows updater transaction tests passed locally and in GitHub clean-package run 45418031542.",
+    "manifestJson": "platform/version.json parsed successfully in DC11.",
+    "gitDiffCheck": "git diff --check passed in DC12.",
+    "githubActions": "Alpha9 tag CI runs 45387266140/141, 45387266328, 45387266284/218 succeeded, but published Linux asset is defective. Alpha10 branch: Windows/Linux/Cloud runs 45413374795/74899/75192/74999 passed; macOS run 45413374893 failed because test workflow omitted DCPPackageRevision in test Info.plist; fixed in 8190261 and retry 45416881645 was queued. On ec170a6 Windows build 45418031428 and clean package 45418031542 passed; Linux 45418031828 and Cloud 45418031562 were still in progress at 16:49 EET.",
+    "workflowYaml": "All .github/workflows/*.yml parsed successfully with Ruby YAML.",
+    "linuxEngine": "Ubuntu 24.04: official llama.cpp b12655 SHA-256 matched; ldd no missing dependencies; --version passed; actual Linux installer completed in temporary tree using wget.",
+    "macEngine": "Mac Intel: AVX2 binary exited 132; SSE4.2 binary --version passed; service status resolves to SSE4.2; installer safely reused it.",
+    "windowsEngine": "Windows x64 official llama.cpp b12655 archive SHA-256 matched; binary --version passed on Windows host (downloaded via Ubuntu wget because direct Windows GitHub download stalled). No DCP application install.",
+    "cloudHardening": "Live oversized POST to /api/v1/login returned 413 request_body_too_large; /api/v1/health remained 200. API body limit 64 KiB, opportunistic expiry cleanup and additional IP-hashed rate limits added.",
+    "processOwnership": "Added automated non-Windows fixture test: LocalAI stop refuses a stale managed state pointing at unrelated /bin/sleep; verified the foreign process remained alive. Full platform test suite passed.",
+    "linuxPackageFix": "Commit 0e3f411 fixes the Linux package app-directory staging bug; branch CI 45398600124 passed Build, package assertions, PHP HTTP smoke and artifact upload. Corrected Ubuntu fixture passed Run-DCP.sh, root HTTP 200 and /api/status ok=true."
   },
   "hostConstraints": {
-    "freeDisk": "8.3 GiB available on /Volumes/Data; filesystem 99% used at last check",
+    "freeDisk": "14 GiB available on /Volumes/Data at 2026-11-24 14:49 EET; filesystem 99% used.",
     "php": "/usr/local/bin/php 8.5.9, Homebrew PHP present",
     "impact": "Do not compile PHP or install large build dependencies locally; use native GitHub Actions runners."
   },
-  "connectionNote": "Mac Desktop Commander online. Hostinger, Windows and Ubuntu key-based SSH verified. Keep private keys on external drive. No production deployment or data changes.",
+  "connectionNote": "Read-only SSH succeeded at 2026-11-24 18:54 EET using only /Volumes/Data/ChatGPT/DCP-Lab-SSH/config: Windows .99 as dcpadmin; Ubuntu .88 as amr. Ubuntu 24.04 has Python3/PHP and no DCP process. Default ~/.ssh/config aliases remain stale. Network resume marker absent. Local 600-second LaunchAgent only records transitions and cannot reopen ChatGPT.",
   "lastVerifiedFiles": [
     "WORK-QUEUE.md",
     "ROADMAP.md",
@@ -71,26 +163,63 @@
     ".github/workflows/test-windows-package.yml",
     "platform/docs/IMPLEMENTATION-CHECKLIST.md",
     ".github/workflows/test-macos-package.yml",
-    "PROJECT-MEMORY/ACCESS-INVENTORY.md"
+    "PROJECT-MEMORY/ACCESS-INVENTORY.md",
+    "platform/scripts/build-linux.sh",
+    ".github/workflows/build-linux.yml",
+    ".github/workflows/release-linux.yml",
+    "platform/tests/linux-package-smoke.sh",
+    "PROJECT-MEMORY/handoffs/DC10-windows-ubuntu-visual-check-2026-11-24.md",
+    "PROJECT-MEMORY/handoffs/DC11-post-install-validation-reconciliation-2026-11-24.md",
+    "PROJECT-MEMORY/runtime/network-state.json",
+    "PROJECT-MEMORY/runtime/network-watchdog.log",
+    "platform/scripts/update-linux.php",
+    "platform/scripts/lib/LinuxUpdateTransaction.php",
+    "platform/scripts/update-windows.ps1",
+    "platform/wrappers/windows/WindowsUpdateClient.cs",
+    "platform/tests/windows-update-client/DCP.WindowsUpdater.Tests.csproj",
+    "platform/tests/linux-update-transaction.php",
+    "platform/tests/linux-updater-health.php",
+    "platform/tests/update-windows.ps1",
+    ".github/workflows/test-linux-distros.yml",
+    "PROJECT-MEMORY/handoffs/DC18-alpha10-linux-windows-update-hardening-2026-11-24.md"
   ],
   "openIssues": [
     "Q004 blocked only for separate platform/index.php web preview. Hostinger docroot /home/u163155085/domains/amradel.com/public_html/dcp serves dcp.amradel.com; live health 200 and .env/schema direct HTTP denied. Preview remains unexposed until auth/private-path/rate-limit/route-isolation checks pass.",
-    "Q005 partial: Windows/Linux build/package CI pass. Mac Intel and ARM64 PHP 8.4.28 builds, license dump, TLS and first package smoke passed on old deployment targets, but linker warned prebuilt ICU objects require macOS 12.0. Both Mac targets, wrapper and installer have been raised to 12.0; new native CI/package run required.",
     "DC08 Mac/Linux installer migrations byte-compare SQLite and master.key; Windows verifies SHA-256. DC08 commit 1b3e016 pushed and Linux CI passed.",
-    "Release installers and Windows/macOS auto-updaters require one complete release with Windows package+update manifest, macOS universal ZIP, Linux tarball+SHA-256. Current alpha.8 incomplete; correctly refused.",
-    "Version metadata drift remains: PHP config alpha.8, About/cache alpha.7, Mac Info.plist alpha.9 and Windows csproj fallback alpha.7. Create one platform/version.json and inject same tag across all platform package builders and PHP/UI metadata before release.",
     "Q006 local chat/llama.cpp lifecycle follows Q005; review PID/path ownership and Linux passwordless-sudo install support.",
     "Q007 Cloud schema migration/API deployment follows Q006. Live schema old: devices.user_id NOT NULL, pairing tables missing. User authorized deployment after backup and migration review; no production change yet.",
     "Windows upgrade migrates legacy DB/key to DCP-UserData/Windows, verifies SHA-256 and retains rollback backup until app startup/decryption succeeds.",
     "macOS/Linux installers migrate and byte-compare into DCP-UserData/macOS and DCP-UserData/Linux.",
     "Ubuntu 24.04 x86_64 SSH/passwordless sudo verified; no app or system packages installed yet.",
-    "Working tree has unrelated dirty cloud/web-entry/LocalAI changes; stage only scoped Q005 files."
+    "Working tree has unrelated dirty cloud/web-entry/LocalAI changes; stage only scoped Q005 files.",
+    "Q006 partial: process ownership test passes for foreign /bin/sleep on macOS; engine --version smoke passed on Intel Mac, Ubuntu x64 and Windows x64. No model inference, app-managed engine install, chat start/stop, Apple Silicon engine run or clean package runtime verification yet.",
+    "Q007 partial: cloud production API E2E passed before hardening; latest cloud CI passes and live health=200, 64KiB body cap returns 413, private .env is outside webroot. Desktop integration and exhaustive authorization/abuse audit remain open.",
+    "Default branch main is behind the v1.0.0-alpha.9 tag. The tag README commands point to raw main; main has no Install-DCP-Online.sh and its Windows installer is older. Tag-pinned scripts were used for Mac/Ubuntu tests; synchronize main only after human review.",
+    "Ubuntu alpha9 package and launcher are installed at /home/amr/Applications/DCP, but app launch was stopped after PHP 500. Keep the package/error log for evidence until a corrected release is approved.",
+    "Published Alpha9 Linux tarball remains defective: package contains app files at platform root rather than platform/app. Fix commit 0e3f411 is pushed and branch build/HTTP-smoke CI passes, but no corrected release has been published.",
+    "The default main branch is behind the Alpha9 tag and lacks the current macOS/Linux one-command shell installer; README commands point to raw main. Human review is required before synchronizing main.",
+    "Q005 partial: Windows Alpha 9 runtime, HTTP, SQLite integrity and key round-trip verified; DB/master.key hashes match backups. No persisted encrypted provider/settings/mail rows existed, so stored-ciphertext decryption is not exercised. Keep backups.",
+    "Q005 partial: published Ubuntu Alpha 9 remains broken (HTTP root/API 500, missing platform/app/Core/Database.php). Fix commit 0e3f411 and CI run 45398600124 pass, but corrected package is not published; obtain approval for a superseding release.",
+    "Windows Ollama is offline and Desktop Commander Remote is not connected; DSH is not installed. These integrations are not validated by the app HTTP/UI pass.",
+    "Guest VM IPv4 addresses are manually configured, not DHCP reservations; confirm DHCP pool/exclusions before treating them as conflict-proof permanent addresses.",
+    "Default main remains behind the Alpha 9 release branch and README installer URLs point to main; synchronize only after human review.",
+    "GitHub integration cannot create a draft PR (403); branch push is verified and review/merge remains blocked by connector permission.",
+    "GitHub Actions secret DCP_RELEASE_SIGNING_PRIVATE_KEY_B64 is not configured. The private key is held in the Mac login Keychain; GitHub connector is read-only for secrets and gh CLI is absent.",
+    "Do not publish Alpha 10, modify Alpha 9, merge main, or start PHP feature development until all Q005 release gates pass.",
+    "Untracked .github/workflows/test-update-manifest.yml remains deliberately unstaged after review because it duplicates manifest tests already integrated elsewhere; do not add without a specific need.",
+    "Linux packaged updater core is pushed in 4ddb91e; Ubuntu CI build passed, Kali dependency/smoke run 45442801351 is still in progress. Do not claim Kali compatibility until it finishes.",
+    "macOS packaged updater remains incomplete. Untracked update-macos.php prototype is not wired to main.m and lacks crash-safe journal/recovery plus safe process-identity checks; do not stage or ship it until redesigned and tested.",
+    "Windows schema-3 signed updater client and full fallback selection are implemented and CI/local contract tests pass, but target Windows Alpha9→Alpha10 update and forced rollback have not been run.",
+    "No target Alpha10 install/update has been performed. Before Windows replacement, capture a fresh timestamped rollback backup and SQLite/master.key hashes. Ubuntu Alpha9 remains defective and unchanged.",
+    "Signed schema-3 manifest generation/signing is not yet wired into a synchronized unified release workflow. GitHub Actions secret DCP_RELEASE_SIGNING_PRIVATE_KEY_B64 still needs manual setup.",
+    "Native macOS run 45442801352 is still in progress/queued by architecture. Previous run 45435155319 passed both Intel and Apple Silicon on 2f5a5d5; do not substitute that for the current commit result.",
+    "Do not publish Alpha10, modify Alpha9, merge main, or begin PHP feature development until all Q005 release and target rollback/data-preservation gates pass."
   ],
   "github": {
     "sshAlias": "github-dcp",
     "authentication": "SSH succeeds for AmrAdeldotcom/DCP",
-    "branch": "fix/alpha7-localai-cloud-pairing",
-    "commit": "cea4075",
+    "branch": "feature/alpha10-package-revision",
+    "commit": "804b66b",
     "pushVerified": true,
     "ciRuns": {
       "windows": 45270962681,
@@ -109,7 +238,80 @@
       "macosLicenseFixRerun": 45272657258,
       "windowsBuildPassLatest": 45273110655,
       "cloudPhpPassLatest": 45272657130,
-      "macosLicensePathFailure": 45273110645
+      "macosLicensePathFailure": 45273110645,
+      "macosPackageFix": 45301931389,
+      "linuxWebViewFix": 45301931567,
+      "windowsBuild254fdce": 45302111689,
+      "windowsPackage254fdce": 45302111680,
+      "cloudPhp254fdce": 45302111830,
+      "macosPackageLipoFix": 45303462099,
+      "windowsBuildLipoFix": 45303462037,
+      "cloudPhpLipoFix": 45303462060,
+      "linuxWebView76": 45301931567,
+      "linuxPackageFix": 45398600124,
+      "windowsBuildAfterLinuxFix": 45398600263,
+      "cloudPhpAfterLinuxFix": 45398600090,
+      "alpha10PackageRevisionWindowsBuild": 45413374795,
+      "alpha10PackageRevisionWindowsPackage": 45413374899,
+      "alpha10PackageRevisionLinuxBuild": 45413375192,
+      "alpha10PackageRevisionCloudPhp": 45413374999,
+      "alpha10MacosPackageFailedMissingRevision": 45413374893,
+      "alpha10MacosPackageRetry": 45416881645,
+      "alpha10WindowsBuildHardenedUpdater": 45418031428,
+      "alpha10WindowsPackageUpdaterTests": 45418031542,
+      "alpha10LinuxBuildHardenedUpdater": 45418031828,
+      "alpha10CloudPhpHardenedUpdater": 45418031562,
+      "alpha10MacosBundleRevisionFix": 45425681044,
+      "alpha10KaliFirstAttemptPermissionsFailure": 45426144391,
+      "alpha10KaliTarPermissionsRetry": 45426353224,
+      "alpha10WindowsBuildLatest": 45426353230,
+      "alpha10CloudPhpLatest": 45426353842,
+      "alpha10LinuxDistroSuccess": 45431191589,
+      "alpha10WindowsBuildSuccess": 45431191605,
+      "alpha10CloudPhpSuccess": 45431191791,
+      "alpha10MacosCleanPackageSuccess": 45425681044,
+      "alpha10Schema3CloudPhp": 45435155294,
+      "alpha10Schema3WindowsBuild": 45435155119,
+      "alpha10Schema3WindowsPackage": 45435155128,
+      "alpha10Schema3LinuxBuild": 45435155129,
+      "alpha10Schema3LinuxUbuntuKali": 45435155253,
+      "alpha10Schema3MacosPackage": 45435155319,
+      "alpha10MacosBothArchitecturesPassed": 45425681044,
+      "alpha10LinuxWindowsHardeningWindowsBuild": 45442801370,
+      "alpha10LinuxWindowsHardeningWindowsPackage": 45442801525,
+      "alpha10LinuxWindowsHardeningLinuxBuild": 45442801373,
+      "alpha10LinuxWindowsHardeningKali": 45442801351,
+      "alpha10LinuxWindowsHardeningMacOS": 45442801352,
+      "alpha10LinuxWindowsHardeningCloudPHP": 45442801543,
+      "alpha10KaliMissingPython3Failure": 45439878530
+    },
+    "latestPushedCommit": "2f5a5d55a6e3c100e5425bdabbf8e8c4c6b9ddfe",
+    "latestPushVerifiedAt": "2026-11-24T18:19:43+02:00",
+    "releaseValidation": {
+      "tag": "v1.0.0-alpha.9",
+      "tagCommit": "8b5bf08d6291897338ca322432ccf1962e0c2ed1",
+      "releaseId": 456688871,
+      "prerelease": true,
+      "assets": [
+        "DCP-Linux-x64.tar.gz",
+        "DCP-Linux-x64.tar.gz.sha256",
+        "DCP-macOS-AppleSilicon.zip",
+        "DCP-macOS-Intel.zip",
+        "DCP-Windows-update.json",
+        "DCP-Windows-x64.zip"
+      ],
+      "tagRuns": {
+        "macosRelease": 45387266140,
+        "macosPackageTest": 45387266141,
+        "linuxRelease": 45387266328,
+        "windowsRelease": 45387266284,
+        "windowsPackageTest": 45387266218
+      },
+      "branchHead": "0e3f41196e0819e94a8bfa99ecf95378a7a71592",
+      "linuxFixCi": 45398600124,
+      "linuxFixArtifactId": 14922751159,
+      "mainHead": "25c81e23e0a6810a7c9b70a33d0794b00ed5de0d",
+      "status": "published immutable; six assets verified by GitHub API; Alpha 9 Linux package defective; no retag or overwrite"
     }
   },
   "cloudAccess": {
@@ -119,29 +321,30 @@
     "identityFile": "/Volumes/Data/ChatGPT/DCP-Lab-SSH/dcp-hostinger-2026",
     "authenticationResult": "key-based SSH login succeeded",
     "projectPath": "/home/u163155085/domains/amradel.com/public_html/dcp",
-    "health": "https://dcp.amradel.com/api/v1/health returns HTTP 200; database/schema OK",
+    "health": "https://dcp.amradel.com/api/v1/health returned healthy after deployment; full temporary account/device/pairing/signaling/revocation API E2E passed and test records were cleaned up.",
     "php": "8.5.13; PDO mysql,sqlite",
-    "databaseAudit": "6 tables; devices.user_id NOT NULL; pairing_codes, pairing_requests, device_pairings missing",
-    "deploymentAllowed": false,
-    "note": "Live index.php lacks anonymous registration/pairing routes and differs from local platform/cloud/index.php. No migration, file update or permission change."
+    "databaseAudit": "Backed up live DB/files; applied schema.migrate.sql; verified devices.user_id nullable and pairing_codes, pairing_requests, device_pairings, api_rate_limits tables.",
+    "deploymentAllowed": true,
+    "note": "Production API deployed and health is 200. Added 64 KiB request body cap (verified live login request returns 413), opportunistic cleanup for expired signaling/connection/pairing/token/rate-limit rows, and IP-hashed limits on device management, heartbeat, connection requests and signaling. Private .env outside webroot; public root only index.php/.htaccess. Full API E2E passed before this hardening; after hardening, live health 200 and body-limit 413 verified. Cloud CI for e4301f7 is pending.",
+    "backupPath": "/home/u163155085/dcp-backups/20261123T233943Z; /home/u163155085/dcp-backups/20261124T232000Z (index/.htaccess/site and public-root extras)"
   },
   "labAccess": {
     "config": "/Volumes/Data/ChatGPT/DCP-Lab-SSH/config",
     "key": "/Volumes/Data/ChatGPT/DCP-Lab-SSH/dcp-lab-admin-2026",
     "windows": {
       "alias": "windows-dcp-admin",
-      "host": "192.168.8.62",
+      "host": "192.168.8.99",
       "user": "dcpadmin",
       "authentication": "key-based login succeeded",
       "hostKey": "console fingerprint matched and pinned"
     },
     "ubuntu": {
       "alias": "ubuntu-dcp-admin",
-      "host": "192.168.8.56",
+      "host": "192.168.8.88",
       "user": "amr",
       "authentication": "key-based login succeeded"
     },
-    "note": "Ubuntu was inventoried read-only; Linux implementation remains deferred."
+    "note": "Use ssh -F /Volumes/Data/ChatGPT/DCP-Lab-SSH/config with both verified aliases. Default ~/.ssh/config contains stale aliases to 192.168.8.62 and .56 and must not be used. Both guest IPs are static/manual; do not alter without DHCP conflict check."
   },
   "devices": {
     "windows": {
@@ -149,11 +352,28 @@
       "cpu": "Intel Xeon W3680, 4 vCPU",
       "ram": "7.98 GiB",
       "disk": "C: 254.6 GB, about 217.2 GB free",
-      "installedDcpCommit": "5b91bcc66a5caf7e8b06e93d8dee52ce35633aaa",
+      "installedDcpCommit": "8b5bf08d6291897338ca322432ccf1962e0c2ed1",
       "installedPhp": "8.5.13",
-      "dataBoundary": "Existing installed copy stores SQLite and master.key under application platform/data and platform/storage/keys; DCP-UserData contains only WebView2. Preserve copy.",
+      "dataBoundary": "DCP-UserData/Windows/data/dcp.sqlite and DCP-UserData/Windows/storage/keys/master.key; both hashes preserved and verified.",
       "installTarget": "GitHub release asset DCP-Windows-x64.zip via platform/Install-DCP-Online.ps1; previous installation/data backed up",
-      "dataMigration": "Old platform/data/dcp.sqlite and platform/storage/keys/master.key -> DCP-UserData/Windows/data and DCP-UserData/Windows/storage; hashes verified; previous app root retained as rollback backup."
+      "dataMigration": "Old platform/data/dcp.sqlite and platform/storage/keys/master.key -> DCP-UserData/Windows/data and DCP-UserData/Windows/storage; hashes verified; previous app root retained as rollback backup.",
+      "installStatus": "Alpha 9 installed under interactive amradeldotcom profile; runtime/API/SQLite/key-roundtrip checks passed; DC10 screenshot confirms Overview; persisted ciphertext absent; backups retained.",
+      "preflight": "Windows 11 Pro 64-bit, Xeon W3680, 8 GB RAM, WebView2 157.0.4341.60, C: free 218.8 GB. No DCP install or DCP-UserData found. Official llama.cpp Windows x64 b12655 binary SHA/version smoke passed.",
+      "preInstallHashes": {
+        "platform/data/dcp.sqlite": "a2f6252cb0c6984bc2c7b1a30f65e49f0d9a69f2ac2950d613e7c54ecb93fa45",
+        "platform/storage/keys/master.key": "b1d13ad07a1dffc595cb63ee49f6ab0bd748c5155a142d753dd273a4ac10e00d"
+      },
+      "installBackups": [
+        "C:\\DCP-Backups\\DCP-pre-alpha9-20261124-152849",
+        "C:\\Users\\amradeldotcom\\AppData\\Local\\DCP-Backups\\20261124-1535-EET",
+        "C:\\Users\\amradeldotcom\\AppData\\Local\\DCP.backup-20261124-153339"
+      ],
+      "latestHashAudit": {
+        "timestamp": "2026-11-24T16:50:35+02:00",
+        "sqlite": "a2f6252cb0c6984bc2c7b1a30f65e49f0d9a69f2ac2950d613e7c54ecb93fa45",
+        "masterKey": "b1d13ad07a1dffc595cb63ee49f6ab0bd748c5155a142d753dd273a4ac10e00d",
+        "result": "installed files and all three retained backup copies match; read-only audit; no DCP process running; no update/install performed"
+      }
     },
     "ubuntu": {
       "os": "Ubuntu 24.04 LTS x86_64",
@@ -162,20 +382,173 @@
       "disk": "64 GB, about 49 GB free",
       "installedTools": "Python3 and OpenSSH; Git/PHP/Composer/Node/Docker/Podman/Ollama not found",
       "installTarget": "GitHub release asset DCP-Linux-x64.tar.gz via platform/Install-DCP-Online.sh; Ubuntu 24.04 x86_64",
-      "dataMigration": "Legacy platform/data and platform/storage -> DCP-UserData/Linux/data and DCP-UserData/Linux/storage if no new-layout database/key exists."
+      "dataMigration": "Legacy platform/data and platform/storage -> DCP-UserData/Linux/data and DCP-UserData/Linux/storage if no new-layout database/key exists.",
+      "installStatus": "Published Alpha 9 installed but app HTTP root/API 500 due missing platform/app/Core/Database.php. Fix commit 0e3f411 CI passes; superseding release awaits approval.",
+      "preflight": "Ubuntu 24.04 LTS x86_64, 7.7 GiB RAM, 49 GB free, graphical.target and GNOME processes present; wget installed; curl and PHP CLI absent; libgtk-3-0t64 3.24.41 and libwebkit2gtk-4.1-0 2.52.6 are installed.",
+      "installPreflight": "Target /home/amr/Applications/DCP absent; 49 GB free; wget available.",
+      "latestCheck": {
+        "timestamp": "2026-11-24T16:50:35+02:00",
+        "ssh": "connected",
+        "dcpProcesses": "none found beyond the pgrep command itself",
+        "publishedPackage": "missing platform/app/Core/Database.php",
+        "modified": false
+      }
     },
     "macos": {
       "dataMigration": "Legacy platform/data and platform/storage -> DCP-UserData/macOS/data and DCP-UserData/macOS/storage if no new-layout database/key exists.",
-      "minimumOS": "12.0"
+      "minimumOS": "12.0",
+      "localAiStatus": "Intel Mac selects SSE4.2 runtime; binary --version and installer no-op passed. CI now builds and embeds generic SSE4.2 runtime in clean macOS package/release. No model downloaded or inference run.",
+      "installPreflight": "Smoke target created only at ~/Applications/DCP-Alpha9-Smoke; baseline service ports/PIDs and source hashes captured before install.",
+      "installStatus": "Alpha 9 Intel isolated smoke passed and ~/Applications/DCP-Alpha9-Smoke removed; original PHP/llama/Ollama services remain active."
     }
   },
   "releaseInstallers": {
     "windows": "platform/Install-DCP-Online.ps1 downloads latest release asset DCP-Windows-x64.zip, preserves data/storage, moves old install to timestamped backup, runs prerequisite setup.",
-    "macos_linux": "platform/Install-DCP-Online.sh detects OS; Linux downloads DCP-Linux-x64.tar.gz and verifies SHA-256; macOS downloads universal ZIP.",
+    "macos_linux": "platform/Install-DCP-Online.sh selects DCP-macOS-Intel.zip or DCP-macOS-AppleSilicon.zip by uname -m; Linux verifies DCP-Linux-x64.tar.gz SHA-256.",
     "linuxReleaseWorkflow": ".github/workflows/release-linux.yml",
     "linuxCiWorkflow": ".github/workflows/build-linux.yml",
     "dataMigration": "All installers preserve DCP-UserData, migrate legacy DB/storage only when the new OS-specific DB/key are absent, then verify source and target bytes (Windows SHA-256, macOS/Linux cmp).",
-    "completeReleaseGate": "Require all assets in one tag: DCP-Windows-x64.zip, DCP-Windows-update.json, DCP-macOS-universal.zip, DCP-Linux-x64.tar.gz, DCP-Linux-x64.tar.gz.sha256. Windows/macOS background updaters use same gate.",
+    "completeReleaseGate": "NOT PASSED: v1.0.0-alpha.9 has six assets published but Linux package layout is defective. Alpha10 release gate is still open.",
     "macOSMinimum": "12.0 for Intel and Apple Silicon because pinned prebuilt ICU contains objects built for macOS 12.0; online installer rejects older systems."
+  },
+  "watchdog": {
+    "title": "DCP Alpha 10 Updater & DC0005 Watchdog",
+    "automationId": "Automation_6ec90b67e0b081919132b14b8485d30f",
+    "automationEnabled": true,
+    "automationCadence": "hourly (platform minimum)",
+    "automationTimezone": "Africa/Cairo",
+    "promptUpdatedAt": "2026-11-24T16:14:02+02:00",
+    "localNetworkMonitor": "com.digipl.dcp-network-watchdog",
+    "localNetworkIntervalSeconds": 600,
+    "latestNetworkState": "online",
+    "latestGatewayReachable": true,
+    "latestInternetReachable": true,
+    "latestNetworkCheckUtc": "2026-11-24T16:17:17Z",
+    "resumeMarkerPresent": false,
+    "chatSessionReconnect": "Not supported by local monitor or scheduled automation.",
+    "launchdLastExitCode": 0,
+    "launchdRunCount": 4,
+    "launchdIntervalSeconds": 600,
+    "automationPausedAt": null,
+    "automationPauseReason": null,
+    "localNetworkMonitorEnabled": true,
+    "localNetworkMonitorIntervalSeconds": 600
+  },
+  "network": {
+    "mac": "Amrs-Mac-Pro en0 192.168.8.100",
+    "windows": {
+      "host": "192.168.8.99",
+      "prefixLength": 24,
+      "gateway": "192.168.8.1",
+      "dns": "192.168.8.1",
+      "mac": "00-1C-42-FA-1E-9B",
+      "addressMode": "manual"
+    },
+    "ubuntu": {
+      "host": "192.168.8.88",
+      "prefixLength": 24,
+      "gateway": "192.168.8.1",
+      "dns": "192.168.8.1",
+      "interface": "enp0s5",
+      "mac": "00:1c:42:72:ea:56",
+      "addressMode": "manual"
+    },
+    "sshAliases": "Both aliases verified at 192.168.8.99/.88 using the dedicated external config; default ~/.ssh/config aliases are stale (.62/.56).",
+    "note": "Static guest addresses are not DHCP reservations; check DHCP pool/exclusions to avoid conflicts.",
+    "lastMonitorState": "online",
+    "lastMonitorCheckUtc": "2026-11-24T13:36:59Z",
+    "gatewayReachable": true,
+    "internetReachable": true,
+    "resumeMarkerPresent": false,
+    "latestNetworkCheckUtc": "2026-11-24T16:17:17Z",
+    "latestNetworkState": "online",
+    "latestGatewayReachable": true,
+    "latestInternetReachable": true,
+    "launchdLastExitCode": 0,
+    "launchdRunCount": 4,
+    "launchdIntervalSeconds": 600,
+    "latestMonitorState": "online"
+  },
+  "windowsVisualConfirmation": {
+    "status": "user-confirmed-visible-ui",
+    "evidence": "DC10 user screenshot shows DCP Overview rendered; DC11 HTTP root/API 200 during Explorer launch, PHP 8.5.13, SQLite integrity ok; Ollama offline and Desktop Commander Remote not connected."
+  },
+  "ubuntuInstall": {
+    "status": "blank-window-confirmed-http-500-known-alpha9-linux-package-defect",
+    "host": "amr-ubuntu24",
+    "address": "192.168.8.88",
+    "appProcesses": "DCP and PHP processes present at last inspection",
+    "phpServer": "127.0.0.1:18765",
+    "httpRoot": 500,
+    "apiStatus": 500,
+    "fatal": "Missing platform/app/Core/Database.php required by platform/bootstrap/app.php:32",
+    "fixCommit": "0e3f41196e0819e94a8bfa99ecf95378a7a71592",
+    "fixCiRun": 45398600124,
+    "fixArtifactId": 14922751159,
+    "next": "Requires approval for superseding complete alpha release; preserve current installation until replacement."
+  },
+  "productProposal": {
+    "feature": "DCP Chat Live Task Inbox & Interrupt Queue",
+    "status": "specification-and-OpenAI-feature-request-drafted-in-chat",
+    "implementation": "not-started"
+  },
+  "releaseDecision": {
+    "userApprovedVisibleVersion": "1.0.0-alpha.10",
+    "previousRelease": "v1.0.0-alpha.9 remains immutable and untouched",
+    "target": "one synchronized alpha.10 release for Windows, Linux (Ubuntu/Kali), macOS",
+    "requirements": "real packaged Updater and Delta Update on every OS; safe verification, staging, rollback, restart, and preservation of SQLite/master keys/user data",
+    "goal": "close DC0005/Q005 with verified release and install/update acceptance tests, then begin safe PHP development as a separate milestone"
+  },
+  "proposalDocuments": [
+    "platform/docs/proposals/DCP-Chat-Live-Task-Inbox-Interrupt-Queue.md",
+    "platform/docs/proposals/OpenAI-Feature-Request-Live-Message-Queue.md",
+    "platform/docs/proposals/Cross-Platform-Auto-Update.md"
+  ],
+  "autoUpdateAudit": {
+    "windows": "Windows schema 1/2 updater still has transactional apply/rollback, official release URL checks, hash/size checks, path/reparse protection, user-data exclusion, two rollback snapshots and startup check. Local success/data-preservation/forced-rollback/user-data rejection tests and Windows CI 45435155128 pass. It does not yet consume schema 3, verify detached signature or provide full-package fallback.",
+    "linux": "Ubuntu 24.04 and Kali Rolling package compatibility plus HTTP/API smoke pass on 2f5a5d5 in 45435155253. Schema-3 verifier and delta/full manifest builders are now committed and package public key/schema are included. No packaged Linux updater adapter exists yet; GitUpdateService remains checkout-only.",
+    "macOS": "Native clean-package run 45425681044 passed Intel and Apple Silicon. Latest run 45435155319 is in progress: Intel PHP/llama running and Apple Silicon PHP/llama queued. Schema-3 verifier/builders and pinned public key are included in packages, but main.m still uses semantic-version check plus online installer; no packaged delta/full apply/rollback adapter exists.",
+    "signing": "RSA-3072/SHA-256 public key pinned in platform/update/release-public.pem. Private key is held in the Mac login Keychain. GitHub Actions secret DCP_RELEASE_SIGNING_PRIVATE_KEY_B64 is not configured; release workflows are not yet wired to sign schema-3 manifests.",
+    "next": "Integrate schema 3 and signed delta/full fallback in native clients; implement Linux/macOS packaged apply/rollback/restart/health; complete Windows full fallback; wire release workflows and signing secret; run target Alpha9→Alpha10 and rollback/data-preservation tests."
+  },
+  "userDecisionAt": "2026-11-24T16:10:39+02:00",
+  "implementationProgress": {
+    "versionManifest": "platform/version.json remains v1.0.0-alpha.10, packageRevision=1; published v1.0.0-alpha.9 remains unchanged.",
+    "windows": "Existing Program.cs/update-windows.ps1 schema 1/2 transaction updater remains green; local updater tests and CI 45435155128 passed. Schema-3 signature integration and full-package fallback are still missing.",
+    "linux": "Commit 2f5a5d5 includes public key/schema in package, PHP detached-signature manifest verifier, schema-3 manifest builder and base-vs-target tar.gz/zip delta builder. Local tests pass. Ubuntu+Kali package and HTTP/API workflow 45435155253 passed. Packaged updater adapter/apply/rollback/relaunch not implemented.",
+    "macos": "Native package CI 45425681044 passed Intel and Apple Silicon; latest run 45435155319 is still running/queued. Schema-3 verifier/builders and public key are packaged, but native main.m update flow is not integrated with them.",
+    "manifest": "Schema 3 requires platform, architecture, release tag, commit, packageRevision, exact delta base, full fallback, delta files/deletions, asset size/SHA-256, key ID and detached RSA-SHA256 signature. Pinned key fingerprint and signature verification tests pass.",
+    "updaterGap": "Schema 3 is not wired into release assets or Windows/Linux/macOS native updater clients. Windows full fallback, Linux/macOS packaged updater adapters, signed release workflow and end-to-end target upgrade/rollback remain open."
+  },
+  "lastCheckpoint": "DC05 CI green checkpoint 2026-11-24T18:24:00+02:00",
+  "latestHandoff": "PROJECT-MEMORY/handoffs/DC17-linux-updater-core-2026-11-24.md",
+  "linuxUpdaterDC17": {
+    "status": "implemented-locally-not-committed",
+    "files": [
+      "platform/scripts/lib/LinuxUpdateTransaction.php",
+      "platform/scripts/extract-update-tar.py",
+      "platform/scripts/update-linux.php",
+      "platform/tests/linux-update-transaction.php",
+      "platform/tests/linux-updater-health.php",
+      "platform/tests/extract-linux-update.py"
+    ],
+    "capabilities": [
+      "transactional delta/full apply",
+      "safe tar extraction",
+      "synchronized signed schema-3 manifests across four platform/architecture targets",
+      "exact-base delta and full fallback",
+      "SQLite/WAL/SHM/journal/master.key snapshot and restore",
+      "PHP runtime plus HTTP API health check",
+      "automatic rollback on health failure",
+      "explicit user confirmation and offline-safe launcher"
+    ],
+    "validation": "platform suite, delta builder, archive extraction, PHP lint, shell syntax and git diff check passed; live GitHub check fails closed because no complete signed release exists",
+    "remaining": [
+      "Windows schema-3 signed updater and full fallback",
+      "macOS packaged updater",
+      "release workflow signing and delta assets",
+      "production GitHub signing secret",
+      "target Alpha9-to-Alpha10 upgrade/rollback acceptance"
+    ]
   }
 }

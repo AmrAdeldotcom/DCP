@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "checkpoint": "DC18",
+  "createdAt": "2026-11-24T18:58:54+02:00",
+  "repository": "/Volumes/Data/ChatGPT/DCP",
+  "branch": "feature/alpha10-package-revision",
+  "headCommit": "4ddb91e38a0a919cfe7d7bc01cfc5a74f1a88f50",
+  "release": {
+    "tag": "v1.0.0-alpha.9",
+    "releaseId": 456688871,
+    "tagCommit": "8b5bf08d6291897338ca322432ccf1962e0c2ed1",
+    "assets": 6,
+    "modified": false
+  },
+  "localTests": "PASS: PHP platform/manifest suites, Python delta/extractor, RSA signature/tamper, Linux transaction/recovery/health/process guard, Windows PowerShell transaction, Windows C# contract, Windows app build, syntax/lint/diff.",
+  "ci": {
+    "windowsBuild": {
+      "run": 45442801370,
+      "status": "success"
+    },
+    "windowsPackage": {
+      "run": 45442801525,
+      "status": "success"
+    },
+    "linuxBuild": {
+      "run": 45442801373,
+      "status": "success"
+    },
+    "linuxDistro": {
+      "run": 45442801351,
+      "status": "Ubuntu success; Kali in progress"
+    },
+    "cloudPhp": {
+      "run": 45442801543,
+      "status": "success"
+    },
+    "macos": {
+      "run": 45442801352,
+      "status": "Intel jobs in progress; Apple Silicon queued"
+    }
+  },
+  "devices": {
+    "windows": "SSH read-only verified as dcpadmin; no install/update",
+    "ubuntu": "SSH read-only verified as amr; Ubuntu 24.04; Python3/PHP; no DCP process; no install/update",
+    "mac": "original project/services preserved; no target install"
+  },
+  "blockers": [
+    "macOS updater prototype not safe/integrated",
+    "unified signed release workflow not wired",
+    "GitHub signing secret requires manual setup",
+    "Kali and current macOS CI pending",
+    "target Alpha9→Alpha10 update and forced rollback not run"
+  ],
+  "next": "Finish CI, implement journaled macOS adapter/wrapper, wire signed release assembly, then device upgrade/rollback/data preservation. Alpha10 unpublished; Q005 partial."
+}

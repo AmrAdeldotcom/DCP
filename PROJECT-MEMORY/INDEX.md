@@ -9,6 +9,7 @@ This folder is the durable continuity layer for ChatGPT and other authorized eng
 4. `AGENTS.md`
 5. The active task file referenced by CURRENT-STATE.json
 6. Relevant architecture/specification and latest version/handoff notes
+7. `PROJECT-MEMORY/runtime/network-state.json` and `network-watchdog.log`; inspect `NETWORK-RESUME-REQUEST.json` if present and acknowledge it before clearing only after recording evidence
 
 ## Memory map
 - `CURRENT-STATE.json`: machine-readable current checkpoint and next action.
@@ -19,7 +20,7 @@ This folder is the durable continuity layer for ChatGPT and other authorized eng
 - `architecture/`: architecture notes and cross-component contracts.
 - `bugs/`: reproducible bug records and diagnostics.
 - `testing/`: test baselines and verification evidence.
-- `handoffs/`: concise handoff notes for new conversations.
+- `handoffs/`: concise handoff notes for new conversations. Latest checkpoint: `handoffs/DC18-alpha10-linux-windows-update-hardening-2026-11-24.md`.
 
 ## Update protocol
 - After each meaningful task: update CURRENT-STATE.json, append CHANGELOG.md, and create a timestamped checkpoint in versions/.
