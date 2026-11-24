@@ -42,5 +42,11 @@ SERVER="$(find "$TMP/unpacked" -type f -name llama-server -print -quit)"
 [ -n "$SERVER" ] || { echo "llama-server was not found in the official archive." >&2; exit 1; }
 STAGE="$DEST.new"; rm -rf "$STAGE"; mkdir -p "$STAGE"; cp -R "$(dirname "$SERVER")/." "$STAGE/"
 chmod +x "$STAGE/llama-server"; "$STAGE/llama-server" --version >/dev/null
-rm -rf "$DEST"; mv "$STAGE" "$DEST"
+PREVIOUS="$DEST.previous"; rm -rf "$PREVIOUS"
+if [ -d "$DEST" ]; then mv "$DEST" "$PREVIOUS"; fi
+if ! mv "$STAGE" "$DEST"; then
+  [ ! -d "$PREVIOUS" ] || mv "$PREVIOUS" "$DEST"
+  exit 1
+fi
+rm -rf "$PREVIOUS"
 echo "Compatible DCP-managed llama.cpp installed to $DEST."

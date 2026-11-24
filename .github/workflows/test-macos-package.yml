@@ -107,6 +107,14 @@ jobs:
           file DCP.app/Contents/MacOS/DCP
           lipo -info DCP.app/Contents/MacOS/DCP
 
+      - name: Build portable Intel SSE4.2 llama.cpp runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          SOURCE="$RUNNER_TEMP/llama.cpp-b12655"
+          git clone --depth 1 --branch b12655 https://github.com/ggml-org/llama.cpp.git "$SOURCE"
+          DCP_LLAMA_SOURCE="$SOURCE" DCP_BUILD_JOBS=3 bash platform/dcp-env/engines/llama.cpp/build-macos-generic.sh
+
       - name: Assemble and inspect clean portable package
         shell: bash
         run: |
@@ -139,6 +147,13 @@ jobs:
             --exclude '/dcp-env/engines/ollama/windows-x64/***' \
             --exclude '/dcp-env/engines/ollama/macos-x64/***' \
             --exclude '/dcp-env/engines/ollama/macos-arm64/***'
+          SSE42_SOURCE="platform/dcp-env/engines/llama.cpp/macos-x64-sse42"
+          SSE42_STAGE="$STAGE/platform/dcp-env/engines/llama.cpp/macos-x64-sse42"
+          test -x "$SSE42_SOURCE/llama-server"
+          mkdir -p "$SSE42_STAGE"
+          cp -R "$SSE42_SOURCE/." "$SSE42_STAGE/"
+          file "$SSE42_STAGE/llama-server" | grep -q 'x86_64'
+          test -s "$SSE42_STAGE/LICENSE"
 
           for arch in macos-x64 macos-arm64; do
             runtime="$STAGE/platform/dcp-env/runtime/php/$arch"
@@ -173,6 +188,8 @@ jobs:
           unzip -Z1 "$OUT" | grep -F 'platform/dcp-env/runtime/php/macos-arm64/bin/php'
           unzip -Z1 "$OUT" | grep -F 'DCP-UserData/macOS/data/.gitkeep'
           unzip -Z1 "$OUT" | grep -F 'DCP-UserData/macOS/storage/.gitkeep'
+          unzip -Z1 "$OUT" | grep -F 'platform/dcp-env/engines/llama.cpp/macos-x64-sse42/llama-server'
+          unzip -Z1 "$OUT" | grep -F 'platform/dcp-env/engines/llama.cpp/macos-x64-sse42/LICENSE'
           if unzip -Z1 "$OUT" | grep -E '(^|/)storage/keys/master\.key$|(^|/)data/dcp\.sqlite$|platform/dcp-env/build/|platform/dcp-env/engines/llama\.cpp/source/'; then
             echo "Private data or build/source files leaked into the package." >&2
             exit 1

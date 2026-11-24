@@ -12,7 +12,7 @@ mkdir -p "$PLATFORM_ROOT/dcp-env/build" "$PROJECT_ROOT/DCP-UserData/macOS/storag
 cmake -S "$SOURCE" -B "$BUILD" \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_OSX_ARCHITECTURES=x86_64 \
-  -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15 \
+  -DCMAKE_OSX_DEPLOYMENT_TARGET=12.0 \
   -DGGML_NATIVE=OFF -DGGML_SSE42=ON \
   -DGGML_AVX=OFF -DGGML_AVX2=OFF -DGGML_BMI2=OFF \
   -DGGML_AVX512=OFF -DGGML_FMA=OFF -DGGML_F16C=OFF \
@@ -23,10 +23,19 @@ cmake -S "$SOURCE" -B "$BUILD" \
 cmake --build "$BUILD" --target llama-server -j "$JOBS" \
   > "$PROJECT_ROOT/DCP-UserData/macOS/storage/logs/llama-build.log" 2>&1
 STAGE="$DEST.new"
-rm -rf "$STAGE"; mkdir -p "$STAGE"
+PREVIOUS="$DEST.previous"
+rm -rf "$STAGE" "$PREVIOUS"; mkdir -p "$STAGE"
+trap 'rm -rf "$STAGE"' EXIT
 cp "$BUILD/bin/llama-server" "$STAGE/llama-server"
 find "$BUILD/bin" -maxdepth 1 -name '*.dylib' -exec cp -f {} "$STAGE/" \;
-chmod +x "$STAGE/llama-server"
-"$STAGE/llama-server" --version
-rm -rf "$DEST"; mv "$STAGE" "$DEST"
+[ ! -f "$SOURCE/LICENSE" ] || cp "$SOURCE/LICENSE" "$STAGE/LICENSE"
+file "$STAGE/llama-server"
+if [ "$(uname -m)" = "x86_64" ]; then DYLD_LIBRARY_PATH="$STAGE" "$STAGE/llama-server" --version; fi
+if [ -d "$DEST" ]; then mv "$DEST" "$PREVIOUS"; fi
+if ! mv "$STAGE" "$DEST"; then
+  [ ! -d "$PREVIOUS" ] || mv "$PREVIOUS" "$DEST"
+  exit 1
+fi
+rm -rf "$PREVIOUS"
+trap - EXIT
 echo "Generic SSE4.2 llama.cpp installed at $DEST"

@@ -18,6 +18,14 @@ try {
   $New = $Dest + '.new'; if (Test-Path $New) { Remove-Item $New -Recurse -Force }
   New-Item -ItemType Directory -Force -Path $New | Out-Null
   Copy-Item -Path (Join-Path $Server.DirectoryName '*') -Destination $New -Recurse -Force
-  if (Test-Path $Dest) { Remove-Item $Dest -Recurse -Force }; Move-Item $New $Dest
+  $Previous = $Dest + '.previous'
+  if (Test-Path $Previous) { Remove-Item $Previous -Recurse -Force }
+  if (Test-Path $Dest) { Move-Item $Dest $Previous }
+  try { Move-Item $New $Dest }
+  catch {
+    if (Test-Path $Previous) { Move-Item $Previous $Dest }
+    throw
+  }
+  if (Test-Path $Previous) { Remove-Item $Previous -Recurse -Force }
   Write-Host "DCP-managed llama.cpp installed to $Dest."
 } finally { Remove-Item $Temp -Recurse -Force -ErrorAction SilentlyContinue }
