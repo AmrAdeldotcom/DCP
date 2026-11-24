@@ -15,7 +15,7 @@ def safe_path(raw: str) -> PurePosixPath:
     if path.is_absolute() or any(part in ("", ".", "..") for part in path.parts):
         raise ValueError(f"Archive path traversal rejected: {raw!r}")
     if path.parts and ((len(path.parts) >= 2 and path.parts[0].lower() == "platform" and path.parts[1].lower() in {"data", "storage"}) or
-                       any(part.lower() == ".env" or part.lower().startswith(".env.") for part in path.parts)):
+                       any(part.lower() == ".env" or (part.lower().startswith(".env.") and part.lower() != ".env.example") for part in path.parts)):
         raise ValueError(f"Archive attempts to include protected DCP data: {raw!r}")
     return path
 

@@ -451,7 +451,7 @@ internal static class WindowsUpdateClient
         var lower = path.ToLowerInvariant();
         if (lower == "dcp-userdata" || lower.StartsWith("dcp-userdata/", StringComparison.Ordinal) ||
             Regex.IsMatch(lower, @"^platform/(data|storage)(/|$)") ||
-            Regex.IsMatch(lower, @"(^|/)\.env($|\.)"))
+            Regex.IsMatch(lower, @"(^|/)\.env($|\.(?!example$))"))
             throw new InvalidOperationException("DCP update path attempts to modify user data or environment secrets: " + path);
     }
 

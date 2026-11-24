@@ -66,6 +66,8 @@ unsafeRejected = false;
 try { WindowsUpdateClient.ValidateUpdatePath("platform/../../outside.txt"); }
 catch (InvalidOperationException) { unsafeRejected = true; }
 Check(unsafeRejected, "Windows update paths reject traversal segments");
+WindowsUpdateClient.ValidateUpdatePath("platform/cloud/.env.example");
+Check(true, "safe .env.example template is accepted by the Windows updater");
 
 using var badDeletion = JsonDocument.Parse(manifest.RootElement.GetRawText().Replace("platform/app/obsolete.txt", "DCP-UserData/Windows/data/dcp.sqlite", StringComparison.Ordinal));
 var userDataRejected = false;

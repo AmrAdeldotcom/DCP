@@ -13,7 +13,7 @@ def is_excluded(rel: str) -> bool:
     if lower[0] == "payload" or lower[0].endswith("-update.json") or lower[0].endswith("-update.json.sig") or lower[0] == "dcp-update-manifest.json": return True
     if len(lower) >= 2 and lower[0] == "platform" and lower[1] in {"data", "storage"}: return True
     if any(part == ".git" or part == "node_modules" for part in lower): return True
-    if any(part == ".env" or part.startswith(".env.") for part in lower):
+    if any(part == ".env" or (part.startswith(".env.") and part != ".env.example") for part in lower):
         raise ValueError(f"Package tree contains an environment secret path: {rel}")
     if Path(rel).name.lower() in SENSITIVE_NAMES or rel.lower().endswith((".sqlite", ".sqlite3", ".db")):
         raise ValueError(f"Package tree contains private user data: {rel}")

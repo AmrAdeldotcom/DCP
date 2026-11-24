@@ -121,6 +121,12 @@ try {
         );
     }
 
+    $safeExample = $manifest;
+    $safeExample['delta']['files'][0]['path'] = 'platform/cloud/.env.example';
+    [$safeExampleBytes, $safeExampleSignature] = $sign($safeExample);
+    $safeExampleResult = DcpUpdateManifest::inspect($safeExampleBytes, $safeExampleSignature, $publicPath, 'linux', 'x64', '1.0.0-alpha.9', 0, hash_file('sha256', $publicPath));
+    manifest_ok($safeExampleResult['strategy'] === 'delta', 'safe .env.example template is accepted in a signed update manifest');
+
     $unsafeFullDeletion = $manifest;
     $unsafeFullDeletion['full']['deleted'] = ['DCP-UserData/Linux/data/dcp.sqlite'];
     [$fullDeleteBytes, $fullDeleteSignature] = $sign($unsafeFullDeletion);

@@ -27,6 +27,8 @@ def main() -> int:
         (base / 'platform/storage/keys/master.key').write_bytes(b'old-key')
         (target / 'platform/storage/keys/master.key').write_bytes(b'new-key')
         (target / 'Run-DCP.sh').write_text('#!/bin/sh\n')
+        (target / 'platform/cloud').mkdir(parents=True)
+        (target / 'platform/cloud/.env.example').write_text('API_KEY=replace-me\n')
         (base / 'Run-DCP.sh').write_text('#!/bin/sh\necho old\n')
         (target / 'Run-DCP.sh').chmod(0o755)
         (target / 'payload').mkdir()
@@ -38,7 +40,7 @@ def main() -> int:
             run(str(DELTA), '--base-dir', str(base), '--target-dir', str(target), '--output', str(archive), '--index', str(index), '--format', fmt)
             data = json.loads(index.read_text())
             paths = {item['path'] for item in data['files']}
-            assert paths == {'platform/app/Database.php', 'Run-DCP.sh'}, paths
+            assert paths == {'platform/app/Database.php', 'Run-DCP.sh', 'platform/cloud/.env.example'}, paths
             assert data['deleted'] == ['platform/app/old.php'], data['deleted']
             if fmt == 'tar.gz':
                 with tarfile.open(archive, 'r:gz') as package:
@@ -66,6 +68,14 @@ def main() -> int:
         assert parsed['full']['deleted'] == ['platform/app/old.php']
         assert parsed['delta']['asset']['name'] == 'DCP-Linux-x64-delta.tar.gz'
         print('PASS: schema 3 manifest binds platform, exact base revision, full fallback and asset hashes')
+        secret = target / 'platform/cloud/.env.local'
+        secret.write_text('API_KEY=must-not-ship\n')
+        rejected = subprocess.run([sys.executable, str(DELTA), '--base-dir', str(base), '--target-dir', str(target),
+            '--output', str(work/'bad-delta.zip'), '--index', str(work/'bad-delta.json'), '--format', 'zip'],
+            cwd=ROOT, capture_output=True, text=True)
+        assert rejected.returncode != 0 and 'environment secret path' in rejected.stderr, rejected.stdout + rejected.stderr
+        secret.unlink()
+        print('PASS: delta builder rejects .env.local while retaining the safe .env.example template')
     print('ALL UPDATE PACKAGE BUILD TESTS PASSED')
     return 0
 

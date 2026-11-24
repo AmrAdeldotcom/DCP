@@ -33,6 +33,15 @@ def main() -> int:
         assert (out/'platform/app/index.php').read_bytes() == b'hello'
         assert not (out/'DCP-UserData').exists()
         print('PASS: full archive extracts app files and skips all bundled user data')
+        example = root/'example.tar.gz'
+        archive(example, [('platform/cloud/.env.example', b'API_KEY=replace-me\n', 'file')])
+        run(example, root/'example-out')
+        assert (root/'example-out/platform/cloud/.env.example').is_file()
+        print('PASS: non-secret .env.example template is accepted')
+        env_secret = root/'env-secret.tar.gz'
+        archive(env_secret, [('platform/cloud/.env.local', b'API_KEY=real-secret\n', 'file')])
+        run(env_secret, root/'env-secret-out', expected=False)
+        print('PASS: real .env.local secret file remains rejected')
         bad = root/'bad.tar.gz'; archive(bad, [('../escape.php', b'no', 'file')])
         run(bad, root/'bad-out', expected=False)
         print('PASS: path traversal is rejected')

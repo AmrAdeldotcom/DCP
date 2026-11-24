@@ -40,7 +40,7 @@ def safe_update_path(path: str) -> None:
     if any(part in ("", ".", "..") for part in parts):
         raise ValueError(f"Unsafe update path traversal: {path!r}")
     lower = path.lower()
-    if lower == "dcp-userdata" or lower.startswith("dcp-userdata/") or re.match(r"^platform/(data|storage)(/|$)", lower) or re.search(r"(^|/)\.env($|\.)", lower):
+    if lower == "dcp-userdata" or lower.startswith("dcp-userdata/") or re.match(r"^platform/(data|storage)(/|$)", lower) or re.search(r"(^|/)\.env($|\.(?!example$))", lower):
         raise ValueError(f"User data or environment secrets are not updateable: {path}")
 
 def main() -> int:

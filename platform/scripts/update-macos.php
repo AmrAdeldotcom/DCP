@@ -58,7 +58,7 @@ final class DcpMacOSUpdater
         $lower = strtolower($path);
         if ($lower === 'dcp-userdata' || str_starts_with($lower, 'dcp-userdata/') ||
             preg_match('#^platform/(data|storage)(/|$)#', $lower) ||
-            preg_match('#(^|/)\.env($|\.)#', $lower)) {
+            preg_match('#(^|/)\.env($|\.(?!example$))#', $lower)) {
             throw new RuntimeException('DCP update path attempts to modify protected user data: ' . $path);
         }
     }

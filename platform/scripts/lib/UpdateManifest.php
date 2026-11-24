@@ -215,7 +215,7 @@ final class DcpUpdateManifest
         $normalized = strtolower($path);
         if (str_starts_with($normalized, 'dcp-userdata/') || $normalized === 'dcp-userdata'
             || preg_match('#^platform/(?:data|storage)(?:/|$)#', $normalized)
-            || preg_match('#(^|/)\\.env(?:$|\\.)#', $normalized)) {
+            || preg_match('#(^|/)\\.env(?:$|\\.(?!example$))#', $normalized)) {
             throw new RuntimeException('DCP update manifests may not modify user data or environment secrets.');
         }
     }

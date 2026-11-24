@@ -65,7 +65,7 @@ final class DcpLinuxUpdateTransaction
             $lowerRelative = strtolower($relative);
             if ($relative === 'DCP-UserData' || str_starts_with($relative, 'DCP-UserData/')
                 || preg_match('#^platform/(?:data|storage)(?:/|$)#', $lowerRelative)
-                || preg_match('#(^|/)\.env(?:$|\.)#', $lowerRelative)) {
+                || preg_match('#(^|/)\.env(?:$|\.(?!example$))#', $lowerRelative)) {
                 continue;
             }
             DcpUpdateManifest::validateUpdatePath($relative);

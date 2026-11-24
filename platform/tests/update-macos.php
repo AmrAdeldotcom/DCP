@@ -77,6 +77,8 @@ try {
     rejectMacUpdate(fn() => DcpMacOSUpdater::validateUpdatePath('DCP-UserData/macOS/data/dcp.sqlite'), 'user data is protected');
     rejectMacUpdate(fn() => DcpMacOSUpdater::validateUpdatePath('platform/storage/keys/master.key'), 'platform storage is protected');
     rejectMacUpdate(fn() => DcpMacOSUpdater::validateUpdatePath('platform/app/.env.local'), 'environment secrets are protected');
+    DcpMacOSUpdater::validateUpdatePath('platform/cloud/.env.example');
+    checkMacUpdate(true, 'safe .env.example template is accepted by the macOS updater');
     rejectMacUpdate(fn() => DcpMacOSUpdater::validateUpdatePath('platform/app\\index.php'), 'backslash path aliases are rejected');
 
     checkMacUpdate(DcpMacOSUpdater::compareVersions('1.0.0-alpha.10', '1.0.0-alpha.9') > 0, 'alpha.10 sorts after alpha.9');
