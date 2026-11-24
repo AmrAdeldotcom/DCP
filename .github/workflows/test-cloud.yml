@@ -40,6 +40,7 @@ jobs:
           php -l platform/tests/run.php
           php -l platform/tests/cloud-contract.php
           php platform/tests/cloud-contract.php
+          php platform/tests/run.php
           grep -q '^DB_HOST=localhost$' platform/cloud/.env.example
           test ! -e platform/cloud/.env
           grep -q 'pairing_codes' platform/cloud/schema.migrate.sql

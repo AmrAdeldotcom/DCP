@@ -3,7 +3,10 @@ declare(strict_types=1);
 
 final class CloudService {
     private const BASE_URL = 'https://dcp.amradel.com/api/v1';
-    public function __construct(private PDO $db, private Crypto $crypto) {}
+    private string $baseUrl;
+    public function __construct(private PDO $db, private Crypto $crypto, ?string $baseUrl = null) {
+        $this->baseUrl = rtrim($baseUrl ?? self::BASE_URL, '/');
+    }
 
     private function value(string $key): string {
         $q=$this->db->prepare('SELECT value FROM settings WHERE key=?');$q->execute([$key]);return (string)($q->fetchColumn()?:'');
@@ -15,7 +18,7 @@ final class CloudService {
     private function secret(string $key):string {$v=$this->value($key);return $v===''?'':$this->crypto->decrypt($v);}
     private function saveSecret(string $key,string $value):void {$this->save($key,$value===''?'':$this->crypto->encrypt($value));}
     private function request(string $method,string $path,?array $body=null,string $token=''):array {
-        $ch=curl_init(self::BASE_URL.$path);if($ch===false)throw new RuntimeException('Could not initialize the DCP Cloud connection.');
+        $ch=curl_init($this->baseUrl.$path);if($ch===false)throw new RuntimeException('Could not initialize the DCP Cloud connection.');
         $headers=['Accept: application/json'];if($token!=='')$headers[]='Authorization: Bearer '.$token;if($body!==null)$headers[]='Content-Type: application/json';
         $opts=[CURLOPT_RETURNTRANSFER=>true,CURLOPT_CONNECTTIMEOUT=>6,CURLOPT_TIMEOUT=>18,CURLOPT_HTTPHEADER=>$headers,CURLOPT_CUSTOMREQUEST=>strtoupper($method),CURLOPT_FOLLOWLOCATION=>false];
         if($body!==null)$opts[CURLOPT_POSTFIELDS]=json_encode($body,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);
