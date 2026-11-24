@@ -82,6 +82,14 @@ try {
         foreach ($serverPipes as $pipe) if (is_resource($pipe)) fclose($pipe);
         proc_close($server);
     }
+    $updaterSource = file_get_contents(__DIR__ . '/../scripts/update-linux.php');
+    $builderSource = file_get_contents(__DIR__ . '/../scripts/build-linux.sh');
+    $watchStart = strpos($updaterSource, "if (" . '$mode' . " === '--watch')");
+    $watchBlock = $watchStart === false ? '' : substr($updaterSource, $watchStart);
+    linux_health_ok(method_exists(DcpLinuxUpdater::class, 'download') && str_contains($updaterSource, "if (" . '$mode' . " === '--download')"), 'Linux updater exposes a CLI operation to download and verify a signed package before apply');
+    linux_health_ok(str_contains($watchBlock, '$updater->download()') && str_contains($watchBlock, '$updater->apply()') && str_contains($watchBlock, 'sleep(300)'), 'background watcher downloads signed updates every five minutes and applies only through the transactional updater');
+    linux_health_ok(str_contains($builderSource, 'update-linux.php" --watch') && str_contains($builderSource, 'update-watch.pid'), 'packaged Linux launcher starts one per-install background update watcher');
+    linux_health_ok(str_contains($builderSource, '${DCP_DISABLE_UPDATE_WATCH:-0}'), 'Linux launcher safely defaults the optional watcher flag under set -u');
     echo "ALL LINUX UPDATER HEALTH TESTS PASSED" . PHP_EOL;
 } finally {
     linux_health_remove($root);

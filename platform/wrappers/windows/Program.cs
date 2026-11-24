@@ -139,7 +139,7 @@ internal sealed class MainWindow : Form
                     view.CoreWebView2.Navigate($"http://127.0.0.1:{Port}/");
                     AppendLog("DCP desktop UI loaded.");
                     updaterCancellation = new CancellationTokenSource();
-                    _ = CheckAndApplyUpdateInBackgroundAsync(updaterCancellation.Token);
+                    _ = MonitorUpdatesInBackgroundAsync(updaterCancellation.Token);
                     return;
                 }
                 catch (Exception ex)
@@ -159,6 +159,23 @@ internal sealed class MainWindow : Form
         }
 
         ShowStartupError("DCP PHP service did not become ready. Check DCP-UserData\\Windows\\storage\\logs\\desktop-wrapper.log.");
+    }
+
+    private async Task MonitorUpdatesInBackgroundAsync(CancellationToken cancellationToken)
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromMinutes(5));
+        try
+        {
+            do
+            {
+                await CheckAndApplyUpdateInBackgroundAsync(cancellationToken);
+                if (cancellationToken.IsCancellationRequested) break;
+            } while (await timer.WaitForNextTickAsync(cancellationToken));
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            AppendLog("Background update monitoring stopped.");
+        }
     }
 
     private async Task CheckAndApplyUpdateInBackgroundAsync(CancellationToken cancellationToken)
@@ -191,9 +208,9 @@ internal sealed class MainWindow : Form
                 MessageBoxIcon.Question);
             if (answer != DialogResult.Yes)
             {
-                Directory.Delete(workRoot, true);
+                AppendLog("User deferred the signed DCP update; the verified package remains staged at " + workRoot);
                 workRoot = null;
-                AppendLog("User deferred the signed DCP update; continuing with the installed version.");
+                updaterCancellation?.Cancel();
                 return;
             }
 

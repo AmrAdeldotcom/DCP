@@ -545,6 +545,7 @@ final class DcpMacOSUpdater
                 'version' => $manifest['version'],
                 'package_revision' => $manifest['package_revision'],
                 'release_tag' => $manifest['release_tag'],
+                'strategy' => $strategy,
                 'files' => $files,
                 'deleted' => $deleted,
             ];
@@ -553,6 +554,128 @@ final class DcpMacOSUpdater
         } catch (Throwable $error) {
             self::removeTree($workRoot);
             throw $error;
+        }
+    }
+
+    private static function stagedFileInventory(string $stage): array
+    {
+        if (is_link($stage) || !is_dir($stage)) throw new RuntimeException('Cached DCP update payload directory is missing or unsafe.');
+        $files = [];
+        $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($stage, FilesystemIterator::SKIP_DOTS));
+        foreach ($iterator as $entry) {
+            if ($entry->isLink()) throw new RuntimeException('Cached DCP update payload contains a symbolic link.');
+            if (!$entry->isFile()) continue;
+            $relative = str_replace(DIRECTORY_SEPARATOR, '/', substr($entry->getPathname(), strlen(rtrim($stage, DIRECTORY_SEPARATOR)) + 1));
+            self::validateUpdatePath($relative);
+            $files[] = [
+                'path' => $relative,
+                'size' => $entry->getSize(),
+                'sha256' => hash_file('sha256', $entry->getPathname()),
+            ];
+        }
+        return $files;
+    }
+
+    private static function pendingPackageRoot(string $root, string $tag): string
+    {
+        return self::assertNoSymlinkPath(
+            $root,
+            'DCP-UserData/macOS/storage/updates/pending/' . hash('sha256', $tag)
+        );
+    }
+
+    private static function hasPendingPackage(string $root, array $release, string $currentVersion, int $currentRevision): bool
+    {
+        $pendingRoot = self::pendingPackageRoot($root, (string)$release['tag']);
+        $manifestPath = $pendingRoot . '/update-manifest.json';
+        if (!is_dir($pendingRoot) || !is_file($manifestPath) || is_link($manifestPath)) return false;
+        $manifest = json_decode((string)file_get_contents($manifestPath), true);
+        if (!is_array($manifest) ||
+            ($manifest['release_tag'] ?? null) !== $release['tag'] ||
+            ($manifest['version'] ?? null) !== ($release['manifest']['version'] ?? null) ||
+            (int)($manifest['package_revision'] ?? -1) !== (int)($release['manifest']['package_revision'] ?? -2) ||
+            !in_array(($manifest['strategy'] ?? null), ['delta', 'full'], true)) return false;
+        $delta = $release['manifest']['delta'] ?? null;
+        $useDelta = is_array($delta) && $release['delta_available'] &&
+            ($delta['base']['version'] ?? null) === $currentVersion &&
+            (int)($delta['base']['package_revision'] ?? -1) === $currentRevision;
+        $asset = $useDelta ? $delta['asset'] : $release['manifest']['full'];
+        return ($manifest['strategy'] ?? null) === ($useDelta ? 'delta' : 'full') &&
+            is_file($pendingRoot . '/' . $asset['name']) &&
+            !is_link($pendingRoot . '/' . $asset['name']);
+    }
+
+    private static function loadPendingPackage(string $root, array $release, string $currentVersion, int $currentRevision): ?array
+    {
+        $pendingRoot = self::pendingPackageRoot($root, (string)$release['tag']);
+        $delta = $release['manifest']['delta'] ?? null;
+        $useDelta = is_array($delta) && $release['delta_available'] &&
+            ($delta['base']['version'] ?? null) === $currentVersion &&
+            (int)($delta['base']['package_revision'] ?? -1) === $currentRevision;
+        $strategy = $useDelta ? 'delta' : 'full';
+        $asset = $useDelta ? $delta['asset'] : $release['manifest']['full'];
+        $archive = $pendingRoot . '/' . $asset['name'];
+        if (!is_file($archive) || is_link($archive)) return null;
+        try {
+            if (filesize($archive) !== (int)$asset['size'] ||
+                !hash_equals(strtolower((string)$asset['sha256']), strtolower((string)hash_file('sha256', $archive)))) {
+                throw new RuntimeException('Cached DCP update archive does not match the signed size/SHA-256.');
+            }
+            $stage = $pendingRoot . '/payload';
+            self::removeTree($stage);
+            $files = self::extractZipSafely($archive, $stage, $strategy === 'full');
+            if ($useDelta) self::verifyDeltaPayload($files, $delta['files']);
+            $deleted = $useDelta
+                ? self::validatePathList($delta['deleted'])
+                : self::validatePathList($release['manifest']['full']['deleted']);
+            $actualPaths = [];
+            foreach ($files as $file) $actualPaths[strtolower($file['path'])] = true;
+            foreach ($deleted as $deletedPath) {
+                if (isset($actualPaths[strtolower($deletedPath)])) {
+                    throw new RuntimeException('Cached DCP package both installs and deletes the same path: ' . $deletedPath);
+                }
+            }
+            $normalized = [
+                'schema' => 2,
+                'version' => $release['manifest']['version'],
+                'package_revision' => $release['manifest']['package_revision'],
+                'release_tag' => $release['tag'],
+                'strategy' => $strategy,
+                'files' => $files,
+                'deleted' => $deleted,
+            ];
+            file_put_contents($pendingRoot . '/update-manifest.json', json_encode($normalized, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR) . PHP_EOL, LOCK_EX);
+            return ['work_root' => $pendingRoot, 'stage' => $stage, 'manifest' => $normalized, 'strategy' => $strategy];
+        } catch (Throwable $error) {
+            self::log('Discarding invalid cached DCP update package: ' . $error->getMessage());
+            self::removeTree($pendingRoot);
+            return null;
+        }
+    }
+
+    public static function downloadUpdate(string $root, string $currentVersion, int $currentRevision): array
+    {
+        $root = realpath($root) ?: throw new RuntimeException('DCP installation root is missing.');
+        $lock = self::acquireUpdateLock($root);
+        try {
+            $release = self::verifyRelease($root);
+            if ($release === []) return ['available' => false, 'message' => 'No complete synchronized signed DCP release is available.'];
+            $check = self::checkUpdate($root, $currentVersion, $currentRevision);
+            if (empty($check['available'])) return $check;
+            $pendingRoot = self::pendingPackageRoot($root, (string)$release['tag']);
+            $cached = self::hasPendingPackage($root, $release, $currentVersion, $currentRevision);
+            if ($cached) {
+                return $check + ['downloaded' => true, 'cached' => true, 'message' => 'A verified signed DCP update is already downloaded and staged.'];
+            }
+            $package = self::downloadAndStage($root, $release, $currentVersion, $currentRevision);
+            $package['manifest']['strategy'] = $package['strategy'];
+            file_put_contents($package['work_root'] . '/update-manifest.json', json_encode($package['manifest'], JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR) . PHP_EOL, LOCK_EX);
+            if (is_dir($pendingRoot)) self::removeTree($pendingRoot);
+            self::copyTree($package['work_root'], $pendingRoot);
+            self::removeTree($package['work_root']);
+            return $check + ['downloaded' => true, 'cached' => false, 'message' => 'The signed DCP update package was downloaded, verified and staged.'];
+        } finally {
+            self::releaseUpdateLock($lock);
         }
     }
 
@@ -1051,7 +1174,8 @@ final class DcpMacOSUpdater
                 return;
             }
             self::writeUpdaterState($root, 'downloading', $release['tag']);
-            $package = self::downloadAndStage($root, $release, $currentVersion, $currentRevision);
+            $package = self::loadPendingPackage($root, $release, $currentVersion, $currentRevision);
+            if ($package === null) $package = self::downloadAndStage($root, $release, $currentVersion, $currentRevision);
             self::writeUpdaterState($root, 'applying', $release['tag']);
             self::applyTransaction($root, $package, $package['work_root']);
             @unlink($userData . '/storage/updates/last-failed-release.json');
@@ -1079,7 +1203,7 @@ final class DcpMacOSUpdater
 
     public static function main(array $argv): int
     {
-        $options = getopt('', ['check', 'apply', 'recover', 'root:', 'version:', 'revision:', 'pid:']);
+        $options = getopt('', ['check', 'download', 'apply', 'recover', 'root:', 'version:', 'revision:', 'pid:']);
         // Keep the user-visible installation path for process identity checks;
         // realpath() can rewrite /var as /private/var while argv[0] keeps /var.
         $requestedRoot = rtrim((string)($options['root'] ?? ''), '/');
@@ -1094,6 +1218,11 @@ final class DcpMacOSUpdater
         try {
             if (isset($options['check'])) {
                 $result = self::checkUpdate($root, $version, $revision);
+                echo json_encode($result, JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . PHP_EOL;
+                return 0;
+            }
+            if (isset($options['download'])) {
+                $result = self::downloadUpdate($requestedRoot, $version, $revision);
                 echo json_encode($result, JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . PHP_EOL;
                 return 0;
             }
@@ -1112,7 +1241,7 @@ final class DcpMacOSUpdater
                 self::apply($requestedRoot, $version, $revision, (int)($options['pid'] ?? 0));
                 return 0;
             }
-            fwrite(STDERR, "Use --check, --recover or --apply.\n");
+            fwrite(STDERR, "Use --check, --download, --recover or --apply.\n");
             return 2;
         } catch (Throwable $error) {
             self::log($error->getMessage());

@@ -114,6 +114,17 @@ if [[ "${DCP_DISABLE_UPDATE_CHECK:-0}" != "1" ]]; then
 fi
 
 "$ROOT/Install-DCP-Launcher.sh"
+# Keep a single per-install background watcher alive while the user session is active.
+WATCH_LOG="$ROOT/DCP-UserData/Linux/storage/logs/updater.log"
+WATCH_PID_FILE="$ROOT/DCP-UserData/Linux/storage/update-watch.pid"
+if [[ "${DCP_DISABLE_UPDATE_WATCH:-0}" != "1" ]]; then
+  WATCH_PID="$(cat "$WATCH_PID_FILE" 2>/dev/null || true)"
+  if [[ ! "$WATCH_PID" =~ ^[0-9]+$ ]] || ! kill -0 "$WATCH_PID" 2>/dev/null || ! ps -p "$WATCH_PID" -o args= | grep -Fq "$ROOT/platform/scripts/update-linux.php --watch"; then
+    nohup "$PHP_BIN" "$ROOT/platform/scripts/update-linux.php" --watch >>"$WATCH_LOG" 2>&1 </dev/null &
+    echo "$!" > "$WATCH_PID_FILE"
+    chmod 0600 "$WATCH_PID_FILE"
+  fi
+fi
 exec "$ROOT/DCP"
 RUNNER
 chmod 0755 "$OUT/Run-DCP.sh"

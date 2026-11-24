@@ -3,18 +3,18 @@
 ## Stage 0 — Baseline, docs and safety (active)
 - [x] Capture current product requests and screenshots.
 - [x] Read the supplied Speed Engineer skill.
-- [ ] Establish source-of-truth Git worktree and preserve the installed alpha.8 copy.
-- [ ] Install the requested engineering skills and pin their source revisions.
-- [ ] Write the project map, security model, performance audit and work queue.
-- [ ] Confirm the public tunnel route is protected before publishing a test entry point.
+- [x] Establish source-of-truth Git worktree at /Volumes/Data/ChatGPT/DCP and preserve the installed alpha.8 copy.
+- [x] Install the requested engineering skills and pin their source revisions.
+- [x] Write the project map, security model, performance audit and work queue.
+- [ ] Confirm the public tunnel route is protected before publishing a test entry point. (Blocked: Apache AllowOverride None; mod_rewrite unavailable; authentication/rate-limit/private-path checks remain.)
 
 ## Stage 1 — Restructure without breaking desktop builds
-- [ ] Promote the Git repository to /Volumes/Data/ChatGPT/DCP with reversible backup.
-- [ ] Add platform/index.php and hardened platform/.htaccess.
-- [ ] Move cloud-platform-upload source to platform/cloud and update workflows.
-- [ ] Add dcp-env manifests and OS-specific bootstrap/install/update/verify scripts.
+- [x] Promote the Git repository to /Volumes/Data/ChatGPT/DCP with reversible backup.
+- [x] Add platform/index.php and hardened platform/.htaccess. (Files are present; web-server enforcement and public route remain blocked under Q004.)
+- [x] Move platform/cloud source to platform/cloud and update workflows.
+- [x] Add dcp-env manifests and OS-specific bootstrap/install/update/verify scripts. (Mac managed PHP build recipe and native Intel/ARM64 CI workflow are configured; CI build and clean-install verification remain outstanding; see Q005.)
 - [ ] Add root launchers and keep release ZIP + terminal install parity.
-- [ ] Preserve Windows and macOS local databases/keys; do not package runtime data.
+- [ ] Preserve Windows and macOS local databases/keys; do not package runtime data. (Packaging exclusions exist; full release build/restore verification remains.)
 - [ ] Add the dcp-shortcut symlink only after web-root security tests pass.
 
 ## Stage 2 — Repair core reliability (Mac + Windows)

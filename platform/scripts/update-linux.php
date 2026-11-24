@@ -128,6 +128,48 @@ final class DcpLinuxUpdater
         ];
     }
 
+    public function download(): array
+    {
+        $lock = $this->acquireUpdateLock();
+        try {
+            $check = $this->checkUnlocked();
+            if (empty($check['available'])) return $check;
+            $manifest = $check['manifest'];
+            $strategy = (string)$check['strategy'];
+            $asset = $strategy === 'delta' ? $manifest['delta']['asset'] : $manifest['full'];
+            $pendingRoot = $this->userData . '/storage/updates/pending/' . hash('sha256', (string)$manifest['release_tag']);
+            $this->ensureSafeUserDataDirectory($pendingRoot);
+            $archive = $pendingRoot . '/' . basename((string)$asset['name']);
+            if (is_link($archive)) throw new RuntimeException('Cached DCP update package may not be a symbolic link.');
+            $downloaded = false;
+            if (is_file($archive)) {
+                try {
+                    DcpUpdateManifest::verifyAssetFile($archive, $asset);
+                } catch (Throwable) {
+                    if (!unlink($archive)) throw new RuntimeException('Could not discard a damaged cached DCP update package.');
+                }
+            }
+            if (!is_file($archive)) {
+                $this->downloadToFile((string)$asset['url'], $archive, (int)$asset['size']);
+                DcpUpdateManifest::verifyAssetFile($archive, $asset);
+                $downloaded = true;
+            }
+            return [
+                'ok' => true,
+                'available' => true,
+                'downloaded' => true,
+                'newDownload' => $downloaded,
+                'version' => $manifest['version'],
+                'packageRevision' => $manifest['package_revision'],
+                'releaseTag' => $manifest['release_tag'],
+                'strategy' => $strategy,
+                'message' => 'The signed DCP update package is downloaded and verified; it will be applied when DCP is closed.',
+            ];
+        } finally {
+            $this->releaseUpdateLock($lock);
+        }
+    }
+
     public function apply(): array
     {
         $lock = $this->acquireUpdateLock();
@@ -142,7 +184,10 @@ final class DcpLinuxUpdater
             $strategy = (string)$check['strategy'];
             $asset = $strategy === 'delta' ? $manifest['delta']['asset'] : $manifest['full'];
             $work = sys_get_temp_dir() . '/dcp-linux-update-' . bin2hex(random_bytes(8));
-            $archive = $work . '/' . basename((string)$asset['name']);
+            $pendingRoot = $this->userData . '/storage/updates/pending/' . hash('sha256', (string)$manifest['release_tag']);
+            $this->ensureSafeUserDataDirectory($pendingRoot);
+            $archive = $pendingRoot . '/' . basename((string)$asset['name']);
+            if (is_link($archive)) throw new RuntimeException('Cached DCP update package may not be a symbolic link.');
             $stage = $work . '/payload';
             if (!mkdir($work, 0700, true)) {
                 throw new RuntimeException('Could not create a private DCP update staging directory.');
@@ -150,8 +195,14 @@ final class DcpLinuxUpdater
             $criticalSnapshot = [];
             try {
                 $criticalSnapshot = $this->snapshotCriticalData($work);
-                $this->downloadToFile((string)$asset['url'], $archive, (int)$asset['size']);
-                DcpUpdateManifest::verifyAssetFile($archive, $asset);
+                if (is_file($archive)) {
+                    try { DcpUpdateManifest::verifyAssetFile($archive, $asset); }
+                    catch (Throwable) { @unlink($archive); }
+                }
+                if (!is_file($archive)) {
+                    $this->downloadToFile((string)$asset['url'], $archive, (int)$asset['size']);
+                    DcpUpdateManifest::verifyAssetFile($archive, $asset);
+                }
                 $this->extractArchive($archive, $stage, $strategy === 'full');
                 $transaction = new DcpLinuxUpdateTransaction($this->root, $this->userData);
                 if ($strategy === 'delta') {
@@ -171,6 +222,7 @@ final class DcpLinuxUpdater
                         throw new RuntimeException('Installed version metadata does not match the signed update manifest.');
                     }
                     $transaction->markLatestHealthy();
+                    $this->removeTree($pendingRoot);
                     $result['healthCheck'] = 'passed';
                 } catch (Throwable $healthError) {
                     $rollbackFailure = null;
@@ -675,12 +727,45 @@ try {
         echo json_encode($result, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR) . PHP_EOL;
         exit(0);
     }
+    if ($mode === '--download') {
+        $result = $updater->download();
+        echo json_encode($result, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR) . PHP_EOL;
+        exit(0);
+    }
     if ($mode === '--apply') {
         $result = $updater->apply();
         echo json_encode($result, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR) . PHP_EOL;
         exit(0);
     }
-    throw new InvalidArgumentException('Usage: php update-linux.php --check|--apply');
+    if ($mode === '--watch') {
+        $logPath = dirname(__DIR__, 2) . '/DCP-UserData/Linux/storage/logs/updater.log';
+        $log = static function (string $message) use ($logPath): void {
+            @file_put_contents($logPath, '[' . gmdate('c') . '] ' . $message . PHP_EOL, FILE_APPEND | LOCK_EX);
+        };
+        $log('Background release watcher started; polling GitHub every 300 seconds.');
+        while (true) {
+            try {
+                $check = $updater->download();
+                if (!empty($check['available'])) {
+                    $tag = (string)($check['releaseTag'] ?? 'unknown');
+                    $log('Verified update detected: ' . $tag . ' (' . ($check['strategy'] ?? 'full') . '). Waiting for DCP to close before transactional apply.');
+                    try {
+                        $result = $updater->apply();
+                        $log('Background update applied successfully: ' . json_encode($result, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+                        if (function_exists('exec') && function_exists('shell_exec') && trim((string)shell_exec('command -v notify-send 2>/dev/null')) !== '') {
+                            exec('notify-send ' . escapeshellarg('DCP updated') . ' ' . escapeshellarg('Installed ' . $tag . '. Reopen DCP to use the new version.') . ' >/dev/null 2>&1 &');
+                        }
+                    } catch (Throwable $error) {
+                        $log('Update remains pending until DCP exits: ' . $error->getMessage());
+                    }
+                }
+            } catch (Throwable $error) {
+                $log('Release watcher check failed; will retry: ' . $error->getMessage());
+            }
+            sleep(300);
+        }
+    }
+    throw new InvalidArgumentException('Usage: php update-linux.php --check|--download|--apply|--watch');
 } catch (Throwable $error) {
     fwrite(STDERR, 'DCP Linux updater: ' . $error->getMessage() . PHP_EOL);
     exit(1);

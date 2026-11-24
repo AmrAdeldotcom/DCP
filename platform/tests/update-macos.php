@@ -4,6 +4,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../scripts/update-macos.php';
 
 $assertions = 0;
+$macWrapperSource = file_get_contents(__DIR__ . '/../wrappers/macos/main.m');
 function checkMacUpdate(bool $condition, string $message): void {
     global $assertions;
     $assertions++;
@@ -64,6 +65,9 @@ function makeMacZip(string $root, string $name, array $files): string {
     return $zip;
 }
 
+checkMacUpdate(str_contains($macWrapperSource, 'scheduledTimerWithTimeInterval:300.0'), 'macOS wrapper polls the signed GitHub release feed every five minutes');
+checkMacUpdate(str_contains($macWrapperSource, 'script,@"--download"'), 'macOS wrapper downloads and stages the signed package before offering apply/restart');
+
 $root = sys_get_temp_dir() . '/dcp-macos-update-tests-' . bin2hex(random_bytes(6));
 mkdir($root, 0700, true);
 try {
@@ -113,6 +117,34 @@ try {
     ];
     DcpMacOSUpdater::validateManifest($manifest, 'macos', $architecture, $tag, [$fullName => $fullUrl]);
     checkMacUpdate(true, 'schema-3 macOS manifest accepts signed full fallback and optional delta asset');
+
+    $pendingInstall = $root . '/pending-package-install';
+    mkdir($pendingInstall . '/DCP-UserData/macOS/storage/updates/pending', 0700, true);
+    $pendingRelease = [
+        'tag' => $tag,
+        'manifest' => $manifest,
+        'delta_available' => true,
+    ];
+    $pendingMethod = new ReflectionMethod(DcpMacOSUpdater::class, 'hasPendingPackage');
+    $pendingMethod->setAccessible(true);
+    checkMacUpdate(!$pendingMethod->invoke(null, $pendingInstall, $pendingRelease, '1.0.0-alpha.9', 0),
+        'macOS updater does not treat an absent pending package as cached');
+    $pendingRoot = $pendingInstall . '/DCP-UserData/macOS/storage/updates/pending/' . hash('sha256', $tag);
+    mkdir($pendingRoot, 0700, true);
+    file_put_contents($pendingRoot . '/update-manifest.json', json_encode([
+        'release_tag' => $tag, 'version' => '1.0.0-alpha.10', 'package_revision' => 1, 'strategy' => 'delta',
+    ]));
+    file_put_contents($pendingRoot . '/' . $deltaName, 'verified delta fixture');
+    checkMacUpdate($pendingMethod->invoke(null, $pendingInstall, $pendingRelease, '1.0.0-alpha.9', 0),
+        'macOS updater reuses a matching exact-base Delta package already staged');
+    checkMacUpdate(!$pendingMethod->invoke(null, $pendingInstall, $pendingRelease, '1.0.0-alpha.9', 1),
+        'macOS updater rejects a staged Delta package when the installed base revision changes');
+    file_put_contents($pendingRoot . '/update-manifest.json', json_encode([
+        'release_tag' => $tag, 'version' => '1.0.0-alpha.10', 'package_revision' => 1, 'strategy' => 'full',
+    ]));
+    file_put_contents($pendingRoot . '/' . $fullName, 'verified full fixture');
+    checkMacUpdate($pendingMethod->invoke(null, $pendingInstall, $pendingRelease, '1.0.0-alpha.9', 1),
+        'macOS updater reuses a staged Full fallback when the exact Delta base no longer matches');
     $unsafeFull = $manifest;
     $unsafeFull['full']['deleted'] = ['DCP-UserData/macOS/data/dcp.sqlite'];
     rejectMacUpdate(fn() => DcpMacOSUpdater::validateManifest($unsafeFull, 'macos', $architecture, $tag, [$fullName => $fullUrl]), 'full-package manifest cannot delete user data');

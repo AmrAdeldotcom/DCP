@@ -13,6 +13,8 @@
 @property(nonatomic,strong) NSTask *phpTask;
 @property(nonatomic,strong) NSTask *updateCheckTask;
 @property(nonatomic,strong) NSTask *updateApplyTask;
+@property(nonatomic,strong) NSTimer *updateCheckTimer;
+@property(nonatomic,strong) NSString *lastOfferedUpdateKey;
 @property(nonatomic,strong) NSString *phpBinaryPath;
 @property(nonatomic,strong) NSDictionary<NSString *,NSString *> *phpEnvironment;
 @property(nonatomic,assign) BOOL ownsPHP;
@@ -243,6 +245,9 @@
                 [self.window orderFrontRegardless];
                 [NSApp activateIgnoringOtherApps:YES];
                 [self checkForUpdates];
+                if(!self.updateCheckTimer) {
+                    self.updateCheckTimer=[NSTimer scheduledTimerWithTimeInterval:300.0 repeats:YES block:^(NSTimer *timer){ [self checkForUpdates]; }];
+                }
             } else {
                 dispatch_after(dispatch_time(DISPATCH_TIME_NOW,(int64_t)(0.3*NSEC_PER_SEC)),dispatch_get_main_queue(),^{[self loadAttempt:attempt+1];});
             }
@@ -250,7 +255,7 @@
     }] resume];
 }
 - (void)checkForUpdates {
-    if(self.phpBinaryPath.length==0) return;
+    if(self.phpBinaryPath.length==0 || (self.updateCheckTask && self.updateCheckTask.running) || self.updateApplyTask.running) return;
     NSString *root=self.platformURL.URLByDeletingLastPathComponent.path;
     NSString *script=[self.platformURL URLByAppendingPathComponent:@"scripts/update-macos.php"].path;
     if(![[NSFileManager defaultManager] isReadableFileAtPath:script]) return;
@@ -261,7 +266,7 @@
         NSTask *check=[NSTask new];
         self.updateCheckTask=check;
         check.executableURL=[NSURL fileURLWithPath:self.phpBinaryPath];
-        check.arguments=@[script,@"--check",@"--root",root,@"--version",version,@"--revision",[NSString stringWithFormat:@"%ld",(long)revision]];
+        check.arguments=@[script,@"--download",@"--root",root,@"--version",version,@"--revision",[NSString stringWithFormat:@"%ld",(long)revision]];
         check.environment=self.phpEnvironment;
         NSPipe *pipe=[NSPipe pipe];
         check.standardOutput=pipe;
@@ -279,8 +284,11 @@
         id response=[NSJSONSerialization JSONObjectWithData:output options:0 error:&jsonError];
         if(jsonError || ![response isKindOfClass:[NSDictionary class]] || ![response[@"available"] boolValue]) return;
         NSDictionary *update=(NSDictionary *)response;
+        NSString *updateKey=[NSString stringWithFormat:@"%@|%@", update[@"release_tag"] ?: update[@"version"] ?: @"unknown", update[@"package_revision"] ?: @0];
         dispatch_async(dispatch_get_main_queue(), ^{
             if(!self.window || !self.window.isVisible) return;
+            if([self.lastOfferedUpdateKey isEqualToString:updateKey]) return;
+            self.lastOfferedUpdateKey=updateKey;
             NSString *latest=[update[@"version"] isKindOfClass:[NSString class]]?update[@"version"]:@"new version";
             NSString *strategy=[update[@"strategy"] isKindOfClass:[NSString class]]?update[@"strategy"]:@"full";
             NSAlert *alert=[NSAlert new];
@@ -314,6 +322,8 @@
     });
 }
 - (void)applicationWillTerminate:(NSNotification *)notification {
+    [self.updateCheckTimer invalidate];
+    self.updateCheckTimer=nil;
     if(self.updateCheckTask && self.updateCheckTask.running) {
         [self.updateCheckTask terminate];
         [self.updateCheckTask waitUntilExit];
