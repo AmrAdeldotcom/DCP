@@ -60,12 +60,13 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: dcp-linux-distro-test-package
-          path: ${{ runner.temp }}/dcp-linux-artifact
+          path: dcp-linux-artifact
       - name: Extract Linux package preserving executable permissions
         shell: bash
         run: |
           mkdir -p platform/dist/linux
-          tar -xzf "${{ runner.temp }}/dcp-linux-artifact/DCP-Linux-distro-test.tar.gz" -C platform/dist/linux
+          test -f dcp-linux-artifact/DCP-Linux-distro-test.tar.gz
+          tar -xzf dcp-linux-artifact/DCP-Linux-distro-test.tar.gz -C platform/dist/linux
       - name: Verify Kali libraries and package contents
         shell: bash
         run: |
