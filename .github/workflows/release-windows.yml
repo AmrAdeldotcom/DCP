@@ -61,6 +61,8 @@ jobs:
           name: DCP ${{ github.ref_name }}
           generate_release_notes: true
           overwrite_files: true
+          prerelease: ${{ contains(github.ref_name, '-alpha.') || contains(github.ref_name, '-beta.') }}
+          make_latest: false
           files: |
             DCP-Windows-x64.zip
             platform/dist/windows/DCP-Windows-update.json
