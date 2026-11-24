@@ -15,7 +15,7 @@ final class TerminalService {
   if($bin==='pwd')$args=$windows?['cmd.exe','/c','cd']:['/bin/pwd'];
   elseif($bin==='ls'){
    $target=$root;
-   if(isset($parts[0])){$candidate=realpath($root.DIRECTORY_SEPARATOR.$parts[0]);$prefix=rtrim(realpath($root)?:$root,DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR;if(!$candidate||!str_starts_with($candidate,$prefix))throw new RuntimeException('Path outside DCP workspace.');$target=$candidate;}
+   if(count($parts)>1)throw new RuntimeException('Only ls [directory] is allowed.');if(isset($parts[0])&&$parts[0]!=='.'){$realRoot=realpath($root)?:$root;$candidate=realpath($root.DIRECTORY_SEPARATOR.$parts[0]);$compareRoot=$windows?strtolower($realRoot):$realRoot;$compareCandidate=$candidate===false?'':($windows?strtolower($candidate):$candidate);$prefix=rtrim($compareRoot,DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR;if(!$candidate||($compareCandidate!==$compareRoot&&!str_starts_with($compareCandidate,$prefix)))throw new RuntimeException('Path outside DCP workspace.');$target=$candidate;}
    $args=$windows?['powershell.exe','-NoProfile','-NonInteractive','-Command','Get-ChildItem -Force -LiteralPath '.escapeshellarg($target).' | Select-Object Mode,Length,Name | Format-Table -AutoSize']:['/bin/ls','-la',$target];
   }elseif($bin==='date')$args=$windows?['powershell.exe','-NoProfile','-NonInteractive','-Command','Get-Date -Format o']:['/bin/date'];
   elseif($bin==='whoami')$args=$windows?['whoami.exe']:['/usr/bin/whoami'];
