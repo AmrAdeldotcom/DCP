@@ -16,6 +16,7 @@ done
 OUT="$ROOT/dist/linux"
 rm -rf "$OUT"
 mkdir -p "$OUT/DCP-UserData/Linux/data" "$OUT/DCP-UserData/Linux/storage"
+mkdir -p "$OUT/platform"
 touch "$OUT/DCP-UserData/Linux/data/.keep" "$OUT/DCP-UserData/Linux/storage/.keep"
 cat > "$OUT/DCP-UserData/README.txt" <<'NOTICE'
 DCP user data is device-local. Linux databases, encryption keys, logs, models and workspaces are stored under DCP-UserData/Linux. Never upload this directory.

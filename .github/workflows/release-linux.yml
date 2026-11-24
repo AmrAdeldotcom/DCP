@@ -41,6 +41,8 @@ jobs:
           test -x "$ROOT/Install-DCP-Launcher.sh"
           test -f "$ROOT/DCP.desktop"
           test -f "$ROOT/platform/public/router.php"
+          test -f "$ROOT/platform/app/Core/Database.php"
+          test -f "$ROOT/platform/app/Controllers/ApiController.php"
           test -f "$ROOT/platform/dcp-env/manifests/php-runtime.json"
           test -f "$ROOT/platform/dcp-env/README.md"
           test -s "$ROOT/platform/version.json"
@@ -65,6 +67,9 @@ jobs:
             echo "Run-DCP.sh is incorrectly invoking a shell script through PHP." >&2
             exit 1
           fi
+
+      - name: Smoke-test packaged Linux application
+        run: bash platform/tests/linux-package-smoke.sh platform/dist/linux
 
       - name: Create Linux release archive and checksum
         run: |

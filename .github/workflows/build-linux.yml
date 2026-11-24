@@ -39,6 +39,8 @@ jobs:
           test -x "$ROOT/Install-DCP-Launcher.sh"
           test -f "$ROOT/DCP.desktop"
           test -f "$ROOT/platform/public/router.php"
+          test -f "$ROOT/platform/app/Core/Database.php"
+          test -f "$ROOT/platform/app/Controllers/ApiController.php"
           test -f "$ROOT/platform/dcp-env/manifests/php-runtime.json"
           test -s "$ROOT/platform/version.json"
           PACKAGE_VERSION="$(php -r '$v=json_decode(file_get_contents($argv[1]),true); echo $v["version"] ?? "";' "$ROOT/platform/version.json")"
@@ -53,6 +55,8 @@ jobs:
           test ! -f "$ROOT/DCP-UserData/Linux/data/dcp.sqlite"
           bash -n "$ROOT/Run-DCP.sh" "$ROOT/Install-DCP-Launcher.sh" platform/Install-DCP-Online.sh
           if ldd "$ROOT/DCP" | grep -q 'not found'; then ldd "$ROOT/DCP"; exit 1; fi
+      - name: Smoke-test packaged Linux application
+        run: bash platform/tests/linux-package-smoke.sh platform/dist/linux
       - name: Upload Linux x64 artifact
         uses: actions/upload-artifact@v4
         with:
