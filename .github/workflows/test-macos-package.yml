@@ -82,10 +82,12 @@ jobs:
             PHPRC="$target/php.ini" PHP_INI_SCAN_DIR="$target/conf.d" "$target/bin/php" platform/scripts/verify-runtime.php
           done
 
-      - name: Set up PHP CLI for the application build
+      - name: Set up PHP CLI and CMake for the application build
         run: |
           brew install php
+          brew list cmake >/dev/null 2>&1 || brew install cmake
           php -v
+          cmake --version
 
       - name: Build universal macOS application
         shell: bash
