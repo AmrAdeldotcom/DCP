@@ -334,3 +334,12 @@
 - CI on 4ddb91e: Windows build/package, Linux build and Cloud PHP passed; Kali compatibility and new native macOS run still in progress at checkpoint.
 - Read-only SSH to Windows/Ubuntu succeeded; no device installs or data mutations. Alpha9 unchanged; Alpha10 not released.
 - Reviewed untracked macOS updater prototype and rejected it for now due missing crash recovery and unsafe stale-PID termination; no commit. Q005 remains partial.
+
+
+## 2026-11-24 — DC19 live monitor and platform updater regression
+- Added tools/dcp-watch.sh live Terminal monitor for queue, memory, branch, dirty files and local build/test processes.
+- Confirmed Ubuntu Alpha 9 installation is incomplete: platform/app/Core/Database.php, packaged updater and pinned key are missing; no server is running. No target changes made.
+- Fixed macOS updater process-identity matching for /var vs /private/var; added process-guard tests. platform/tests/update-macos.php passes 40 assertions.
+- Re-ran platform, Linux package/extraction, Windows transaction and C# contract tests plus Windows app build; all passed. Windows build has one existing WindowsBase warning and zero errors.
+- Pushed a8bc81fd. CI started: manifest/delta, Linux and Windows in progress; native macOS package queued. Previous Ubuntu/Kali distro run 45446122964 passed.
+- Production signing Actions secret remains missing; manifest preflight confirms this is the remaining failure after contract tests.

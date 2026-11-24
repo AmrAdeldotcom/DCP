@@ -20,7 +20,7 @@ This folder is the durable continuity layer for ChatGPT and other authorized eng
 - `architecture/`: architecture notes and cross-component contracts.
 - `bugs/`: reproducible bug records and diagnostics.
 - `testing/`: test baselines and verification evidence.
-- `handoffs/`: concise handoff notes for new conversations. Latest checkpoint: `handoffs/DC18-alpha10-linux-windows-update-hardening-2026-11-24.md`.
+- `handoffs/`: concise handoff notes for new conversations. Latest checkpoint: `handoffs/DC19-live-monitor-ubuntu-diagnosis-macos-guard-2026-11-24.md`.
 
 ## Update protocol
 - After each meaningful task: update CURRENT-STATE.json, append CHANGELOG.md, and create a timestamped checkpoint in versions/.

@@ -422,3 +422,13 @@ Result: **6/6 passed**
 - Device checks are read-only only: Windows SSH .99 as dcpadmin; Ubuntu .88 as amr, Ubuntu 24.04, Python3/PHP available and no DCP process. No Windows install/replacement; no fresh rollback backup captured in this run because no install was attempted. Ubuntu Alpha9 remains defective and unchanged. Mac original project/services unchanged.
 - Release ID 456688871 / tag v1.0.0-alpha.9 / commit 8b5bf08 / six assets unchanged. Alpha10 unpublished; no main merge; no PR (403). GitHub secret `DCP_RELEASE_SIGNING_PRIVATE_KEY_B64` still needs manual setup. Signed release assembly workflow not wired.
 - Q005 remains PARTIAL. Do not publish Alpha10 or begin PHP feature development until macOS updater, signed release assembly, all CI, and target update+forced rollback/data-preservation acceptance pass. Q006/Q007 remain isolated.
+
+
+## DC19 — 2026-11-24: monitor, Ubuntu package diagnosis and macOS updater guard
+- Added tools/dcp-watch.sh to display live repository/queue/memory/branch/dirty-file/process state from Mac Terminal.
+- Read-only Ubuntu SSH confirms old Alpha 9 package lacks platform/app and Core/Database.php; packaged updater and pinned key are absent; no DCP/PHP server is running. White screen is explained by missing application files. No target files/data changed.
+- Fixed macOS updater process guard to recognize exact app argv[0] under both lexical /var and canonical /private/var roots. Added regression tests. macOS updater tests pass 40 assertions.
+- Local platform, Linux package/extraction, Windows PowerShell and C# updater tests, Windows .NET build, syntax and diff checks all passed.
+- Commit a8bc81fd pushed; CI runs 45447308256 manifest, 45447308173 Linux build, 45447308527 Windows build in progress; 45447308397 macOS package queued. Linux distro run 45446122964 passed Ubuntu and Kali.
+- Production signing secret DCP_RELEASE_SIGNING_PRIVATE_KEY_B64 remains missing. Preflight run 45446629180 failed only at this missing secret after all manifest/delta/ephemeral-signature tests passed. Keychain key exists; GitHub CLI absent; user must add the repository Actions secret manually.
+- Alpha 9 unchanged; Alpha 10 unpublished; no target install/update. Q005 remains partial.

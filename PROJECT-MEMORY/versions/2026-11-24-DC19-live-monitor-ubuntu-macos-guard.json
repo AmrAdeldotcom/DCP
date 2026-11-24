@@ -1,0 +1,28 @@
+{
+  "session": "DC19",
+  "timestamp_local": "2026-11-24",
+  "branch": "feature/alpha10-package-revision",
+  "commit": "a8bc81fd",
+  "monitor": "tools/dcp-watch.sh",
+  "ubuntu": "Alpha 9 installed package lacks platform/app/Core/Database.php and packaged updater; no DCP/PHP server; read-only check only",
+  "macos": "process guard handles lexical /var and canonical /private/var; 40 updater contract assertions passed",
+  "tests": [
+    "php platform/tests/run.php",
+    "php platform/tests/update-macos.php",
+    "python3 platform/tests/update-package-build.py",
+    "python3 platform/tests/extract-linux-update.py",
+    "pwsh -NoProfile -File platform/tests/update-windows.ps1",
+    "dotnet run --project platform/tests/windows-update-client/DCP.WindowsUpdater.Tests.csproj --configuration Release",
+    "dotnet build platform/wrappers/windows/DCP.WebView.csproj"
+  ],
+  "ci": {
+    "45447308256": "in progress",
+    "45447308173": "in progress",
+    "45447308527": "in progress",
+    "45447308397": "queued",
+    "45446122964": "Ubuntu and Kali success",
+    "45446629180": "failed only at missing production signing secret after contract tests passed"
+  },
+  "signing_secret": "DCP_RELEASE_SIGNING_PRIVATE_KEY_B64 missing; private key remains in macOS Keychain",
+  "release": "Alpha 9 unchanged; Alpha 10 not published; no target installation"
+}

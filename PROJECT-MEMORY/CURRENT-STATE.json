@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
   "project": "DCP — Desktop Connector Platform",
-  "updatedAt": "2026-11-24T18:58:54+02:00",
-  "session": "DC18",
+  "updatedAt": "2026-11-24T19:21:17+02:00",
+  "session": "DC19",
   "repository": "/Volumes/Data/ChatGPT/DCP",
   "branch": "feature/alpha10-package-revision",
-  "headCommit": "804b66b0477dadf5673c893237137304b4b41bdf",
+  "headCommit": "a8bc81fd",
   "latestReleaseTag": "v1.0.0-alpha.9",
-  "workingTree": "DC18 source commit 4ddb91e and documentation checkpoint are committed; untracked macOS updater prototype, duplicate test-update-manifest workflow and proposal documents remain intentionally unstaged.",
+  "workingTree": "DC19 source/test/monitor commit a8bc81fd pushed; historical handoff/version files and proposal folder remain untracked intentionally; no target VM files changed.",
   "device": {
     "name": "Amrs-Mac-Pro",
     "id": "a23231bf-eabc-441c-a6e2-560e3ae7f957",
@@ -17,93 +17,21 @@
   },
   "activeTask": "Q005",
   "activeTaskStatus": "partial",
-  "nextTask": "Finish Kali and native macOS CI on 4ddb91e; replace the untracked macOS updater prototype with a journaled packaged updater wired to main.m; wire signed schema-3 manifests/delta/full assets into a unified release workflow; configure the production signing secret; then perform Alpha9→Alpha10 and forced rollback/data-preservation acceptance on Ubuntu, Windows and Mac Intel (Apple Silicon via native CI).",
+  "nextTask": "Poll CI on a8bc81fd; configure repository Actions signing secret manually; complete synchronized signed release assembly; verify full package contents and target GUI/API; then perform Alpha9-to-Alpha10 Delta/Full update, forced rollback and data-preservation acceptance on Ubuntu, Windows and macOS.",
   "nextTaskFile": "WORK-QUEUE.md",
   "followingTask": "Q006",
   "latestSessionCheckpoint": {
-    "conversation": "DC18",
+    "conversation": "DC19",
     "date": "2026-11-24",
-    "timestamp": "2026-11-24T18:58:54+02:00",
-    "release": {
-      "tag": "v1.0.0-alpha.9",
-      "releaseId": 456688871,
-      "tagCommit": "8b5bf08d6291897338ca322432ccf1962e0c2ed1",
-      "assets": 6,
-      "status": "published and unchanged; no tag or asset was modified"
-    },
-    "alpha10": {
-      "branch": "feature/alpha10-package-revision",
-      "head": "4ddb91e38a0a919cfe7d7bc01cfc5a74f1a88f50",
-      "commits": [
-        "3f37d4d",
-        "8190261",
-        "ec170a6",
-        "d1e6f1a",
-        "59257c0",
-        "46a0753",
-        "7a70284",
-        "2f5a5d5",
-        "33bf482",
-        "4ddb91e"
-      ],
-      "status": "pushed; not merged or released"
-    },
-    "manifestFoundation": {
-      "schema": 3,
-      "keyId": "dcp-alpha10-rsa3072-20261124",
-      "publicKeySha256": "bd56b87af22d81bdff536dfa332d2cdc4bf27da7f387af84cb4bdd4d201fdd67",
-      "privateKeyStorage": "macOS Login Keychain; no private key material in repo or memory",
-      "githubSecret": "DCP_RELEASE_SIGNING_PRIVATE_KEY_B64 still requires manual repository Actions secret setup",
-      "implemented": "pinned RSA-SHA256 schema-3 verifier, delta/full manifest builder, detached signing script, Windows native verifier and Linux packaged updater verifier/transaction; release assembly still not wired"
-    },
-    "linuxUpdater": {
-      "status": "implemented and pushed; CI pending Kali confirmation",
-      "features": [
-        "per-install flock",
-        "DCP process guard; refuses, never kills",
-        "isolated health-check user data",
-        "fsynced pre-mutation journal",
-        "atomic same-directory replacement",
-        "crash recovery for interrupted apply and pending health",
-        "signed full deletion list",
-        "missing delta asset full fallback",
-        "PHP/runtime/native ELF/API/version health check"
-      ]
-    },
-    "windowsUpdater": {
-      "status": "native schema-3 client and full fallback selection pushed",
-      "features": [
-        "pinned manifest key",
-        "synchronized cross-platform manifests",
-        "official GitHub release URLs",
-        "platform/architecture and SHA-256/size",
-        "exact version+packageRevision base",
-        "full fallback for base mismatch or absent delta",
-        "PowerShell atomic replacement",
-        "transactional rollback and user-data preservation"
-      ],
-      "tests": "C# updater contract and PowerShell transaction tests passed locally and in clean Windows package CI"
-    },
-    "ci": {
-      "45442801370": "SUCCESS on 4ddb91e: Windows application build",
-      "45442801525": "SUCCESS on 4ddb91e: clean Windows package; signed updater contract tests and transactional update/rollback tests passed",
-      "45442801373": "SUCCESS on 4ddb91e: Ubuntu 24.04 Linux package build",
-      "45442801543": "SUCCESS on 4ddb91e: Cloud PHP validation",
-      "45442801351": "IN PROGRESS at checkpoint: Ubuntu package build passed; Kali runtime dependency install still running after Python3 dependency fix",
-      "45442801352": "IN PROGRESS at checkpoint: Intel PHP/llama build running; Apple Silicon PHP/llama queued",
-      "45439878530": "FAILED on 33bf482 because Python3 was absent in minimal Kali container; explicit Python3 install added in 4ddb91e",
-      "45435155319": "SUCCESS on 2f5a5d5: native Intel x86_64 and Apple Silicon arm64 package jobs passed"
-    },
-    "localValidation": "All passed on Amrs-Mac-Pro: platform suite; manifest/signature/tamper; delta builder; Linux extraction, transaction, crash recovery, isolated health and process guard; Windows PowerShell apply/full fallback/rollback/data preservation; Windows C# contract tests; Windows app dotnet build; PHP lint, JS syntax, Python compile, Bash/Zsh syntax, PowerShell parser and git diff --check. Temporary install-root Linux updater check failed closed with no complete signed release and was removed.",
-    "network": {
-      "state": "online",
-      "checkedAt": "2026-11-24T16:54:26Z",
-      "sshWindows": "verified via explicit SSH config as dcpadmin",
-      "sshUbuntu": "verified via explicit SSH config as amr; Ubuntu 24.04 x86_64, Python3/PHP present, no DCP process",
-      "resumeMarkerPresent": false,
-      "monitor": "com.digipl.dcp-network-watchdog; 600-second local transition recorder only, cannot reopen ChatGPT"
-    },
-    "next": "Finish run 45442801351 and 45442801352; implement safe macOS adapter/wrapper recovery; wire signed release assembly; then target device upgrade/rollback/data-preservation acceptance."
+    "timestamp": "2026-11-24T19:21:17+02:00",
+    "branch": "feature/alpha10-package-revision",
+    "head": "a8bc81fd",
+    "release": "v1.0.0-alpha.9 remains unchanged; Alpha 10 unpublished",
+    "ubuntu": "old Alpha 9 incomplete archive verified read-only; do not install until corrected signed package is ready",
+    "localValidation": "all selected platform, Linux, Windows and macOS updater contract tests passed; Windows app build 0 errors",
+    "ci": "45447308256, 45447308173, 45447308527 in progress; 45447308397 queued; 45446122964 Ubuntu+Kali pass",
+    "blocker": "missing GitHub Actions secret DCP_RELEASE_SIGNING_PRIVATE_KEY_B64",
+    "next": "poll CI, configure signing secret, complete release assembly and target update/rollback acceptance"
   },
   "knownConstraints": [
     "Work only in /Volumes/Data/ChatGPT/DCP.",
@@ -521,7 +449,7 @@
     "updaterGap": "Schema 3 is not wired into release assets or Windows/Linux/macOS native updater clients. Windows full fallback, Linux/macOS packaged updater adapters, signed release workflow and end-to-end target upgrade/rollback remain open."
   },
   "lastCheckpoint": "DC05 CI green checkpoint 2026-11-24T18:24:00+02:00",
-  "latestHandoff": "PROJECT-MEMORY/handoffs/DC17-linux-updater-core-2026-11-24.md",
+  "latestHandoff": "PROJECT-MEMORY/handoffs/DC19-live-monitor-ubuntu-diagnosis-macos-guard-2026-11-24.md",
   "linuxUpdaterDC17": {
     "status": "implemented-locally-not-committed",
     "files": [
@@ -550,5 +478,34 @@
       "production GitHub signing secret",
       "target Alpha9-to-Alpha10 upgrade/rollback acceptance"
     ]
+  },
+  "dc19Checkpoint": {
+    "commit": "a8bc81fd",
+    "monitor": "tools/dcp-watch.sh; bash tools/dcp-watch.sh [refresh-seconds]; local-only view, does not reconnect ChatGPT",
+    "ubuntuReadOnly": {
+      "host": "amr-ubuntu24",
+      "version": "1.0.0-alpha.9",
+      "missing": [
+        "platform/app",
+        "platform/app/Core/Database.php",
+        "platform/scripts/update-linux.php",
+        "platform/scripts/lib/LinuxUpdateTransaction.php",
+        "platform/update/release-public.pem"
+      ],
+      "processes": "No DCP/PHP server running; ports 18765 and 18991 refuse connections",
+      "result": "white screen caused by incomplete Alpha 9 archive; no files or user data changed"
+    },
+    "macosUpdaterFix": "Exact DCP.app argv[0] process identity now accepts lexical /var and canonical /private/var paths; stale unrelated PID remains untouched",
+    "localTests": "platform suite, macOS updater 40 assertions, Linux package builder/extractor, Windows PowerShell transaction/full fallback, C# updater contract, Windows app build, PHP/Bash/Zsh syntax and diff check passed",
+    "ci": {
+      "45447308256": "manifest/delta workflow in progress",
+      "45447308173": "Linux build in progress",
+      "45447308527": "Windows build in progress",
+      "45447308397": "native macOS clean package queued",
+      "45446122964": "Ubuntu 24.04 + Kali Rolling distro package/HTTP/API smoke success on d78a015c",
+      "45446629180": "manifest, delta and ephemeral signature tests passed; production preflight failed because DCP_RELEASE_SIGNING_PRIVATE_KEY_B64 is absent"
+    },
+    "signingSecret": "missing; Keychain signing item exists locally; GitHub CLI absent; user must add repository Actions secret manually",
+    "release": "Alpha 9 unchanged; Alpha 10 unpublished; no main merge or target install/update"
   }
 }
