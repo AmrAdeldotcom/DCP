@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/lib/UpdateManifest.php';
 require_once __DIR__ . '/lib/LinuxUpdateTransaction.php';
+require_once __DIR__ . '/lib/GitHubReleaseFeed.php';
 
 /**
  * Signed, transactional macOS package updater.
@@ -25,14 +26,14 @@ final class DcpMacOSUpdater
         'DCP-Linux-x64.tar.gz',
         'DCP-macOS-Intel.zip',
         'DCP-macOS-AppleSilicon.zip',
-        'DCP-Windows-update.json',
-        'DCP-Windows-update.json.sig',
-        'DCP-Linux-update.json',
-        'DCP-Linux-update.json.sig',
-        'DCP-macOS-Intel-update.json',
-        'DCP-macOS-Intel-update.json.sig',
-        'DCP-macOS-AppleSilicon-update.json',
-        'DCP-macOS-AppleSilicon-update.json.sig',
+        'DCP-Windows-update-v3.json',
+        'DCP-Windows-update-v3.json.sig',
+        'DCP-Linux-update-v3.json',
+        'DCP-Linux-update-v3.json.sig',
+        'DCP-macOS-Intel-update-v3.json',
+        'DCP-macOS-Intel-update-v3.json.sig',
+        'DCP-macOS-AppleSilicon-update-v3.json',
+        'DCP-macOS-AppleSilicon-update-v3.json.sig',
     ];
 
     private static function log(string $message): void
@@ -113,6 +114,11 @@ final class DcpMacOSUpdater
         $curl = curl_init($url);
         if ($curl === false) throw new RuntimeException('Could not initialize HTTPS request.');
         $body = '';
+        $headers = ['Accept: */*'];
+        $token = trim((string)(getenv('DCP_GITHUB_API_TOKEN') ?: getenv('DCP_GITHUB_TOKEN') ?: getenv('GITHUB_TOKEN') ?: ''));
+        if (strtolower((string)parse_url($url, PHP_URL_HOST)) === 'api.github.com' && $token !== '') {
+            $headers[] = 'Authorization: Bearer ' . $token;
+        }
         curl_setopt_array($curl, [
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_FOLLOWLOCATION => true,
@@ -121,7 +127,7 @@ final class DcpMacOSUpdater
             CURLOPT_CONNECTTIMEOUT => 8,
             CURLOPT_TIMEOUT => 25,
             CURLOPT_USERAGENT => 'DCP-macOS-Updater/2.0',
-            CURLOPT_HTTPHEADER => ['Accept: application/vnd.github+json'],
+            CURLOPT_HTTPHEADER => $headers,
             CURLOPT_SSL_VERIFYPEER => true,
             CURLOPT_SSL_VERIFYHOST => 2,
             CURLOPT_WRITEFUNCTION => static function ($handle, string $chunk) use (&$body, $maxBytes): int {
@@ -139,6 +145,34 @@ final class DcpMacOSUpdater
             throw new RuntimeException('HTTPS request failed (' . $status . '): ' . $error);
         }
         return $body;
+    }
+
+    private static function curlExists(string $url): bool
+    {
+        $parts = parse_url($url);
+        if (!is_array($parts) || ($parts['scheme'] ?? '') !== 'https' ||
+            strtolower((string)($parts['host'] ?? '')) !== 'github.com') {
+            throw new RuntimeException('DCP release asset URL is not an official HTTPS GitHub URL.');
+        }
+        $curl = curl_init($url);
+        if ($curl === false) return false;
+        curl_setopt_array($curl, [
+            CURLOPT_NOBODY => true,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_MAXREDIRS => 5,
+            CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTPS,
+            CURLOPT_CONNECTTIMEOUT => 8,
+            CURLOPT_TIMEOUT => 15,
+            CURLOPT_USERAGENT => 'DCP-macOS-Updater/2.0',
+            CURLOPT_HTTPHEADER => ['Accept: */*'],
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_SSL_VERIFYHOST => 2,
+        ]);
+        curl_exec($curl);
+        $status = (int)curl_getinfo($curl, CURLINFO_RESPONSE_CODE);
+        curl_close($curl);
+        return $status >= 200 && $status < 300;
     }
 
     private static function downloadAsset(array $asset, string $destination): void
@@ -300,59 +334,65 @@ final class DcpMacOSUpdater
         $publicKey = openssl_pkey_get_public((string)file_get_contents($publicPath));
         if ($publicKey === false) throw new RuntimeException('Could not load the pinned DCP release public key.');
 
-        $releases = json_decode(self::curlBytes('https://api.github.com/repos/' . self::REPOSITORY . '/releases?per_page=30', 4 * 1024 * 1024), true, 64, JSON_THROW_ON_ERROR);
-        if (!is_array($releases)) throw new RuntimeException('GitHub release list is invalid.');
-        $release = null;
-        foreach ($releases as $candidate) {
-            if (!is_array($candidate) || !empty($candidate['draft'])) continue;
-            $names = [];
-            foreach (($candidate['assets'] ?? []) as $asset) if (is_array($asset) && is_string($asset['name'] ?? null)) $names[$asset['name']] = true;
-            if (array_diff(self::REQUIRED_ASSETS, array_keys($names)) === []) { $release = $candidate; break; }
-        }
-        if ($release === null) return [];
-        $tag = (string)($release['tag_name'] ?? '');
-        if (!preg_match('/^v\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/', $tag)) throw new RuntimeException('GitHub release tag is invalid.');
-        $releaseAssets = [];
-        foreach (($release['assets'] ?? []) as $asset) {
-            $name = (string)($asset['name'] ?? '');
-            if (!str_starts_with($name, 'DCP-')) continue;
-            $url = (string)($asset['browser_download_url'] ?? '');
-            if ($url !== self::officialAssetUrl($tag, $name)) throw new RuntimeException('Release asset URL is not official: ' . $name);
-            $releaseAssets[$name] = $url;
-        }
-
+        $feed = self::curlBytes('https://github.com/' . self::REPOSITORY . '/releases.atom', 2 * 1024 * 1024);
+        $tags = DcpGitHubReleaseFeed::tags($feed, self::REPOSITORY);
         $manifests = [
-            ['DCP-Windows-update.json', 'windows', 'x64'],
-            ['DCP-Linux-update.json', 'linux', 'x64'],
-            ['DCP-macOS-Intel-update.json', 'macos', 'x64'],
-            ['DCP-macOS-AppleSilicon-update.json', 'macos', 'arm64'],
+            ['DCP-Windows-update-v3.json', 'windows', 'x64'],
+            ['DCP-Linux-update-v3.json', 'linux', 'x64'],
+            ['DCP-macOS-Intel-update-v3.json', 'macos', 'x64'],
+            ['DCP-macOS-AppleSilicon-update-v3.json', 'macos', 'arm64'],
         ];
-        $reference = null;
-        $macManifest = null;
-        foreach ($manifests as [$name, $platform, $architecture]) {
-            $bytes = self::curlBytes($releaseAssets[$name], 2 * 1024 * 1024);
-            $signature = self::curlBytes($releaseAssets[$name . '.sig'], 16 * 1024);
-            if (!self::verifyDetachedSignature($bytes, $signature, $publicKey)) {
-                throw new RuntimeException('Detached signature verification failed for ' . $name . '.');
+        $optionalAssets = [
+            'DCP-Windows-x64-delta.zip',
+            'DCP-Linux-x64-delta.tar.gz',
+            'DCP-macOS-Intel-delta.zip',
+            'DCP-macOS-AppleSilicon-delta.zip',
+        ];
+
+        foreach ($tags as $tag) {
+            $releaseAssets = [];
+            foreach (self::REQUIRED_ASSETS as $name) {
+                $releaseAssets[$name] = self::officialAssetUrl($tag, $name);
             }
-            $manifest = json_decode($bytes, true, 64, JSON_THROW_ON_ERROR);
-            if (!is_array($manifest)) throw new RuntimeException('Signed DCP manifest is not a JSON object.');
-            self::validateManifest($manifest, $platform, $architecture, $tag, $releaseAssets);
-            $sync = [
-                'version' => $manifest['version'],
-                'release_tag' => $manifest['release_tag'],
-                'package_revision' => $manifest['package_revision'],
-                'commit' => $manifest['commit'],
-                'key_id' => $manifest['key_id'],
-            ];
-            if ($reference !== null && $sync !== $reference) throw new RuntimeException('Signed DCP manifests are not synchronized across platforms.');
-            $reference = $sync;
-            if ($platform === 'macos' && $architecture === self::macArchitecture()) $macManifest = $manifest;
+            foreach ($optionalAssets as $name) {
+                $url = self::officialAssetUrl($tag, $name);
+                if (self::curlExists($url)) $releaseAssets[$name] = $url;
+            }
+
+            try {
+                $reference = null;
+                $macManifest = null;
+                foreach ($manifests as [$name, $platform, $architecture]) {
+                    $bytes = self::curlBytes($releaseAssets[$name], 2 * 1024 * 1024);
+                    $signature = self::curlBytes($releaseAssets[$name . '.sig'], 16 * 1024);
+                    if (!self::verifyDetachedSignature($bytes, $signature, $publicKey)) {
+                        throw new RuntimeException('Detached signature verification failed for ' . $name . '.');
+                    }
+                    $manifest = json_decode($bytes, true, 64, JSON_THROW_ON_ERROR);
+                    if (!is_array($manifest)) throw new RuntimeException('Signed DCP manifest is not a JSON object.');
+                    self::validateManifest($manifest, $platform, $architecture, $tag, $releaseAssets);
+                    $sync = [
+                        'version' => $manifest['version'],
+                        'release_tag' => $manifest['release_tag'],
+                        'package_revision' => $manifest['package_revision'],
+                        'commit' => $manifest['commit'],
+                        'key_id' => $manifest['key_id'],
+                    ];
+                    if ($reference !== null && $sync !== $reference) {
+                        throw new RuntimeException('Signed DCP manifests are not synchronized across platforms.');
+                    }
+                    $reference = $sync;
+                    if ($platform === 'macos' && $architecture === self::macArchitecture()) $macManifest = $manifest;
+                }
+                if ($macManifest === null) throw new RuntimeException('No signed macOS manifest matches this Mac architecture.');
+                $delta = $macManifest['delta'] ?? null;
+                $deltaAvailable = is_array($delta) && isset($releaseAssets[$delta['asset']['name'] ?? '']);
+                return ['tag' => $tag, 'manifest' => $macManifest, 'assets' => $releaseAssets, 'delta_available' => $deltaAvailable];
+            } catch (Throwable $error) {
+                self::log('Skipping incomplete or unverifiable GitHub release ' . $tag . ': ' . $error->getMessage());
+            }
         }
-        if ($macManifest === null) throw new RuntimeException('No signed macOS manifest matches this Mac architecture.');
-        $delta = $macManifest['delta'] ?? null;
-        $deltaAvailable = is_array($delta) && isset($releaseAssets[$delta['asset']['name'] ?? '']);
-        return ['tag' => $tag, 'manifest' => $macManifest, 'assets' => $releaseAssets, 'delta_available' => $deltaAvailable];
+        return [];
     }
 
     private static function macArchitecture(): string

@@ -3,10 +3,11 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/lib/UpdateManifest.php';
 require_once __DIR__ . '/lib/LinuxUpdateTransaction.php';
+require_once __DIR__ . '/lib/GitHubReleaseFeed.php';
 
 const DCP_RELEASE_REPOSITORY = 'AmrAdeldotcom/DCP';
-const DCP_LINUX_MANIFEST = 'DCP-Linux-update.json';
-const DCP_LINUX_SIGNATURE = 'DCP-Linux-update.json.sig';
+const DCP_LINUX_MANIFEST = 'DCP-Linux-update-v3.json';
+const DCP_LINUX_SIGNATURE = 'DCP-Linux-update-v3.json.sig';
 const DCP_RELEASE_OPTIONAL = [
     'DCP-Windows-x64-delta.zip',
     'DCP-Linux-x64-delta.tar.gz',
@@ -18,14 +19,14 @@ const DCP_RELEASE_REQUIRED = [
     'DCP-macOS-Intel.zip',
     'DCP-macOS-AppleSilicon.zip',
     'DCP-Linux-x64.tar.gz',
-    'DCP-Windows-update.json',
-    'DCP-Windows-update.json.sig',
-    'DCP-Linux-update.json',
-    'DCP-Linux-update.json.sig',
-    'DCP-macOS-Intel-update.json',
-    'DCP-macOS-Intel-update.json.sig',
-    'DCP-macOS-AppleSilicon-update.json',
-    'DCP-macOS-AppleSilicon-update.json.sig',
+    'DCP-Windows-update-v3.json',
+    'DCP-Windows-update-v3.json.sig',
+    'DCP-Linux-update-v3.json',
+    'DCP-Linux-update-v3.json.sig',
+    'DCP-macOS-Intel-update-v3.json',
+    'DCP-macOS-Intel-update-v3.json.sig',
+    'DCP-macOS-AppleSilicon-update-v3.json',
+    'DCP-macOS-AppleSilicon-update-v3.json.sig',
 ];
 
 final class DcpLinuxUpdater
@@ -33,6 +34,7 @@ final class DcpLinuxUpdater
     private string $root;
     private string $userData;
     private string $publicKey;
+    private ?string $releaseDiscoveryNote = null;
 
     public function __construct(string $root)
     {
@@ -67,7 +69,12 @@ final class DcpLinuxUpdater
         $versionData = $this->installedVersion();
         $release = $this->latestCompleteRelease();
         if ($release === null) {
-            return ['ok' => true, 'available' => false, 'message' => 'No complete synchronized signed DCP release is available.'];
+            return [
+                'ok' => true,
+                'available' => false,
+                'retryable' => $this->releaseDiscoveryNote !== null,
+                'message' => $this->releaseDiscoveryNote ?? 'No complete synchronized signed DCP release is available.',
+            ];
         }
         $tag = (string)($release['tag_name'] ?? '');
         if (!preg_match('/^v\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/', $tag)) {
@@ -268,27 +275,55 @@ final class DcpLinuxUpdater
 
     private function latestCompleteRelease(): ?array
     {
-        $url = 'https://api.github.com/repos/' . DCP_RELEASE_REPOSITORY . '/releases?per_page=30';
-        $bytes = $this->request($url, 4 * 1024 * 1024);
-        $releases = json_decode($bytes, true, 64, JSON_THROW_ON_ERROR);
-        if (!is_array($releases) || !array_is_list($releases)) {
-            throw new RuntimeException('GitHub releases response is invalid.');
-        }
-        foreach ($releases as $release) {
-            if (!is_array($release) || !empty($release['draft']) || !is_array($release['assets'] ?? null)) {
+        $feed = $this->request('https://github.com/' . DCP_RELEASE_REPOSITORY . '/releases.atom', 2 * 1024 * 1024);
+        $tags = DcpGitHubReleaseFeed::tags($feed, DCP_RELEASE_REPOSITORY);
+        foreach ($tags as $tag) {
+            $manifestUrl = DcpGitHubReleaseFeed::assetUrl(DCP_RELEASE_REPOSITORY, $tag, DCP_LINUX_MANIFEST);
+            $signatureUrl = DcpGitHubReleaseFeed::assetUrl(DCP_RELEASE_REPOSITORY, $tag, DCP_LINUX_SIGNATURE);
+            if (!$this->assetExists($manifestUrl) || !$this->assetExists($signatureUrl)) {
                 continue;
             }
-            $names = [];
-            foreach ($release['assets'] as $asset) {
-                if (is_array($asset) && is_string($asset['name'] ?? null)) {
-                    $names[$asset['name']] = (string)($asset['browser_download_url'] ?? '');
+
+            $assets = [];
+            foreach (array_merge(DCP_RELEASE_REQUIRED, DCP_RELEASE_OPTIONAL) as $name) {
+                $url = DcpGitHubReleaseFeed::assetUrl(DCP_RELEASE_REPOSITORY, $tag, $name);
+                if (in_array($name, DCP_RELEASE_OPTIONAL, true) && !$this->assetExists($url)) {
+                    continue;
                 }
+                $assets[] = ['name' => $name, 'browser_download_url' => $url];
             }
-            if (count(array_diff(DCP_RELEASE_REQUIRED, array_keys($names))) === 0) {
-                return $release;
-            }
+            return ['tag_name' => $tag, 'assets' => $assets];
         }
         return null;
+    }
+
+    private function assetExists(string $url): bool
+    {
+        $parts = parse_url($url);
+        if (!is_array($parts) || ($parts['scheme'] ?? '') !== 'https' ||
+            strtolower((string)($parts['host'] ?? '')) !== 'github.com') {
+            throw new RuntimeException('DCP release asset URL is not an official HTTPS GitHub URL.');
+        }
+        $curl = curl_init($url);
+        if ($curl === false) return false;
+        curl_setopt_array($curl, [
+            CURLOPT_NOBODY => true,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_MAXREDIRS => 5,
+            CURLOPT_CONNECTTIMEOUT => 8,
+            CURLOPT_TIMEOUT => 15,
+            CURLOPT_USERAGENT => 'DCP-Linux-Updater/1.0',
+            CURLOPT_HTTPHEADER => ['Accept: */*'],
+            CURLOPT_PROTOCOLS => CURLPROTO_HTTPS,
+            CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTPS,
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_SSL_VERIFYHOST => 2,
+        ]);
+        curl_exec($curl);
+        $status = (int)curl_getinfo($curl, CURLINFO_RESPONSE_CODE);
+        curl_close($curl);
+        return $status >= 200 && $status < 300;
     }
 
     private function releaseAssets(array $release): array
@@ -336,9 +371,9 @@ final class DcpLinuxUpdater
     private function verifySynchronizedManifests(array $assets, string $tag, array $linuxManifest): void
     {
         $platforms = [
-            'DCP-Windows-update.json' => ['windows', 'x64'],
-            'DCP-macOS-Intel-update.json' => ['macos', 'x64'],
-            'DCP-macOS-AppleSilicon-update.json' => ['macos', 'arm64'],
+            'DCP-Windows-update-v3.json' => ['windows', 'x64'],
+            'DCP-macOS-Intel-update-v3.json' => ['macos', 'x64'],
+            'DCP-macOS-AppleSilicon-update-v3.json' => ['macos', 'arm64'],
         ];
         foreach ($platforms as $name => [$platform, $architecture]) {
             $signatureName = $name . '.sig';
@@ -380,6 +415,11 @@ final class DcpLinuxUpdater
         $handle = curl_init($url);
         if ($handle === false) throw new RuntimeException('Could not initialize HTTPS request.');
         $body = '';
+        $headers = ['Accept: */*'];
+        $token = trim((string)(getenv('DCP_GITHUB_API_TOKEN') ?: getenv('DCP_GITHUB_TOKEN') ?: getenv('GITHUB_TOKEN') ?: ''));
+        if (strtolower((string)($parts['host'] ?? '')) === 'api.github.com' && $token !== '') {
+            $headers[] = 'Authorization: Bearer ' . $token;
+        }
         curl_setopt_array($handle, [
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_FOLLOWLOCATION => true,
@@ -387,7 +427,7 @@ final class DcpLinuxUpdater
             CURLOPT_CONNECTTIMEOUT => 12,
             CURLOPT_TIMEOUT => 45,
             CURLOPT_USERAGENT => 'DCP-Linux-Updater/1.0',
-            CURLOPT_HTTPHEADER => ['Accept: application/vnd.github+json'],
+            CURLOPT_HTTPHEADER => $headers,
             CURLOPT_PROTOCOLS => CURLPROTO_HTTPS,
             CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTPS,
             CURLOPT_SSL_VERIFYPEER => true,
@@ -403,7 +443,7 @@ final class DcpLinuxUpdater
         $error = curl_error($handle);
         curl_close($handle);
         if ($result === false || $status !== 200) {
-            throw new RuntimeException('GitHub update request failed (' . $status . '): ' . ($error ?: 'HTTP error'));
+            throw new RuntimeException('GitHub update request failed (' . $status . '): ' . ($error ?: 'HTTP error'), $status);
         }
         return $body;
     }
