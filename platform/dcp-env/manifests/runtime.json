@@ -14,8 +14,9 @@
       },
       "llamaCpp": {
         "systemFirst": true,
-        "managedPath": "engines/llama.cpp/macos-x64/llama-server",
-        "fallback": "macos-x64-sse42"
+        "managedPath": "engines/llama.cpp/macos-x64-avx2/llama-server",
+        "fallback": "engines/llama.cpp/macos-x64-sse42/llama-server",
+        "selection": "CPU feature detection: AVX2 when available, otherwise SSE4.2"
       }
     },
     "macOS-arm64": {
@@ -43,7 +44,7 @@
       },
       "llamaCpp": {
         "systemFirst": true,
-        "managedPath": "engines/llama.cpp/windows-x64-sse42/llama-server.exe"
+        "managedPath": "engines/llama.cpp/windows-x64/llama-server.exe"
       }
     },
     "Linux-x64": {

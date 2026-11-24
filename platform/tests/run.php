@@ -5,6 +5,7 @@ require __DIR__.'/../app/Core/Crypto.php';
 require __DIR__.'/../app/Core/PluginManager.php';
 require __DIR__.'/../app/Core/ProviderAdapter.php';
 require __DIR__.'/../app/Core/AgentAdapter.php';
+require __DIR__.'/../app/Controllers/PageController.php';
 require __DIR__.'/../app/Services/ProviderService.php';
 require __DIR__.'/../app/Services/ChatService.php';
 require __DIR__.'/../app/Services/LocalAIService.php';
@@ -14,9 +15,23 @@ require __DIR__.'/../app/Services/DeviceService.php';
 require __DIR__.'/../app/Services/TerminalService.php';
 require __DIR__.'/../app/Services/ReportService.php';
 function ok(bool $v,string $m):void{if(!$v)throw new RuntimeException('FAIL: '.$m);echo "PASS: $m\n";}
+ob_start();
+$versionManifest=json_decode((string)file_get_contents(dirname(__DIR__).'/version.json'),true);
+$appConfig=require dirname(__DIR__).'/config/app.php';
+ok(is_array($versionManifest)&&$appConfig['version']===$versionManifest['version'],'application version is sourced from platform/version.json');
+ok($appConfig['release_tag']===$versionManifest['releaseTag']&&$appConfig['build']===(string)$versionManifest['build'],'release tag and build metadata are synchronized');
 $root=sys_get_temp_dir().'/dcp-platform-test-'.bin2hex(random_bytes(4));mkdir($root,0700,true);
 $c=['database'=>$root.'/db.sqlite','key_file'=>$root.'/keys/master.key','storage'=>$root.'/storage','terminal_root'=>dirname(__DIR__)];
 $db=Database::connect($c);Database::migrate($db);$crypto=new Crypto($c['key_file']);$plugins=new PluginManager(dirname(__DIR__).'/plugins');
+$_SESSION=[];$_SERVER['DCP_REQUEST_PATH']='/';$_SERVER['REQUEST_URI']='/dcp/';
+$page=new PageController($db,['version'=>$appConfig['version'],'base_path'=>'/dcp'],$plugins);
+ob_start();$page->render();$dashboardHtml=(string)ob_get_clean();
+ok(str_contains($dashboardHtml,'DCP v'.$appConfig['version'])&&!str_contains($dashboardHtml,'__DCP_VERSION__'),'dashboard renders the unified version');
+ok(str_contains($dashboardHtml,'/dcp/assets/bootstrap.min.css?v='.$appConfig['version'])&&str_contains($dashboardHtml,'/dcp/assets/app.js?v='.$appConfig['version']),'dashboard assets use the unified version and base path');
+$_SERVER['DCP_REQUEST_PATH']='/pair';$_GET['id']='test-invitation';
+ob_start();$page->render();$pairHtml=(string)ob_get_clean();
+ok(str_contains($pairHtml,'/dcp/api/pair')&&!str_contains($pairHtml,'__DCP_BASE__')&&!str_contains($pairHtml,'__DCP_VERSION__'),'pairing page resolves base path and version placeholders');
+unset($_GET['id'],$_SERVER['DCP_REQUEST_PATH'],$_SERVER['REQUEST_URI']);
 $providers=new ProviderService($db,$crypto,$plugins);
 $probe=@stream_socket_server('tcp://127.0.0.1:0',$errno,$errstr);
 if(!$probe)throw new RuntimeException('Could not reserve a local mock-provider port: '.$errstr);
@@ -47,5 +62,6 @@ $report=new ReportService($db,$c['storage']);$r=$report->create('Smoke test','Re
 $notify=$db->prepare('INSERT INTO notifications(id,title,body,kind,created_at) VALUES(?,?,?,?,?)');$notify->execute(['ntf_test','Test task','Needs approval','task',date(DATE_ATOM)]);$n=$db->query("SELECT read_at FROM notifications WHERE id='ntf_test'")->fetchColumn();ok($n===null,'new notification starts unread');$db->exec("UPDATE notifications SET read_at=datetime('now') WHERE id='ntf_test'");ok((bool)$db->query("SELECT read_at FROM notifications WHERE id='ntf_test'")->fetchColumn(),'notification read state persists in SQLite');
 foreach(['en','ar','nl','es','pt','fr','de','zh','ja'] as $locale){$j=json_decode(file_get_contents(dirname(__DIR__).'/locales/'.$locale.'.json'),true);ok(is_array($j)&&isset($j['ai_chat'])&&isset($j['notifications']),'locale JSON '.$locale);}
 $localAI=new LocalAIService($c);$localStatus=$localAI->status();ok(isset($localStatus['hardware']['os'],$localStatus['hardware']['ram_gb']),'local AI hardware detection');ok(count($localStatus['catalog'])>=5,'local AI free model catalogue');ok(isset($localStatus['engines']['ollama'],$localStatus['engines']['llama_cpp']),'local AI engine detection');
+$runtimeMethod=new ReflectionMethod(LocalAIService::class,'llamaRuntimeCandidates');$runtimeMethod->setAccessible(true);ok($runtimeMethod->invoke($localAI,'Linux','x86_64')===['linux-x64'],'Linux llama.cpp managed runtime path');ok($runtimeMethod->invoke($localAI,'Darwin','x86_64','SSE4.2')===['macos-x64-sse42'],'Intel Mac without AVX2 selects SSE4.2 runtime');ok($runtimeMethod->invoke($localAI,'Darwin','x86_64','AVX2 SSE4.2')===['macos-x64-avx2','macos-x64-sse42'],'Intel Mac with AVX2 selects compatible optimized runtime');ok($runtimeMethod->invoke($localAI,'Darwin','arm64')===['macos-arm64'],'Apple Silicon selects ARM64 runtime');
 $cloud=new CloudService($db,$crypto);ok(method_exists($cloud,'createPairingCode')&&method_exists($cloud,'requestPairing')&&method_exists($cloud,'decidePairing'),'cloud supports anonymous device identity and approval-based pairing');$cloudSettings=$db->query("SELECT COUNT(*) FROM settings WHERE key LIKE 'cloud.%token%enc'")->fetchColumn();ok((int)$cloudSettings===0,'cloud device and account tokens are not created or exposed by local unit tests');
 echo "ALL PLATFORM TESTS PASSED\n";

@@ -1,0 +1,3 @@
+# The core DCP desktop app does not require Python packages.
+# Agent/browser workers add pinned, feature-specific lock files when enabled.
+# Keep this intentionally empty until a Python worker is part of the active release.
