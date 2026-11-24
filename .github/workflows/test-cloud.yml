@@ -35,6 +35,10 @@ jobs:
         run: |
           php -l platform/cloud/index.php
           php -l platform/cloud/token.php
+          php -l platform/app/Controllers/PageController.php
+          php -l platform/tests/cloud-ui-contract.php
+          node --check platform/public/assets/app.js
+          php platform/tests/cloud-ui-contract.php
           test ! -e platform/cloud/site.php
           php -l platform/app/Services/CloudService.php
           php -l platform/app/Controllers/ApiController.php

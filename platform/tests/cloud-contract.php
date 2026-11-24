@@ -72,5 +72,5 @@ foreach ($runtimeChecks as $label => $ok) {
     echo ($ok ? 'PASS: ' : 'FAIL: ') . $label . PHP_EOL;
     if (!$ok) $failed++;
 }
-echo $failed === 0 ? "ALL CLOUD CONTRACT CHECKS PASSED\\n" : "$failed CLOUD CONTRACT CHECK(S) FAILED\\n";
+echo $failed === 0 ? "ALL CLOUD CONTRACT CHECKS PASSED\n" : "$failed CLOUD CONTRACT CHECK(S) FAILED\n";
 exit($failed === 0 ? 0 : 1);
