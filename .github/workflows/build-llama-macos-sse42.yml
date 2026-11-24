@@ -67,7 +67,7 @@ jobs:
           vtool -show-build "$RUNTIME/llama-server" | tee "$RUNNER_TEMP/llama-build-info.txt"
           grep -F 'minos 12.0' "$RUNNER_TEMP/llama-build-info.txt"
           for binary in "$RUNTIME/llama-server" "$RUNTIME"/*.dylib; do
-            lipo -verify_arch x86_64 "$binary"
+            lipo "$binary" -verify_arch x86_64
             if otool -L "$binary" | grep -E 'lib(ssl|crypto)(\\.[0-9]+)?\\.dylib'; then
               echo "Unexpected dynamic OpenSSL dependency: $binary" >&2
               exit 1
