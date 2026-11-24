@@ -6,6 +6,11 @@ if (!is_string($source)) {
     fwrite(STDERR, "FAIL: could not read DCP Cloud router.\n");
     exit(1);
 }
+require_once __DIR__ . '/../cloud/token.php';
+$rotationToken = str_repeat('t', 64);
+$currentKey = str_repeat('C', 64);
+$previousKey = 'REPLACE_WITH_AT_LEAST_64_RANDOM_HEX_CHARACTERS';
+$rotationHashes = dcp_cloud_hash_token_candidates($rotationToken, $currentKey, $previousKey);
 $deviceRevokeStart = strpos($source, "if(preg_match('#^/api/v1/devices/([a-f0-9-]{36})/revoke$#',\$path,\$m)");
 $deviceRevokeEnd = $deviceRevokeStart === false ? false : strpos($source, "if(\$path==='/api/v1/devices/heartbeat", $deviceRevokeStart);
 $deviceRevokeRoute = ($deviceRevokeStart !== false && $deviceRevokeEnd !== false)
@@ -14,6 +19,9 @@ $deviceRevokeRoute = ($deviceRevokeStart !== false && $deviceRevokeEnd !== false
 
 $checks = [
     'production APP_KEY must be at least 32 printable non-placeholder characters' => str_contains($source, 'strlen($appKey)<32') && str_contains($source, 'replace[-_ ]?with'),
+    'current and previous APP_KEY hashes are supported during rotation' => count($rotationHashes) === 2 && hash_equals($rotationHashes[0], dcp_cloud_hash_token($rotationToken, $currentKey)) && hash_equals($rotationHashes[1], dcp_cloud_hash_token($rotationToken, $previousKey)),
+    'auth, account linking and pairing-code lookup accept previous-key tokens' => substr_count($source, 'hash_token_candidates(') >= 5,
+    'token helper is denied to direct HTTP requests' => str_contains((string)file_get_contents(__DIR__ . '/../cloud/.htaccess'), 'RewriteRule ^token[.]php$ - [F,L,NC]'),
     'account device listings are rate limited' => str_contains($source, "rate_limit('device-list',240,60)"),
     'pairing decisions are rate limited' => str_contains($source, "rate_limit('pairing-decision',60,3600)"),
     'paired-device listings are rate limited' => str_contains($source, "rate_limit('paired-device-list',240,60)"),

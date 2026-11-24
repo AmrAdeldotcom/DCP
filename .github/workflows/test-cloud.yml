@@ -34,6 +34,7 @@ jobs:
       - name: Validate Cloud PHP source
         run: |
           php -l platform/cloud/index.php
+          php -l platform/cloud/token.php
           test ! -e platform/cloud/site.php
           php -l platform/app/Services/CloudService.php
           php -l platform/app/Controllers/ApiController.php
@@ -43,7 +44,9 @@ jobs:
           php platform/tests/run.php
           grep -q '^DB_HOST=localhost$' platform/cloud/.env.example
           grep -q '^APP_KEY=$' platform/cloud/.env.example
+          grep -q '^APP_KEY_PREVIOUS=$' platform/cloud/.env.example
           grep -q 'openssl rand -base64 48' platform/cloud/DEPLOYMENT.md
+          grep -q 'RewriteRule ^token[.]php$ - [F,L,NC]' platform/cloud/.htaccess
           test ! -e platform/cloud/.env
           grep -q 'pairing_codes' platform/cloud/schema.migrate.sql
           grep -q 'device_pairings' platform/cloud/schema.migrate.sql

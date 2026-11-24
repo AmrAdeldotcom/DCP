@@ -3,7 +3,7 @@
 ## Before uploading
 
 1. Open Hostinger hPanel and confirm the MySQL host, database name, username and port.
-2. Keep the existing `.env` file and its APP_KEY. Never upload or publish `.env`.
+2. Keep the existing `.env` file private. For key rotation, set a new random `APP_KEY` and retain the old value as `APP_KEY_PREVIOUS`; existing device/account tokens are accepted through the previous key and lazily re-hashed with the new key. Remove `APP_KEY_PREVIOUS` only after all clients have migrated. Never upload or publish `.env`.
 3. Back up the current database before applying the migration.
 
 ## Existing DCP Cloud installation
@@ -13,7 +13,7 @@ The current installation already has users, API tokens and devices. Preserve the
 1. Open phpMyAdmin for the existing DCP Cloud database.
 2. Import **schema.migrate.sql** once. It makes device ownership nullable for anonymous devices and creates the one-time pairing-code, pairing-request and device-permission tables. Existing account/device rows and token hashes are preserved.
 3. In Hostinger File Manager, open the actual document root for `dcp.amradel.com`.
-4. Replace the deployed `index.php` with this folder's updated `index.php`.
+4. Upload the updated `index.php`, `token.php` and `.htaccess` from this folder. Keep `index.php` and `token.php` mode 600 and `.htaccess` mode 644 so LiteSpeed can read the rewrite rules; the helper `token.php` is explicitly denied to direct HTTP requests.
 5. Do not replace `.env`, and do not re-import `schema.mysql.sql` into the existing database.
 
 ## Brand-new installation
@@ -21,7 +21,7 @@ The current installation already has users, API tokens and devices. Preserve the
 1. Create a MySQL database and user in hPanel.
 2. Import **schema.mysql.sql**.
 3. Copy `.env.example` to `.env` and set the exact Hostinger DB host, port, database name, username and password. Generate APP_KEY with `openssl rand -base64 48` (or another unique random printable secret of at least 32 characters); preserve the existing production key during upgrades. Never use the example placeholder.
-4. Upload only index.php and the routing .htaccess into the domain document root. Keep schema files, deployment notes, archives and environment files outside it.
+4. Upload `index.php`, `token.php` and the routing `.htaccess` into the domain document root. Keep schema files, deployment notes, archives and environment files outside it; deny direct HTTP access to `token.php`.
 
 ## Verify deployment
 
