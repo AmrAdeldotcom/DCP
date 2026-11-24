@@ -51,6 +51,9 @@ jobs:
         run: |
           set -euo pipefail
           RUNTIME=platform/dcp-env/engines/llama.cpp/macos-x64-sse42
+          test -s "$RUNTIME/llama-server"
+          # Restore executable mode; artifact extraction may not retain it.
+          chmod 755 "$RUNTIME/llama-server"
           test -x "$RUNTIME/llama-server"
           test -s "$RUNTIME/LICENSE"
           test -s "$RUNTIME/OpenSSL-LICENSE.txt"
