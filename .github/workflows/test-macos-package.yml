@@ -7,6 +7,7 @@ on:
       - "platform/config/app.php"
       - "platform/app/Controllers/PageController.php"
       - ".github/workflows/test-macos-package.yml"
+      - ".github/workflows/build-llama-macos-sse42.yml"
       - ".github/workflows/build-php-runtime-macos.yml"
       - ".github/workflows/release-macos.yml"
       - "platform/dcp-env/**"
@@ -22,6 +23,7 @@ on:
       - "platform/config/app.php"
       - "platform/app/Controllers/PageController.php"
       - ".github/workflows/test-macos-package.yml"
+      - ".github/workflows/build-llama-macos-sse42.yml"
       - ".github/workflows/build-php-runtime-macos.yml"
       - ".github/workflows/release-macos.yml"
       - "platform/dcp-env/**"
@@ -40,8 +42,13 @@ jobs:
   managed-php-runtime:
     uses: ./.github/workflows/build-php-runtime-macos.yml
 
+  intel-llama-sse42:
+    uses: ./.github/workflows/build-llama-macos-sse42.yml
+
   macos-package-smoke:
-    needs: managed-php-runtime
+    needs:
+      - managed-php-runtime
+      - intel-llama-sse42
     runs-on: macos-latest
     steps:
       - name: Check out source
@@ -58,6 +65,22 @@ jobs:
           pattern: dcp-php-runtime-macos-*
           path: ${{ runner.temp }}/dcp-php-artifacts
           merge-multiple: false
+
+      - name: Download Intel SSE4.2 llama.cpp runtime
+        uses: actions/download-artifact@v4
+        with:
+          name: dcp-llama-macos-x64-sse42
+          path: platform/dcp-env/engines/llama.cpp/macos-x64-sse42
+
+      - name: Verify downloaded Intel SSE4.2 runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          RUNTIME=platform/dcp-env/engines/llama.cpp/macos-x64-sse42
+          test -x "$RUNTIME/llama-server"
+          test -s "$RUNTIME/LICENSE"
+          test -s "$RUNTIME/OpenSSL-LICENSE.txt"
+          file "$RUNTIME/llama-server" | grep -q "x86_64"
 
       - name: Embed and verify managed PHP runtimes
         shell: bash
@@ -140,14 +163,6 @@ jobs:
             echo "Apple Silicon binary smoke skipped: runner architecture is $(uname -m)"
           fi
 
-      - name: Build portable Intel SSE4.2 llama.cpp runtime
-        shell: bash
-        run: |
-          set -euo pipefail
-          SOURCE="$RUNNER_TEMP/llama.cpp-b12655"
-          git clone --depth 1 --branch b12655 https://github.com/ggml-org/llama.cpp.git "$SOURCE"
-          DCP_LLAMA_SOURCE="$SOURCE" DCP_BUILD_JOBS=3 bash platform/dcp-env/engines/llama.cpp/build-macos-generic.sh
-
       - name: Assemble and inspect clean portable package
         shell: bash
         run: |
@@ -187,6 +202,7 @@ jobs:
           cp -R "$SSE42_SOURCE/." "$SSE42_STAGE/"
           file "$SSE42_STAGE/llama-server" | grep -q 'x86_64'
           test -s "$SSE42_STAGE/LICENSE"
+          test -s "$SSE42_STAGE/OpenSSL-LICENSE.txt"
 
           for arch in macos-x64 macos-arm64; do
             runtime="$STAGE/platform/dcp-env/runtime/php/$arch"
@@ -223,6 +239,7 @@ jobs:
           unzip -Z1 "$OUT" | grep -F 'DCP-UserData/macOS/storage/.gitkeep'
           unzip -Z1 "$OUT" | grep -F 'platform/dcp-env/engines/llama.cpp/macos-x64-sse42/llama-server'
           unzip -Z1 "$OUT" | grep -F 'platform/dcp-env/engines/llama.cpp/macos-x64-sse42/LICENSE'
+          unzip -Z1 "$OUT" | grep -F 'platform/dcp-env/engines/llama.cpp/macos-x64-sse42/OpenSSL-LICENSE.txt'
           if unzip -Z1 "$OUT" | grep -E '(^|/)storage/keys/master\.key$|(^|/)data/dcp\.sqlite$|platform/dcp-env/build/|platform/dcp-env/engines/llama\.cpp/source/'; then
             echo "Private data or build/source files leaked into the package." >&2
             exit 1

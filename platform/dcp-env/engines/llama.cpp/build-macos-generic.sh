@@ -8,6 +8,13 @@ SOURCE="${DCP_LLAMA_SOURCE:-$PLATFORM_ROOT/dcp-env/engines/llama.cpp/source}"
 BUILD="$PLATFORM_ROOT/dcp-env/build/llama-macos-x64-sse42"
 DEST="$PLATFORM_ROOT/dcp-env/engines/llama.cpp/macos-x64-sse42"
 JOBS="${DCP_BUILD_JOBS:-4}"
+OPENSSL_ROOT_DIR="${OPENSSL_ROOT_DIR:-}"
+OPENSSL_LICENSE_FILE="${OPENSSL_LICENSE_FILE:-}"
+[ -n "$OPENSSL_ROOT_DIR" ] || { echo "Set OPENSSL_ROOT_DIR to the pinned x86_64 static OpenSSL prefix." >&2; exit 1; }
+[ -s "$OPENSSL_ROOT_DIR/lib/libssl.a" ] || { echo "Static libssl.a is missing from $OPENSSL_ROOT_DIR." >&2; exit 1; }
+[ -s "$OPENSSL_ROOT_DIR/lib/libcrypto.a" ] || { echo "Static libcrypto.a is missing from $OPENSSL_ROOT_DIR." >&2; exit 1; }
+[ -s "$OPENSSL_LICENSE_FILE" ] || { echo "Set OPENSSL_LICENSE_FILE to the matching OpenSSL LICENSE.txt." >&2; exit 1; }
+grep -q "Apache License" "$OPENSSL_LICENSE_FILE" || { echo "OpenSSL license file does not contain the Apache License notice." >&2; exit 1; }
 mkdir -p "$PLATFORM_ROOT/dcp-env/build" "$PROJECT_ROOT/DCP-UserData/macOS/storage/logs"
 CONFIG_LOG="$PROJECT_ROOT/DCP-UserData/macOS/storage/logs/llama-build-configure.log"
 BUILD_LOG="$PROJECT_ROOT/DCP-UserData/macOS/storage/logs/llama-build.log"
@@ -23,6 +30,7 @@ cmake -S "$SOURCE" -B "$BUILD" \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_OSX_ARCHITECTURES=x86_64 \
   -DCMAKE_OSX_DEPLOYMENT_TARGET=12.0 \
+  -DOPENSSL_ROOT_DIR="$OPENSSL_ROOT_DIR" -DOPENSSL_USE_STATIC_LIBS=ON -DLLAMA_OPENSSL=ON \
   -DGGML_NATIVE=OFF -DGGML_SSE42=ON \
   -DGGML_AVX=OFF -DGGML_AVX2=OFF -DGGML_BMI2=OFF \
   -DGGML_AVX512=OFF -DGGML_FMA=OFF -DGGML_F16C=OFF \
@@ -39,8 +47,27 @@ trap 'rm -rf "$STAGE"' EXIT
 cp "$BUILD/bin/llama-server" "$STAGE/llama-server"
 find "$BUILD/bin" -maxdepth 1 -name '*.dylib' -exec cp -f {} "$STAGE/" \;
 [ ! -f "$SOURCE/LICENSE" ] || cp "$SOURCE/LICENSE" "$STAGE/LICENSE"
+cp "$OPENSSL_LICENSE_FILE" "$STAGE/OpenSSL-LICENSE.txt"
+for candidate in "$STAGE/llama-server" "$STAGE"/*.dylib; do
+  if otool -l "$candidate" | grep -Fq "path $BUILD/bin"; then
+    install_name_tool -delete_rpath "$BUILD/bin" "$candidate"
+  fi
+  if ! otool -l "$candidate" | grep -Fq "path @loader_path"; then
+    install_name_tool -add_rpath @loader_path "$candidate"
+  fi
+  if otool -L "$candidate" | grep -E "lib(ssl|crypto)(\\.[0-9]+)?\\.dylib"; then
+    echo "Portable llama.cpp runtime has a dynamic OpenSSL dependency: $candidate" >&2
+    exit 1
+  fi
+  while IFS= read -r dependency; do
+    case "$dependency" in
+      /usr/lib/*|/System/Library/*|@rpath/*|@loader_path/*|@executable_path/*) ;;
+      *) echo "Non-portable llama.cpp dependency in $candidate: $dependency" >&2; exit 1 ;;
+    esac
+  done < <(otool -L "$candidate" | awk 'NR > 1 { print $1 }')
+done
 file "$STAGE/llama-server"
-if [ "$(uname -m)" = "x86_64" ]; then DYLD_LIBRARY_PATH="$STAGE" "$STAGE/llama-server" --version; fi
+"$STAGE/llama-server" --version
 if [ -d "$DEST" ]; then mv "$DEST" "$PREVIOUS"; fi
 if ! mv "$STAGE" "$DEST"; then
   [ ! -d "$PREVIOUS" ] || mv "$PREVIOUS" "$DEST"
