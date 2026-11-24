@@ -111,6 +111,22 @@ jobs:
           }
           Write-Host "Clean Windows package verification passed."
 
+          # Regression-test the exact ZIP layout consumed by the signed full updater.
+          $Archive = Join-Path $env:RUNNER_TEMP "DCP-Windows-x64-layout-test.zip"
+          $Extract = Join-Path $env:RUNNER_TEMP "DCP-Windows-x64-layout-test"
+          if (Test-Path $Extract) { Remove-Item -LiteralPath $Extract -Recurse -Force }
+          Compress-Archive -Path "$Root/*" -DestinationPath $Archive -CompressionLevel Optimal
+          Expand-Archive -LiteralPath $Archive -DestinationPath $Extract
+          foreach ($Relative in @("DCP.exe", "platform/version.json", "platform/update/release-public.pem")) {
+            if (!(Test-Path -LiteralPath (Join-Path $Extract $Relative) -PathType Leaf)) {
+              throw "Windows full-package ZIP root is invalid; missing $Relative."
+            }
+          }
+          if (Test-Path -LiteralPath (Join-Path $Extract "windows/platform/version.json")) {
+            throw "Windows full-package ZIP contains an extra parent directory."
+          }
+          Write-Host "Windows full-package ZIP root layout passed."
+
       - name: Test Windows updater apply, data preservation and rollback
         shell: pwsh
         run: ./platform/tests/update-windows.ps1

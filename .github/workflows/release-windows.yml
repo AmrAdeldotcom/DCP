@@ -49,8 +49,21 @@ jobs:
           if (!(Test-Path 'platform/dist/windows/DCP-UserData/Windows/storage')) { throw 'Windows user-data storage directory missing' }
           if (Test-Path 'platform/dist/windows/DCP-UserData/Windows/storage/keys/master.key') { throw 'Developer encryption key leaked into release package' }
           if (Test-Path 'platform/dist/windows/DCP-UserData/Windows/data/dcp.sqlite') { throw 'Developer SQLite database leaked into release package' }
-          Compress-Archive -Path 'platform/dist/windows' -DestinationPath 'DCP-Windows-x64.zip' -CompressionLevel Optimal
+          # Archive the package CONTENTS, not its parent directory. The updater extracts
+          # entries relative to the install root and requires platform/version.json there.
+          Compress-Archive -Path 'platform/dist/windows/*' -DestinationPath 'DCP-Windows-x64.zip' -CompressionLevel Optimal
           if (!(Test-Path 'DCP-Windows-x64.zip')) { throw 'Windows archive was not created' }
+          $ArchiveCheck = Join-Path $env:RUNNER_TEMP 'dcp-windows-release-archive-check'
+          if (Test-Path $ArchiveCheck) { Remove-Item -LiteralPath $ArchiveCheck -Recurse -Force }
+          Expand-Archive -LiteralPath 'DCP-Windows-x64.zip' -DestinationPath $ArchiveCheck
+          foreach ($Required in @('DCP.exe', 'platform/version.json', 'platform/update/release-public.pem')) {
+            if (!(Test-Path -LiteralPath (Join-Path $ArchiveCheck $Required) -PathType Leaf)) {
+              throw "Windows ZIP has an incorrect root or is missing $Required."
+            }
+          }
+          if (Test-Path -LiteralPath (Join-Path $ArchiveCheck 'windows/platform/version.json')) {
+            throw 'Windows ZIP must not contain an extra windows/ parent directory.'
+          }
 
       - name: Create Windows package checksum
         shell: pwsh
