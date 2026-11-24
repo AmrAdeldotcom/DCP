@@ -42,6 +42,17 @@ jobs:
         run: |
           chmod +x platform/scripts/*.sh
           platform/scripts/build-linux.sh
+      - name: Run the packaged updater check on Ubuntu 24.04
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT=platform/dist/linux
+          CHECK_ROOT="$(mktemp -d "$RUNNER_TEMP/dcp-linux-updater-check.XXXXXX")"
+          trap 'rm -rf "$CHECK_ROOT"' EXIT
+          cp -a "$ROOT/." "$CHECK_ROOT/"
+          RESULT="$(DCP_INSTALL_ROOT="$CHECK_ROOT" php "$CHECK_ROOT/platform/scripts/update-linux.php" --check)"
+          echo "$RESULT"
+          php -r '$d=json_decode($argv[1],true,512,JSON_THROW_ON_ERROR); if (($d["ok"] ?? false) !== true || !is_bool($d["available"] ?? null)) exit(1);' "$RESULT"
       - name: Archive Linux package with executable permissions
         run: tar -czf DCP-Linux-distro-test.tar.gz -C platform/dist/linux .
       - name: Upload Linux package archive
@@ -99,3 +110,13 @@ jobs:
       - name: Smoke-test packaged DCP HTTP API on Kali
         shell: bash
         run: bash platform/tests/linux-package-smoke.sh platform/dist/linux
+      - name: Run the packaged updater check on Kali Rolling
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHECK_ROOT="$(mktemp -d "$PWD/dcp-kali-updater-check.XXXXXX")"
+          trap 'rm -rf "$CHECK_ROOT"' EXIT
+          cp -a platform/dist/linux/. "$CHECK_ROOT/"
+          RESULT="$(DCP_INSTALL_ROOT="$CHECK_ROOT" php "$CHECK_ROOT/platform/scripts/update-linux.php" --check)"
+          echo "$RESULT"
+          php -r '$d=json_decode($argv[1],true,512,JSON_THROW_ON_ERROR); if (($d["ok"] ?? false) !== true || !is_bool($d["available"] ?? null)) exit(1);' "$RESULT"

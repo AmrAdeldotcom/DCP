@@ -201,6 +201,12 @@ jobs:
           test "$PACKAGE_REVISION" -ge 1
           test "$PACKAGE_REVISION" = "$BUNDLE_REVISION"
           test "$STAGE_VERSION" = "$BUNDLE_VERSION"
+          UPDATE_CHECK="$(PHPRC="$PHP_ROOT/php.ini" PHP_INI_SCAN_DIR="$PHP_ROOT/conf.d" \
+            "$PHP_ROOT/bin/php" "$STAGE/platform/scripts/update-macos.php" \
+            --check --root "$STAGE" --version "$STAGE_VERSION" --revision "$PACKAGE_REVISION")"
+          echo "$UPDATE_CHECK"
+          PHPRC="$PHP_ROOT/php.ini" PHP_INI_SCAN_DIR="$PHP_ROOT/conf.d" \
+            "$PHP_ROOT/bin/php" -r '$d=json_decode($argv[1],true,512,JSON_THROW_ON_ERROR); if (!is_bool($d["available"] ?? null)) exit(1);' "$UPDATE_CHECK"
           (cd "$STAGE" && zip -qry "$OUT" DCP.app platform DCP-UserData)
           test -s "$OUT"
           unzip -Z1 "$OUT" | grep -F "platform/dcp-env/engines/llama.cpp/$RUNTIME_DIR/llama-server"
