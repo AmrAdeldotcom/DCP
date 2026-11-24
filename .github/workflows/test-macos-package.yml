@@ -137,8 +137,10 @@ jobs:
           ./platform/scripts/build-macos.sh
           APP_VERSION="$(python3 -c 'import json;print(json.load(open("platform/version.json", encoding="utf-8"))["version"])')"
           APP_BUILD="$(python3 -c 'import json;print(json.load(open("platform/version.json", encoding="utf-8"))["build"])')"
+          APP_REVISION="$(python3 -c 'import json;print(json.load(open("platform/version.json", encoding="utf-8"))["packageRevision"])')"
           /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $APP_VERSION" DCP.app/Contents/Info.plist
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $APP_BUILD" DCP.app/Contents/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :DCPPackageRevision integer $APP_REVISION" DCP.app/Contents/Info.plist || /usr/libexec/PlistBuddy -c "Set :DCPPackageRevision $APP_REVISION" DCP.app/Contents/Info.plist
           codesign --force --deep --sign - DCP.app
           codesign --verify --deep --strict DCP.app
           test -s DCP.app/Contents/Resources/AppIcon.icns
