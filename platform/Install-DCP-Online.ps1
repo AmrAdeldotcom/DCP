@@ -13,7 +13,7 @@ try {
     New-Item -ItemType Directory -Force -Path $WorkRoot, $ExtractRoot | Out-Null
     Write-Host 'Finding the latest official DCP for Windows...' -ForegroundColor Cyan
     $Releases = Invoke-RestMethod -Uri $ReleaseApi -Headers @{ 'Accept' = 'application/vnd.github+json'; 'User-Agent' = 'DCP-Windows-Installer' }
-    $RequiredReleaseAssets = @('DCP-Windows-x64.zip', 'DCP-macOS-universal.zip', 'DCP-Linux-x64.tar.gz', 'DCP-Linux-x64.tar.gz.sha256', 'DCP-Windows-update.json')
+    $RequiredReleaseAssets = @('DCP-Windows-x64.zip', 'DCP-macOS-Intel.zip', 'DCP-macOS-AppleSilicon.zip', 'DCP-Linux-x64.tar.gz', 'DCP-Linux-x64.tar.gz.sha256', 'DCP-Windows-update.json')
     $Release = $Releases | Where-Object {
         $Candidate = $_
         -not $Candidate.draft -and

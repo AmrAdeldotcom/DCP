@@ -116,7 +116,7 @@
     NSURL *managed=[self.platformURL URLByAppendingPathComponent:[NSString stringWithFormat:@"dcp-env/runtime/php/%@/bin/php",managedName]];
     NSURL *managedFlat=[self.platformURL URLByAppendingPathComponent:[NSString stringWithFormat:@"dcp-env/runtime/php/%@/php",managedName]];
     NSURL *legacy=[[[self.platformURL URLByDeletingLastPathComponent] URLByAppendingPathComponent:@"runtime/php/bin/php"] copy];
-    NSArray *phpCandidates=@[@"/usr/local/bin/php",@"/opt/homebrew/bin/php",managed.path,managedFlat.path,legacy.path];
+    NSArray *phpCandidates=@[managed.path,managedFlat.path,@"/opt/homebrew/bin/php",@"/usr/local/bin/php",legacy.path];
     NSString *php=nil;
     BOOL managedPHP=NO;
     for(NSString *candidate in phpCandidates){
@@ -192,7 +192,8 @@
         NSSet *requiredAssets=[NSSet setWithArray:@[
             @"DCP-Windows-x64.zip",
             @"DCP-Windows-update.json",
-            @"DCP-macOS-universal.zip",
+            @"DCP-macOS-Intel.zip",
+            @"DCP-macOS-AppleSilicon.zip",
             @"DCP-Linux-x64.tar.gz",
             @"DCP-Linux-x64.tar.gz.sha256"
         ]];

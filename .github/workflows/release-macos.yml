@@ -1,4 +1,4 @@
-name: Build and publish DCP macOS release
+name: Build and publish DCP native macOS releases
 
 on:
   push:
@@ -16,108 +16,128 @@ jobs:
   managed-php-runtime:
     uses: ./.github/workflows/build-php-runtime-macos.yml
 
-  intel-llama-sse42:
+  intel-llama:
     uses: ./.github/workflows/build-llama-macos-sse42.yml
 
-  macos-universal:
-    needs:
-      - managed-php-runtime
-      - intel-llama-sse42
-    runs-on: macos-latest
+  arm64-llama:
+    uses: ./.github/workflows/build-llama-macos-arm64.yml
+
+  macos-native-package:
+    needs: [managed-php-runtime, intel-llama, arm64-llama]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            runner: macos-15-intel
+            php_arch: macos-x64
+            runtime_dir: macos-x64-sse42
+            engine_artifact: dcp-llama-macos-x64-sse42
+            package: DCP-macOS-Intel.zip
+          - arch: arm64
+            runner: macos-15
+            php_arch: macos-arm64
+            runtime_dir: macos-arm64
+            engine_artifact: dcp-llama-macos-arm64
+            package: DCP-macOS-AppleSilicon.zip
+    runs-on: ${{ matrix.runner }}
     steps:
       - name: Check out source
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Test macOS runtime bootstrap selection and integrity
+      - name: Test runtime bootstrap selection and integrity
         run: bash platform/tests/runtime-macos-installer.sh
 
-      - name: Download managed PHP runtime artifacts
+      - name: Download matching managed PHP runtime
         uses: actions/download-artifact@v4
         with:
-          pattern: dcp-php-runtime-macos-*
-          path: ${{ runner.temp }}/dcp-php-artifacts
-          merge-multiple: false
+          name: dcp-php-runtime-${{ matrix.php_arch }}
+          path: ${{ runner.temp }}/dcp-php-runtime
 
-      - name: Download Intel SSE4.2 llama.cpp runtime
+      - name: Download matching llama.cpp runtime
         uses: actions/download-artifact@v4
         with:
-          name: dcp-llama-macos-x64-sse42
-          path: platform/dcp-env/engines/llama.cpp/macos-x64-sse42
+          name: ${{ matrix.engine_artifact }}
+          path: platform/dcp-env/engines/llama.cpp/${{ matrix.runtime_dir }}
 
-      - name: Verify downloaded Intel SSE4.2 runtime
+      - name: Restore engine executable mode and verify native architecture
         shell: bash
         run: |
           set -euo pipefail
-          RUNTIME=platform/dcp-env/engines/llama.cpp/macos-x64-sse42
+          RUNTIME="platform/dcp-env/engines/llama.cpp/${{ matrix.runtime_dir }}"
           test -s "$RUNTIME/llama-server"
-          # Restore executable mode; artifact extraction may not retain it.
-          chmod 755 "$RUNTIME/llama-server"
+          chmod 0755 "$RUNTIME/llama-server"
           test -x "$RUNTIME/llama-server"
           test -s "$RUNTIME/LICENSE"
           test -s "$RUNTIME/OpenSSL-LICENSE.txt"
-          file "$RUNTIME/llama-server" | grep -q "x86_64"
+          file "$RUNTIME/llama-server" | grep -F "${{ matrix.arch }}"
+          lipo "$RUNTIME/llama-server" -verify_arch "${{ matrix.arch }}"
 
-      - name: Embed and verify managed PHP runtimes
+      - name: Embed and verify matching managed PHP runtime
         shell: bash
         run: |
           set -euo pipefail
-          for arch in macos-x64 macos-arm64; do
-            artifact="$RUNNER_TEMP/dcp-php-artifacts/dcp-php-runtime-$arch"
-            archive="$artifact/DCP-PHP-$arch.tar.gz"
-            checksum="$archive.sha256"
-            test -s "$archive"
-            test -s "$checksum"
-            (cd "$artifact" && shasum -a 256 -c "$(basename "$checksum")")
-            target="platform/dcp-env/runtime/php/$arch"
-            mkdir -p "$target"
-            tar -xzf "$archive" -C "$target"
-            test -x "$target/bin/php"
-            test -s "$target/php.ini"
-            test -s "$target/php.sha256"
-            actual="$(shasum -a 256 "$target/bin/php" | awk '{print $1}')"
-            expected="$(tr -d '[:space:]' < "$target/php.sha256")"
-            test "$actual" = "$expected"
-            PHPRC="$target/php.ini" PHP_INI_SCAN_DIR="$target/conf.d" "$target/bin/php" platform/scripts/verify-runtime.php
-          done
+          ARCH="${{ matrix.php_arch }}"
+          ARCHIVE="${{ runner.temp }}/dcp-php-runtime/DCP-PHP-$ARCH.tar.gz"
+          CHECKSUM="$ARCHIVE.sha256"
+          test -s "$ARCHIVE"
+          test -s "$CHECKSUM"
+          (cd "$(dirname "$ARCHIVE")" && shasum -a 256 -c "$(basename "$CHECKSUM")")
+          TARGET="platform/dcp-env/runtime/php/$ARCH"
+          mkdir -p "$TARGET"
+          tar -xzf "$ARCHIVE" -C "$TARGET"
+          test -x "$TARGET/bin/php"
+          test -s "$TARGET/php.ini"
+          test -s "$TARGET/php.sha256"
+          ACTUAL="$(shasum -a 256 "$TARGET/bin/php" | awk '{print $1}')"
+          EXPECTED="$(tr -d '[:space:]' < "$TARGET/php.sha256")"
+          test "$ACTUAL" = "$EXPECTED"
+          PHPRC="$TARGET/php.ini" PHP_INI_SCAN_DIR="$TARGET/conf.d" "$TARGET/bin/php" platform/scripts/verify-runtime.php
 
-      - name: Set up PHP CLI and CMake for the application build
+      - name: Install app build tools
         run: |
           brew install php
           brew list cmake >/dev/null 2>&1 || brew install cmake
           php -v
           cmake --version
 
-      - name: Build universal macOS application
+      - name: Build native macOS application
+        shell: bash
+        env:
+          DCP_MACOS_ARCH: ${{ matrix.arch }}
         run: |
+          set -euo pipefail
           chmod +x platform/scripts/*.sh platform/wrappers/build-macos.sh
           APP_VERSION="${GITHUB_REF_NAME#v}"
           APP_BUILD="$(python3 -c 'import re,sys; m=re.search(r"-(?:alpha|beta)\.(\d+)$",sys.argv[1]); print(m.group(1) if m else "1")' "$APP_VERSION")"
-          python3 - "$APP_VERSION" "$GITHUB_REF_NAME" "$APP_BUILD" <<'PY'
-          import json, sys
-          version, release_tag, build = sys.argv[1:]
-          channel = "alpha" if "-alpha" in version else ("beta" if "-beta" in version else "stable")
-          with open("platform/version.json", "w", encoding="utf-8") as f:
-              json.dump({"version": version, "releaseTag": release_tag, "channel": channel, "build": build}, f, indent=2)
+          python3 - "$APP_VERSION" "$GITHUB_REF_NAME" "$APP_BUILD" <<'PYMETA'
+          import json,sys
+          version,tag,build=sys.argv[1:]
+          channel="alpha" if "-alpha" in version else ("beta" if "-beta" in version else "stable")
+          with open("platform/version.json","w",encoding="utf-8") as f:
+              json.dump({"version":version,"releaseTag":tag,"channel":channel,"build":build},f,indent=2)
               f.write("\n")
-          PY
+          PYMETA
           ./platform/scripts/build-macos.sh
+          APP_VERSION="$(python3 -c 'import json;print(json.load(open("platform/version.json", encoding="utf-8"))["version"])')"
+          APP_BUILD="$(python3 -c 'import json;print(json.load(open("platform/version.json", encoding="utf-8"))["build"])')"
           /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $APP_VERSION" DCP.app/Contents/Info.plist
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $APP_BUILD" DCP.app/Contents/Info.plist
           codesign --force --deep --sign - DCP.app
           codesign --verify --deep --strict DCP.app
           test -s DCP.app/Contents/Resources/AppIcon.icns
-          MIN_OS="$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' DCP.app/Contents/Info.plist)"
-          test "$MIN_OS" = "12.0.0"
-          file DCP.app/Contents/MacOS/DCP
-          lipo -info DCP.app/Contents/MacOS/DCP
+          test "$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' DCP.app/Contents/Info.plist)" = "12.0.0"
+          file DCP.app/Contents/MacOS/DCP | grep -F "${{ matrix.arch }}"
 
-      - name: Assemble clean portable package
+      - name: Assemble and inspect architecture-specific package
+        shell: bash
         run: |
           set -euo pipefail
           STAGE="$RUNNER_TEMP/dcp-macos-package"
-          OUT="$GITHUB_WORKSPACE/DCP-macOS-universal.zip"
+          OUT="$GITHUB_WORKSPACE/${{ matrix.package }}"
+          RUNTIME_DIR="${{ matrix.runtime_dir }}"
           rm -rf "$STAGE"
           mkdir -p "$STAGE/DCP-UserData/macOS/data" "$STAGE/DCP-UserData/macOS/storage"
           cat > "$STAGE/DCP-UserData/README.txt" <<'NOTICE'
@@ -125,69 +145,65 @@ jobs:
           NOTICE
           ditto DCP.app "$STAGE/DCP.app"
           rsync -a platform/ "$STAGE/platform/" \
-            --exclude '/data/***' \
-            --exclude '/storage/***' \
-            --exclude '/dist/***' \
-            --exclude '/wrappers/***' \
-            --exclude '/tests/***' \
-            --exclude '/.env' \
-            --exclude '/.env.*' \
-            --exclude '/vendor/***' \
-            --exclude '/dcp-env/build/***' \
+            --exclude '/data/***' --exclude '/storage/***' --exclude '/dist/***' \
+            --exclude '/wrappers/***' --exclude '/tests/***' --exclude '/.env' --exclude '/.env.*' \
+            --exclude '/vendor/***' --exclude '/dcp-env/build/***' \
             --exclude '/dcp-env/engines/llama.cpp/source/***' \
-            --exclude '/dcp-env/engines/llama.cpp/macos-x64-avx2/***' \
-            --exclude '/dcp-env/engines/llama.cpp/macos-x64-sse42/***' \
-            --exclude '/dcp-env/engines/llama.cpp/macos-arm64/***' \
-            --exclude '/dcp-env/engines/llama.cpp/macos-x64/***' \
-            --exclude '/dcp-env/engines/llama.cpp/linux-x64/***' \
-            --exclude '/dcp-env/engines/ollama/linux-x64/***' \
-            --exclude '/dcp-env/engines/ollama/windows-x64/***' \
-            --exclude '/dcp-env/engines/ollama/macos-x64/***' \
-            --exclude '/dcp-env/engines/ollama/macos-arm64/***'
-          SSE42_SOURCE="platform/dcp-env/engines/llama.cpp/macos-x64-sse42"
-          SSE42_STAGE="$STAGE/platform/dcp-env/engines/llama.cpp/macos-x64-sse42"
-          test -x "$SSE42_SOURCE/llama-server"
-          mkdir -p "$SSE42_STAGE"
-          cp -R "$SSE42_SOURCE/." "$SSE42_STAGE/"
-          file "$SSE42_STAGE/llama-server" | grep -q 'x86_64'
-          test -s "$SSE42_STAGE/LICENSE"
-          test -s "$SSE42_STAGE/OpenSSL-LICENSE.txt"
-          STAGE_VERSION="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1], encoding="utf-8"))["version"])' "$STAGE/platform/version.json")"
-          STAGE_BUILD="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1], encoding="utf-8"))["build"])' "$STAGE/platform/version.json")"
-          BUNDLE_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$STAGE/DCP.app/Contents/Info.plist")"
-          BUNDLE_BUILD="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$STAGE/DCP.app/Contents/Info.plist")"
-          test "$STAGE_VERSION" = "${GITHUB_REF_NAME#v}"
-          STAGE_TAG="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1], encoding="utf-8"))["releaseTag"])' "$STAGE/platform/version.json")"
-          test "$STAGE_TAG" = "$GITHUB_REF_NAME"
-          test "$STAGE_VERSION" = "$BUNDLE_VERSION"
-          test "$STAGE_BUILD" = "$BUNDLE_BUILD"
-          for arch in macos-x64 macos-arm64; do
-            runtime="$STAGE/platform/dcp-env/runtime/php/$arch"
-            test -x "$runtime/bin/php"
-            expected="$(tr -d '[:space:]' < "$runtime/php.sha256")"
-            actual="$(shasum -a 256 "$runtime/bin/php" | awk '{print $1}')"
-            test "$actual" = "$expected"
-            PHPRC="$runtime/php.ini" PHP_INI_SCAN_DIR="$runtime/conf.d" "$runtime/bin/php" "$STAGE/platform/scripts/verify-runtime.php"
-          done
-          if [ -d "$STAGE/platform/dcp-env/build" ] && find "$STAGE/platform/dcp-env/build" -type f -print -quit | grep -q .; then
-            echo "Build cache leaked into the portable package." >&2
-            exit 1
-          fi
-          if [ -d "$STAGE/platform/dcp-env/engines/llama.cpp/source" ] && find "$STAGE/platform/dcp-env/engines/llama.cpp/source" -type f -print -quit | grep -q .; then
-            echo "llama.cpp source tree leaked into the portable package." >&2
-            exit 1
-          fi
+            --exclude '/dcp-env/engines/llama.cpp/macos-*/*'
+          ENGINE_SOURCE="platform/dcp-env/engines/llama.cpp/$RUNTIME_DIR"
+          ENGINE_STAGE="$STAGE/platform/dcp-env/engines/llama.cpp/$RUNTIME_DIR"
+          mkdir -p "$ENGINE_STAGE"
+          cp -R "$ENGINE_SOURCE/." "$ENGINE_STAGE/"
+          chmod 0755 "$ENGINE_STAGE/llama-server"
+          file "$ENGINE_STAGE/llama-server" | grep -F "${{ matrix.arch }}"
+          PHP_ROOT="$STAGE/platform/dcp-env/runtime/php/${{ matrix.php_arch }}"
+          test -x "$PHP_ROOT/bin/php"
+          EXPECTED="$(tr -d '[:space:]' < "$PHP_ROOT/php.sha256")"
+          ACTUAL="$(shasum -a 256 "$PHP_ROOT/bin/php" | awk '{print $1}')"
+          test "$ACTUAL" = "$EXPECTED"
+          PHPRC="$PHP_ROOT/php.ini" PHP_INI_SCAN_DIR="$PHP_ROOT/conf.d" "$PHP_ROOT/bin/php" "$STAGE/platform/scripts/verify-runtime.php"
           touch "$STAGE/DCP-UserData/macOS/data/.gitkeep" "$STAGE/DCP-UserData/macOS/storage/.gitkeep"
+          STAGE_VERSION="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1], encoding="utf-8"))["version"])' "$STAGE/platform/version.json")"
+          BUNDLE_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$STAGE/DCP.app/Contents/Info.plist")"
+          test "$STAGE_VERSION" = "$BUNDLE_VERSION"
           (cd "$STAGE" && zip -qry "$OUT" DCP.app platform DCP-UserData)
-          unzip -Z1 "$OUT" | grep -F 'DCP-UserData/macOS/data/.gitkeep'
-          unzip -Z1 "$OUT" | grep -F 'DCP-UserData/macOS/storage/.gitkeep'
-          unzip -Z1 "$OUT" | grep -F 'platform/dcp-env/engines/llama.cpp/macos-x64-sse42/llama-server'
-          unzip -Z1 "$OUT" | grep -F 'platform/dcp-env/engines/llama.cpp/macos-x64-sse42/LICENSE'
-          unzip -Z1 "$OUT" | grep -F 'platform/dcp-env/engines/llama.cpp/macos-x64-sse42/OpenSSL-LICENSE.txt'
           test -s "$OUT"
+          unzip -Z1 "$OUT" | grep -F "platform/dcp-env/engines/llama.cpp/$RUNTIME_DIR/llama-server"
+          unzip -Z1 "$OUT" | grep -F "platform/dcp-env/runtime/php/${{ matrix.php_arch }}/bin/php"
+          if unzip -Z1 "$OUT" | grep -E 'storage/keys/master\.key$|data/dcp\.sqlite$'; then
+            echo "Private user data leaked into package." >&2
+            exit 1
+          fi
           shasum -a 256 "$OUT"
 
-      - name: Publish macOS package to GitHub Release
+      - name: Upload architecture-specific package for release assembly
+        uses: actions/upload-artifact@v4
+        with:
+          name: dcp-macos-${{ matrix.arch }}-package-release
+          path: ${{ matrix.package }}
+          if-no-files-found: error
+          retention-days: 3
+
+  publish-macos-release:
+    needs: [macos-native-package]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Download both native macOS packages
+        uses: actions/download-artifact@v4
+        with:
+          pattern: dcp-macos-*-package-release
+          path: release-assets
+          merge-multiple: true
+
+      - name: Verify synchronized macOS release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s release-assets/DCP-macOS-Intel.zip
+          test -s release-assets/DCP-macOS-AppleSilicon.zip
+          sha256sum release-assets/DCP-macOS-Intel.zip release-assets/DCP-macOS-AppleSilicon.zip
+
+      - name: Publish both native macOS packages together
         uses: softprops/action-gh-release@v2
         with:
           name: DCP ${{ github.ref_name }}
@@ -195,4 +211,6 @@ jobs:
           overwrite_files: true
           prerelease: ${{ contains(github.ref_name, '-alpha.') || contains(github.ref_name, '-beta.') }}
           make_latest: false
-          files: DCP-macOS-universal.zip
+          files: |
+            release-assets/DCP-macOS-Intel.zip
+            release-assets/DCP-macOS-AppleSilicon.zip

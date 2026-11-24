@@ -179,7 +179,8 @@ internal sealed class MainWindow : Form
             {
                 "DCP-Windows-x64.zip",
                 "DCP-Windows-update.json",
-                "DCP-macOS-universal.zip",
+                "DCP-macOS-Intel.zip",
+                "DCP-macOS-AppleSilicon.zip",
                 "DCP-Linux-x64.tar.gz",
                 "DCP-Linux-x64.tar.gz.sha256"
             };

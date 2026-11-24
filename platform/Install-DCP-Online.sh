@@ -41,7 +41,11 @@ case "$(uname -s)" in
       echo "DCP for macOS requires macOS 12.0 or later (detected $CURRENT_MACOS)." >&2
       exit 1
     fi
-    ASSET="DCP-macOS-universal.zip"
+    case "$(uname -m)" in
+      arm64) ASSET="DCP-macOS-AppleSilicon.zip" ;;
+      x86_64) ASSET="DCP-macOS-Intel.zip" ;;
+      *) echo "Unsupported macOS architecture: $(uname -m)" >&2; exit 1 ;;
+    esac
     ARCHIVE="$WORK_ROOT/$ASSET"
     EXTRACT="$WORK_ROOT/extracted"
     command -v ditto >/dev/null 2>&1 || { echo "macOS ditto is required." >&2; exit 1; }
@@ -50,7 +54,7 @@ case "$(uname -s)" in
     download_github_api "$WORK_ROOT/releases.json"
     DOWNLOAD_URL="$(python3 - "$WORK_ROOT/releases.json" "$ASSET" <<'PY'
 import json, sys
-required = {"DCP-Windows-x64.zip", "DCP-macOS-universal.zip", "DCP-Linux-x64.tar.gz", "DCP-Linux-x64.tar.gz.sha256", "DCP-Windows-update.json"}
+required = {"DCP-Windows-x64.zip", "DCP-macOS-Intel.zip", "DCP-macOS-AppleSilicon.zip", "DCP-Linux-x64.tar.gz", "DCP-Linux-x64.tar.gz.sha256", "DCP-Windows-update.json"}
 for release in json.load(open(sys.argv[1], encoding="utf-8")):
     if release.get("draft"):
         continue
@@ -114,7 +118,7 @@ PY
     download_github_api "$WORK_ROOT/releases.json"
     python3 - "$WORK_ROOT/releases.json" "$ASSET" "$ASSET.sha256" "$WORK_ROOT/asset-urls.txt" <<'PY'
 import json, sys
-required = {"DCP-Windows-x64.zip", "DCP-macOS-universal.zip", "DCP-Linux-x64.tar.gz", "DCP-Linux-x64.tar.gz.sha256", "DCP-Windows-update.json"}
+required = {"DCP-Windows-x64.zip", "DCP-macOS-Intel.zip", "DCP-macOS-AppleSilicon.zip", "DCP-Linux-x64.tar.gz", "DCP-Linux-x64.tar.gz.sha256", "DCP-Windows-update.json"}
 for release in json.load(open(sys.argv[1], encoding="utf-8")):
     if release.get("draft"):
         continue

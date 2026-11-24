@@ -29,11 +29,11 @@ This downloads the newest published `DCP-Windows-x64.zip`, installs it under `%L
 curl -fsSL https://raw.githubusercontent.com/AmrAdeldotcom/DCP/main/platform/Install-DCP-Online.sh | bash
 ```
 
-This downloads `DCP-macOS-universal.zip`, installs `DCP.app` and its `platform/` folder under `~/Applications/DCP`, preserves local data and encryption keys on upgrades, checks PHP CLI requirements (installing PHP with Homebrew only if needed), and opens DCP. It supports Intel Macs from macOS Catalina 10.15 and Apple Silicon from macOS Big Sur 11.0.
+This detects the Mac CPU architecture and downloads either `DCP-macOS-Intel.zip` or `DCP-macOS-AppleSilicon.zip`. It installs `DCP.app` and its matching native PHP/llama.cpp runtimes under `~/Applications/DCP`, preserves local data and encryption keys on upgrades, and opens DCP. Both native packages target macOS 12.0 or later.
 
 ### Install from Download
 
-Open the repository's **Releases** page, download the ZIP for your operating system, extract it, and keep the app/executable beside the `platform/` directory. On Windows run `Install-DCP.ps1` once to provision the private PHP and WebView2 prerequisites, then launch `DCP.exe`. On macOS run `platform/scripts/install-runtime-macos.sh`, then open `DCP.app`. After the interface opens, macOS checks GitHub in the background and offers the latest universal ZIP update without blocking startup.
+Open the repository's **Releases** page, download the ZIP for your operating system, extract it, and keep the app/executable beside the `platform/` directory. On Windows run `Install-DCP.ps1` once to provision the private PHP and WebView2 prerequisites, then launch `DCP.exe`. On macOS run `platform/scripts/install-runtime-macos.sh`, then open `DCP.app`. After the interface opens, macOS checks GitHub in the background and offers the matching native architecture ZIP update without blocking startup.
 
 ### Developer install (optional)
 
@@ -56,7 +56,8 @@ The desktop shell keeps the DCP UI embedded. External web links open in the oper
 
 ## Desktop distributions
 
-- macOS universal: `DCP-macOS-universal.zip` (Apple Silicon + Intel DCP.app and platform payload).
+- macOS Intel: `DCP-macOS-Intel.zip` (native x86_64 DCP.app, PHP and llama.cpp runtime).
+- macOS Apple Silicon: `DCP-macOS-AppleSilicon.zip` (native arm64 DCP.app, PHP and llama.cpp runtime).
 - Windows x64: `DCP-Windows-x64.zip` (self-contained .NET WebView shell + private PHP CLI runtime + background GitHub Release updater).
 - Linux x64: the Ubuntu 24.04 GitHub Actions workflow builds and publishes a Linux x64 artifact.
 

@@ -6,4 +6,4 @@ cd "$ROOT/.."
 "$ROOT/wrappers/build-macos.sh"
 codesign --force --deep --sign - DCP.app
 codesign --verify --deep --strict DCP.app
-echo "macOS app built. Keep DCP.app beside platform/."
+echo "macOS native app built for $(uname -m). Keep DCP.app beside platform/."

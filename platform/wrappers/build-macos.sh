@@ -18,19 +18,17 @@ for spec in "16 16x16" "32 16x16@2x" "32 32x32" "64 32x32@2x" "128 128x128" "256
  done
 /usr/bin/iconutil -c icns "$ICONSET" -o "$CONTENTS/Resources/AppIcon.icns"
 
-# macOS 12.0+ build for both Intel and Apple Silicon.
-/usr/bin/clang -arch x86_64 -mmacosx-version-min=12.0 -fobjc-arc \
+# Build exactly one native architecture. Universal/lipo builds are intentionally
+# avoided so each package contains only the runtime matching its host.
+ARCH="${DCP_MACOS_ARCH:-$(uname -m)}"
+case "$ARCH" in
+  x86_64|arm64) ;;
+  *) echo "Unsupported DCP_MACOS_ARCH: $ARCH" >&2; exit 2 ;;
+esac
+/usr/bin/clang -arch "$ARCH" -mmacosx-version-min=12.0 -fobjc-arc \
   -framework Cocoa -framework WebKit \
   "$ROOT/platform/wrappers/macos/main.m" \
-  -o "$BUILD_TMP/DCP-x86_64"
-/usr/bin/clang -arch arm64 -mmacosx-version-min=12.0 -fobjc-arc \
-  -framework Cocoa -framework WebKit \
-  "$ROOT/platform/wrappers/macos/main.m" \
-  -o "$BUILD_TMP/DCP-arm64"
-/usr/bin/lipo -create "$BUILD_TMP/DCP-x86_64" "$BUILD_TMP/DCP-arm64" \
-  -output "$CONTENTS/MacOS/DCP"
-chmod +x "$CONTENTS/MacOS/DCP"
-/usr/bin/codesign --force --deep --sign - "$APP"
-/usr/bin/codesign --verify --deep --strict "$APP"
+  -o "$CONTENTS/MacOS/DCP"
+chmod 0755 "$CONTENTS/MacOS/DCP"
 
-echo "Built and ad-hoc signed universal DCP.app at $APP"
+echo "Built and ad-hoc signed native $ARCH DCP.app at $APP"

@@ -1,0 +1,78 @@
+name: Build portable Apple Silicon llama.cpp runtime
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Apple Silicon ARM64 llama.cpp
+    runs-on: macos-15
+    env:
+      MACOSX_DEPLOYMENT_TARGET: "12.0"
+    steps:
+      - name: Check out DCP
+        uses: actions/checkout@v4
+
+      - name: Install CMake
+        run: |
+          brew list cmake >/dev/null 2>&1 || brew install cmake
+          cmake --version
+
+      - name: Build pinned static OpenSSL for Apple Silicon
+        shell: bash
+        run: |
+          set -euo pipefail
+          OPENSSL_SOURCE="$RUNNER_TEMP/openssl-3.5.4"
+          OPENSSL_ROOT_DIR="$RUNNER_TEMP/openssl-arm64"
+          git clone --depth 1 --branch openssl-3.5.4 https://github.com/openssl/openssl.git "$OPENSSL_SOURCE"
+          test "$(git -C "$OPENSSL_SOURCE" rev-parse HEAD)" = "c1eeb9406b6142148f267594197d853403d10208"
+          cd "$OPENSSL_SOURCE"
+          MACOSX_DEPLOYMENT_TARGET=12.0 ./Configure darwin64-arm64-cc no-shared no-tests --prefix="$OPENSSL_ROOT_DIR" --openssldir=/etc/ssl
+          make -j3
+          make install_sw
+          test -s "$OPENSSL_ROOT_DIR/lib/libssl.a"
+          test -s "$OPENSSL_ROOT_DIR/lib/libcrypto.a"
+          test -s "$OPENSSL_SOURCE/LICENSE.txt"
+          grep -q 'Apache License' "$OPENSSL_SOURCE/LICENSE.txt"
+          echo "OPENSSL_ROOT_DIR=$OPENSSL_ROOT_DIR" >> "$GITHUB_ENV"
+          echo "OPENSSL_LICENSE_FILE=$OPENSSL_SOURCE/LICENSE.txt" >> "$GITHUB_ENV"
+
+      - name: Build native Apple Silicon llama.cpp runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          SOURCE="$RUNNER_TEMP/llama.cpp-b12655"
+          git clone --depth 1 --branch b12655 https://github.com/ggml-org/llama.cpp.git "$SOURCE"
+          DCP_MACOS_ARCH=arm64 DCP_LLAMA_SOURCE="$SOURCE" DCP_BUILD_JOBS=3 bash platform/dcp-env/engines/llama.cpp/build-macos-generic.sh
+
+      - name: Verify ARM64 engine architecture and deployment target
+        shell: bash
+        run: |
+          set -euo pipefail
+          RUNTIME="platform/dcp-env/engines/llama.cpp/macos-arm64"
+          test -x "$RUNTIME/llama-server"
+          test -s "$RUNTIME/LICENSE"
+          test -s "$RUNTIME/OpenSSL-LICENSE.txt"
+          file "$RUNTIME/llama-server" | grep -q 'arm64'
+          vtool -show-build "$RUNTIME/llama-server" | tee "$RUNNER_TEMP/llama-build-info.txt"
+          grep -F 'minos 12.0' "$RUNNER_TEMP/llama-build-info.txt"
+          for binary in "$RUNTIME/llama-server" "$RUNTIME"/*.dylib; do
+            lipo "$binary" -verify_arch arm64
+            if otool -L "$binary" | grep -E 'lib(ssl|crypto)(\.[0-9]+)?\.dylib'; then
+              echo "Unexpected dynamic OpenSSL dependency: $binary" >&2
+              exit 1
+            fi
+          done
+          "$RUNTIME/llama-server" --version
+
+      - name: Upload Apple Silicon llama.cpp runtime
+        uses: actions/upload-artifact@v4
+        with:
+          name: dcp-llama-macos-arm64
+          path: platform/dcp-env/engines/llama.cpp/macos-arm64/
+          if-no-files-found: error
+          retention-days: 14
