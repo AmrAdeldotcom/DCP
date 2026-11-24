@@ -80,4 +80,6 @@ if(PHP_OS_FAMILY!=='Windows') {
 
 $cloud=new CloudService($db,$crypto);ok(method_exists($cloud,'createPairingCode')&&method_exists($cloud,'requestPairing')&&method_exists($cloud,'decidePairing'),'cloud supports anonymous device identity and approval-based pairing');$cloudSettings=$db->query("SELECT COUNT(*) FROM settings WHERE key LIKE 'cloud.%token%enc'")->fetchColumn();ok((int)$cloudSettings===0,'cloud device and account tokens are not created or exposed by local unit tests');
 require __DIR__ . '/update-manifest.php';
+require __DIR__ . '/linux-update-transaction.php';
+require __DIR__ . '/linux-updater-health.php';
 echo "ALL PLATFORM TESTS PASSED\n";

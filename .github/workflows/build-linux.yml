@@ -57,6 +57,11 @@ jobs:
           test ! -f "$ROOT/DCP-UserData/Linux/data/dcp.sqlite"
           bash -n "$ROOT/Run-DCP.sh" "$ROOT/Install-DCP-Launcher.sh" platform/Install-DCP-Online.sh
           if ldd "$ROOT/DCP" | grep -q 'not found'; then ldd "$ROOT/DCP"; exit 1; fi
+      - name: Test Linux updater safety and rollback
+        run: |
+          php platform/tests/linux-update-transaction.php
+          php platform/tests/linux-updater-health.php
+          python3 platform/tests/extract-linux-update.py
       - name: Smoke-test packaged Linux application
         run: bash platform/tests/linux-package-smoke.sh platform/dist/linux
       - name: Upload Linux x64 artifact

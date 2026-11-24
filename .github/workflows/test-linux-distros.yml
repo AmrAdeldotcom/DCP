@@ -26,6 +26,12 @@ jobs:
         uses: actions/checkout@v4
       - name: Test signed-manifest and delta-package builders
         run: python3 platform/tests/update-package-build.py
+      - name: Test safe Linux update archive extraction
+        run: python3 platform/tests/extract-linux-update.py
+      - name: Test Linux update transaction, rollback and user-data preservation
+        run: php platform/tests/linux-update-transaction.php
+      - name: Test packaged API health-check and rollback prerequisites
+        run: php platform/tests/linux-updater-health.php
       - name: Test detached manifest signing and tamper detection
         run: bash platform/tests/sign-update-manifest.sh
       - name: Install build dependencies

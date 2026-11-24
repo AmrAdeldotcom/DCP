@@ -74,6 +74,41 @@ chmod 0700 "$ROOT/DCP-UserData/Linux" "$ROOT/DCP-UserData/Linux/data" "$ROOT/DCP
 "$ROOT/platform/scripts/install-runtime-linux.sh"
 PHP_BIN="${DCP_PHP_BIN:-php}"
 "$PHP_BIN" "$ROOT/platform/scripts/verify-runtime.php"
+
+# Signed update checks are fail-closed and never interrupt startup when offline.
+# Applying an update requires an explicit local user confirmation.
+UPDATE_LOG="$ROOT/DCP-UserData/Linux/storage/logs/updater.log"
+mkdir -p "$(dirname "$UPDATE_LOG")"
+if [[ "${DCP_DISABLE_UPDATE_CHECK:-0}" != "1" ]]; then
+  if UPDATE_RESULT="$("$PHP_BIN" "$ROOT/platform/scripts/update-linux.php" --check 2>>"$UPDATE_LOG")"; then
+    if python3 -c 'import json,sys; raise SystemExit(0 if json.load(sys.stdin).get("available") else 1)' <<<"$UPDATE_RESULT"; then
+      UPDATE_VERSION="$(python3 -c 'import json,sys; print(json.load(sys.stdin).get("version", "unknown"))' <<<"$UPDATE_RESULT")"
+      UPDATE_STRATEGY="$(python3 -c 'import json,sys; print(json.load(sys.stdin).get("strategy", "full"))' <<<"$UPDATE_RESULT")"
+      ACCEPT_UPDATE=0
+      if command -v zenity >/dev/null 2>&1; then
+        zenity --question --title="DCP update available" --text="DCP $UPDATE_VERSION is available ($UPDATE_STRATEGY update). Apply it now?" && ACCEPT_UPDATE=1 || true
+      elif command -v kdialog >/dev/null 2>&1; then
+        kdialog --title "DCP update available" --yesno "DCP $UPDATE_VERSION is available ($UPDATE_STRATEGY update). Apply it now?" && ACCEPT_UPDATE=1 || true
+      elif [[ -t 0 ]]; then
+        if read -r -p "DCP $UPDATE_VERSION is available ($UPDATE_STRATEGY update). Apply now? [y/N] " ANSWER; then
+          [[ "$ANSWER" =~ ^[Yy]$ ]] && ACCEPT_UPDATE=1
+        fi
+      else
+        echo "DCP update $UPDATE_VERSION is available; run: php platform/scripts/update-linux.php --apply" >>"$UPDATE_LOG"
+      fi
+      if [[ "$ACCEPT_UPDATE" == "1" ]]; then
+        if "$PHP_BIN" "$ROOT/platform/scripts/update-linux.php" --apply >>"$UPDATE_LOG" 2>&1; then
+          "$PHP_BIN" "$ROOT/platform/scripts/verify-runtime.php"
+        else
+          echo "DCP update failed safely; continuing with the installed package. See $UPDATE_LOG" >&2
+        fi
+      fi
+    fi
+  else
+    echo "DCP update check failed; continuing offline with the installed package." >>"$UPDATE_LOG"
+  fi
+fi
+
 "$ROOT/Install-DCP-Launcher.sh"
 exec "$ROOT/DCP"
 RUNNER

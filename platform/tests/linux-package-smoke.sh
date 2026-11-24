@@ -27,6 +27,10 @@ required_files=(
   "$PLATFORM/app/Controllers/ApiController.php"
   "$PLATFORM/public/router.php"
   "$PLATFORM/scripts/verify-runtime.php"
+  "$PLATFORM/scripts/update-linux.php"
+  "$PLATFORM/scripts/lib/UpdateManifest.php"
+  "$PLATFORM/scripts/lib/LinuxUpdateTransaction.php"
+  "$PLATFORM/scripts/extract-update-tar.py"
 )
 for required in "${required_files[@]}"; do
   [[ -s "$required" ]] || {
@@ -45,6 +49,9 @@ if ldd "$PACKAGE_ROOT/DCP" | grep -q 'not found'; then
   exit 1
 fi
 php "$PLATFORM/scripts/verify-runtime.php"
+php -l "$PLATFORM/scripts/update-linux.php" >/dev/null
+php -l "$PLATFORM/scripts/lib/LinuxUpdateTransaction.php" >/dev/null
+python3 -c 'import sys; compile(open(sys.argv[1], encoding="utf-8").read(), sys.argv[1], "exec")' "$PLATFORM/scripts/extract-update-tar.py"
 
 mkdir -p "$SMOKE_DATA/data" "$SMOKE_DATA/storage"
 DCP_USER_DATA_DIR="$SMOKE_DATA" php -S "127.0.0.1:$PORT" \
