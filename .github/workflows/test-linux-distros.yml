@@ -50,6 +50,7 @@ jobs:
       - name: Check out source
         uses: actions/checkout@v4
       - name: Install Kali runtime dependencies
+        shell: bash
         run: |
           apt-get update
           DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends bash ca-certificates coreutils curl file libgtk-3-0 libwebkit2gtk-4.1-0 php-cli php-curl php-intl php-mbstring php-sqlite3 php-xml php-gd php-zip procps tar
@@ -59,8 +60,9 @@ jobs:
           name: dcp-linux-distro-test-package
           path: platform/dist/linux
       - name: Verify Kali libraries and package contents
+        shell: bash
         run: |
-          set -euo pipefail
+          set -euxo pipefail
           ROOT=platform/dist/linux
           test -x "$ROOT/DCP"
           test -x "$ROOT/Run-DCP.sh"
@@ -69,4 +71,5 @@ jobs:
           if ldd "$ROOT/DCP" | grep -q 'not found'; then ldd "$ROOT/DCP"; exit 1; fi
           php "$ROOT/platform/scripts/verify-runtime.php"
       - name: Smoke-test packaged DCP HTTP API on Kali
+        shell: bash
         run: bash platform/tests/linux-package-smoke.sh platform/dist/linux
