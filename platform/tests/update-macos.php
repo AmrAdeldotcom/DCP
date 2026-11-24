@@ -243,6 +243,35 @@ try {
         trim((string)shell_exec('/bin/ps -p ' . $fakePid . ' -o pid=')) !== '';
     checkMacUpdate(!$fakeStillRunning, 'rollback process guard stops only the exact DCP.app executable even without runtime-pid.txt');
 
+    $aliasRoot = $root . '/process-alias';
+    $aliasApp = $aliasRoot . '/DCP.app/Contents/MacOS/DCP';
+    mkdir(dirname($aliasApp), 0700, true);
+    mkdir($aliasRoot . '/platform/public', 0700, true);
+    mkdir($aliasRoot . '/DCP-UserData/macOS/storage', 0700, true);
+    file_put_contents($aliasApp, 'isolated DCP path alias fixture');
+    $canonicalAliasRoot = realpath($aliasRoot);
+    $aliasPidOutput = [];
+    exec('/usr/bin/nohup /bin/bash -c ' . escapeshellarg('exec -a "$1" /bin/sleep 3') .
+        ' dcp-alias-test ' . escapeshellarg($aliasApp) . ' >/dev/null 2>&1 & echo $!', $aliasPidOutput, $aliasPidStatus);
+    $aliasPid = (int)trim((string)($aliasPidOutput[0] ?? '0'));
+    if ($aliasPidStatus !== 0 || $aliasPid < 2) throw new RuntimeException('Could not start DCP path-alias process fixture.');
+    $matchMethod = new ReflectionMethod(DcpMacOSUpdater::class, 'processMatchesDcpApp');
+    $matchMethod->setAccessible(true);
+    checkMacUpdate($canonicalAliasRoot !== false && $canonicalAliasRoot !== $aliasRoot &&
+        $matchMethod->invoke(null, $aliasPid, $aliasRoot), 'process identity accepts the lexical /var installation path and its canonical /private/var path');
+    $guardMethod = new ReflectionMethod(DcpMacOSUpdater::class, 'assertNoRunningDcpProcesses');
+    $guardMethod->setAccessible(true);
+    rejectMacUpdate(fn() => $guardMethod->invoke(null, $aliasRoot, 0), 'process guard refuses a live DCP app launched through a symlinked install path');
+    $recoverAliasCommand = escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($recoverScript) .
+        ' --recover --root ' . escapeshellarg($aliasRoot) . ' --pid ' . $aliasPid;
+    exec($recoverAliasCommand . ' 2>&1', $aliasRecoveryOutput, $aliasRecoveryStatus);
+    checkMacUpdate($aliasRecoveryStatus === 0, 'CLI recovery preserves the lexical install path when validating the current DCP PID');
+    $waitMethod = new ReflectionMethod(DcpMacOSUpdater::class, 'waitForAppExit');
+    $waitMethod->setAccessible(true);
+    $waitStarted = microtime(true);
+    $waitMethod->invoke(null, $aliasPid, $aliasRoot);
+    checkMacUpdate(microtime(true) - $waitStarted >= 1.0, 'updater waits for the exact DCP process before package mutation through a symlinked path');
+
     $unrelatedCommand = '/usr/bin/nohup /bin/sleep 60 >/dev/null 2>&1 & echo $!';
     exec($unrelatedCommand, $unrelatedPidOutput, $unrelatedPidStatus);
     $unrelatedPid = (int)trim((string)($unrelatedPidOutput[0] ?? '0'));

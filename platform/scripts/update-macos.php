@@ -810,6 +810,7 @@ final class DcpMacOSUpdater
 
     public static function recoverInterrupted(string $root, int $ignorePid = 0, bool $nativeChecks = true): int
     {
+        $requestedRoot = rtrim($root, '/');
         $root = realpath($root) ?: throw new RuntimeException('DCP installation root is missing.');
         try {
             $lock = self::acquireUpdateLock($root);
@@ -818,7 +819,7 @@ final class DcpMacOSUpdater
             $state = self::readUpdaterState($root);
             if (is_array($state) && ($state['phase'] ?? '') === 'health-check' && self::isUpdaterProcessActive($state)) {
                 try {
-                    self::assertNoRunningDcpProcesses($root, $ignorePid);
+                    self::assertNoRunningDcpProcesses($requestedRoot, $ignorePid);
                     return -1; // An active updater deliberately launched this app for its health check.
                 } catch (Throwable) {
                     return -2; // Another DCP instance is already running.
@@ -827,7 +828,7 @@ final class DcpMacOSUpdater
             return -2; // An update is active; this app instance must not start.
         }
         try {
-            self::assertNoRunningDcpProcesses($root, $ignorePid);
+            self::assertNoRunningDcpProcesses($requestedRoot, $ignorePid);
             $transaction = new DcpLinuxUpdateTransaction($root, $root . '/DCP-UserData/macOS');
             $state = self::readUpdaterState($root);
             if (!$transaction->hasIncompleteTransactions()) {
@@ -974,6 +975,7 @@ final class DcpMacOSUpdater
 
     private static function apply(string $root, string $currentVersion, int $currentRevision, int $pid): void
     {
+        $requestedRoot = rtrim($root, '/');
         $root = realpath($root) ?: throw new RuntimeException('DCP installation root is missing.');
         $lock = self::acquireUpdateLock($root);
         $package = null;
@@ -981,8 +983,8 @@ final class DcpMacOSUpdater
         $preserveState = false;
         try {
             self::writeUpdaterState($root, 'waiting-for-app-exit');
-            self::waitForAppExit($pid, $root);
-            self::assertNoRunningDcpProcesses($root, 0);
+            self::waitForAppExit($pid, $requestedRoot);
+            self::assertNoRunningDcpProcesses($requestedRoot, 0);
             $userData = $root . '/DCP-UserData/macOS';
             @unlink(self::assertNoSymlinkPath($root, 'DCP-UserData/macOS/storage/runtime-port.txt'));
             @unlink(self::assertNoSymlinkPath($root, 'DCP-UserData/macOS/storage/runtime-pid.txt'));
@@ -1031,7 +1033,10 @@ final class DcpMacOSUpdater
     public static function main(array $argv): int
     {
         $options = getopt('', ['check', 'apply', 'recover', 'root:', 'version:', 'revision:', 'pid:']);
-        $root = realpath((string)($options['root'] ?? '')) ?: '';
+        // Keep the user-visible installation path for process identity checks;
+        // realpath() can rewrite /var as /private/var while argv[0] keeps /var.
+        $requestedRoot = rtrim((string)($options['root'] ?? ''), '/');
+        $root = realpath($requestedRoot) ?: '';
         $version = (string)($options['version'] ?? '0.0.0');
         $revision = (int)($options['revision'] ?? 0);
         if ($root === '' || !is_dir($root . '/platform') || !is_dir($root . '/DCP.app')) {
@@ -1046,7 +1051,7 @@ final class DcpMacOSUpdater
                 return 0;
             }
             if (isset($options['recover'])) {
-                $recovered = self::recoverInterrupted($root, (int)($options['pid'] ?? 0), true);
+                $recovered = self::recoverInterrupted($requestedRoot, (int)($options['pid'] ?? 0), true);
                 if ($recovered === -1) return 12;
                 if ($recovered === -2) return 11;
                 if ($recovered > 0) {
@@ -1057,7 +1062,7 @@ final class DcpMacOSUpdater
                 return 0;
             }
             if (isset($options['apply'])) {
-                self::apply($root, $version, $revision, (int)($options['pid'] ?? 0));
+                self::apply($requestedRoot, $version, $revision, (int)($options['pid'] ?? 0));
                 return 0;
             }
             fwrite(STDERR, "Use --check, --recover or --apply.\n");
