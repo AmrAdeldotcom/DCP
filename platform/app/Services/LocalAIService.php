@@ -163,8 +163,12 @@ final class LocalAIService {
   if($raw===false||$code!==200)return false;$data=json_decode($raw,true);
   return is_array($data)&&is_array($data['data']??null);
  }
+ private function externalLlamaPorts():array {
+  // Include DCP's established local llama.cpp port as well as common OpenAI-compatible defaults.
+  return [8080,8081,8082,8000,8090,9000,19123];
+ }
  private function discoverExternalLlama():array {
-  foreach([8080,8081,8082,8000,8090,9000] as $port)if($this->port($port)&&$this->llamaApiReady($port))return ['port'=>$port,'managed'=>false,'model'=>'','pid'=>null,'ready'=>true];
+  foreach($this->externalLlamaPorts() as $port)if($this->port($port)&&$this->llamaApiReady($port))return ['port'=>$port,'managed'=>false,'model'=>'','pid'=>null,'ready'=>true];
   return [];
  }
  private function freePort():int {
