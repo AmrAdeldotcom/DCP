@@ -48,3 +48,16 @@ jobs:
 
       - name: Verify detached signing and tamper rejection
         run: bash platform/tests/sign-update-manifest.sh
+
+      - name: Verify production signing secret matches the pinned public key
+        if: github.event_name != 'pull_request'
+        env:
+          DCP_RELEASE_SIGNING_PRIVATE_KEY_B64: ${{ secrets.DCP_RELEASE_SIGNING_PRIVATE_KEY_B64 }}
+        run: |
+          set -euo pipefail
+          test -n "$DCP_RELEASE_SIGNING_PRIVATE_KEY_B64" || { echo "Repository secret DCP_RELEASE_SIGNING_PRIVATE_KEY_B64 is missing." >&2; exit 1; }
+          printf '%s\n' '{"schema":3,"purpose":"production-key-preflight"}' > "$RUNNER_TEMP/dcp-production-key-preflight.json"
+          bash platform/scripts/sign-update-manifest.sh \
+            "$RUNNER_TEMP/dcp-production-key-preflight.json" \
+            "$RUNNER_TEMP/dcp-production-key-preflight.json.sig"
+          rm -f "$RUNNER_TEMP/dcp-production-key-preflight.json" "$RUNNER_TEMP/dcp-production-key-preflight.json.sig"
