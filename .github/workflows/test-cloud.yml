@@ -45,5 +45,9 @@ jobs:
           grep -q 'api_rate_limits' platform/cloud/schema.migrate.sql
           grep -q 'rate_limit(' platform/cloud/index.php
           grep -q "rate_limit('anonymous-device-register'" platform/cloud/index.php
+          grep -q "request_body_too_large" platform/cloud/index.php
+          grep -q 'function cleanup_expired' platform/cloud/index.php
+          grep -q "signal-poll" platform/cloud/index.php
+          grep -q "device-register" platform/cloud/index.php
           grep -q 'devices/anonymous/register' platform/cloud/index.php
           grep -q 'pairing-requests' platform/cloud/index.php
