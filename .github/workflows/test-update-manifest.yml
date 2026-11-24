@@ -1,0 +1,50 @@
+name: Test signed update manifest and delta package tooling
+
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dcp-update-manifest-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  update-contract:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: openssl
+          coverage: none
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Validate PHP manifest verifier
+        run: |
+          set -euo pipefail
+          php -l platform/scripts/lib/UpdateManifest.php
+          php -l platform/tests/update-manifest.php
+          php platform/tests/update-manifest.php
+
+      - name: Validate delta and manifest builders
+        run: |
+          set -euo pipefail
+          python -m py_compile platform/scripts/build-update-manifest.py platform/scripts/build-delta-package.py platform/tests/update-package-build.py
+          python platform/tests/update-package-build.py
+
+      - name: Verify detached signing and tamper rejection
+        run: bash platform/tests/sign-update-manifest.sh
