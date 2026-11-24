@@ -25,6 +25,8 @@ assert(%w[linux windows macos].all? { |name| Array(publish['needs']).include?(na
 steps = publish.fetch('steps')
 merge_guard = steps.find { |step| step['name'].to_s.include?('Require release tag commit') }
 assert(merge_guard && merge_guard['run'].include?('git merge-base --is-ancestor'), 'release signing is blocked until the tag commit is merged into the default branch')
+assembly_test = steps.find { |step| step['name'].to_s.include?('ephemeral test key') }
+assert(assembly_test && assembly_test['run'].include?('platform/tests/release-assembly.sh'), 'release workflow runs a four-platform assembly test before using the production key')
 download = steps.find { |step| step['uses'].to_s.start_with?('actions/download-artifact@') }
 assert(download && download.dig('with', 'pattern') == 'dcp-*-package-release', 'release assembly downloads only platform package artifacts')
 assembly = steps.find { |step| step['name'].to_s.include?('Build and sign synchronized') }

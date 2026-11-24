@@ -49,6 +49,9 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Verify signed release assembly with an ephemeral test key
+        run: bash platform/tests/release-assembly.sh
+
       - name: Download all four native full packages
         uses: actions/download-artifact@v4
         with:
