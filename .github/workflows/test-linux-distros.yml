@@ -66,6 +66,12 @@ jobs:
         run: |
           apt-get update
           DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends bash ca-certificates coreutils curl file python3 libgtk-3-0 libwebkit2gtk-4.1-0 php-cli php-curl php-intl php-mbstring php-sqlite3 php-xml php-gd php-zip procps tar
+      - name: Test Linux update transaction, full fallback and crash recovery on Kali
+        shell: bash
+        run: php platform/tests/linux-update-transaction.php
+      - name: Test Linux updater health and synchronized asset fallback on Kali
+        shell: bash
+        run: php platform/tests/linux-updater-health.php
       - name: Download portable Linux package archive
         uses: actions/download-artifact@v4
         with:
