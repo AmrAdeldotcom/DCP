@@ -227,7 +227,7 @@
             NSString *strategy=[update[@"strategy"] isKindOfClass:[NSString class]]?update[@"strategy"]:@"full";
             NSAlert *alert=[NSAlert new];
             alert.messageText=[NSString stringWithFormat:@"DCP %@ is available",latest];
-            alert.informativeText=[NSString stringWithFormat:@"A cryptographically verified %@ update is available. DCP will close, update its application package, preserve your local database and encryption keys, verify the local API, then reopen.",strategy];
+            alert.informativeText=[NSString stringWithFormat:@"A signed %@ update manifest is available. DCP will verify the downloaded package checksum, close, update its application package, preserve your local database and encryption keys, verify the local API, then reopen.",strategy];
             [alert addButtonWithTitle:@"Update now"];
             [alert addButtonWithTitle:@"Later"];
             if([alert runModal]!=NSAlertFirstButtonReturn) return;
