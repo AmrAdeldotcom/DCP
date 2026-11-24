@@ -15,6 +15,8 @@ on:
       - "platform/scripts/install-runtime-macos.sh"
       - "platform/scripts/build-macos.sh"
       - "platform/scripts/verify-runtime.php"
+      - "platform/scripts/update-macos.php"
+      - "platform/tests/update-macos.php"
       - "platform/tests/runtime-macos-installer.sh"
       - "platform/wrappers/macos/**"
       - "platform/wrappers/build-macos.sh"
@@ -27,6 +29,8 @@ on:
       - "platform/scripts/install-runtime-macos.sh"
       - "platform/scripts/build-macos.sh"
       - "platform/scripts/verify-runtime.php"
+      - "platform/scripts/update-macos.php"
+      - "platform/tests/update-macos.php"
       - "platform/tests/runtime-macos-installer.sh"
       - "platform/wrappers/macos/**"
       - "platform/wrappers/build-macos.sh"
@@ -129,6 +133,8 @@ jobs:
           brew list cmake >/dev/null 2>&1 || brew install cmake
           php -v
           cmake --version
+          php -l platform/scripts/update-macos.php
+          php platform/tests/update-macos.php
 
       - name: Build native macOS application
         shell: bash
@@ -187,6 +193,7 @@ jobs:
           touch "$STAGE/DCP-UserData/macOS/data/.gitkeep" "$STAGE/DCP-UserData/macOS/storage/.gitkeep"
           test -s "$STAGE/platform/update/release-public.pem"
           test -s "$STAGE/platform/update/manifest.schema.json"
+          test -s "$STAGE/platform/scripts/update-macos.php"
           STAGE_VERSION="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1], encoding="utf-8"))["version"])' "$STAGE/platform/version.json")"
           BUNDLE_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$STAGE/DCP.app/Contents/Info.plist")"
           PACKAGE_REVISION="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1], encoding="utf-8"))["packageRevision"])' "$STAGE/platform/version.json")"

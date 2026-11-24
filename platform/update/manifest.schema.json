@@ -14,7 +14,7 @@
     "architecture": {"enum": ["x64", "arm64"]},
     "commit": {"type": "string", "pattern": "^[a-fA-F0-9]{40}$"},
     "key_id": {"const": "dcp-alpha10-rsa3072-20261124"},
-    "full": {"$ref": "#/$defs/asset"},
+    "full": {"$ref": "#/$defs/fullAsset"},
     "delta": {
       "oneOf": [
         {"type": "null"},
@@ -42,6 +42,18 @@
     }
   },
   "$defs": {
+    "fullAsset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "url", "size", "sha256", "deleted"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "url": {"type": "string", "format": "uri"},
+        "size": {"type": "integer", "minimum": 1},
+        "sha256": {"type": "string", "pattern": "^[a-fA-F0-9]{64}$"},
+        "deleted": {"type": "array", "maxItems": 5000, "items": {"type": "string", "minLength": 1}}
+      }
+    },
     "asset": {
       "type": "object",
       "additionalProperties": false,

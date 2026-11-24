@@ -11,6 +11,10 @@
 @property(nonatomic,strong) NSWindow *window;
 @property(nonatomic,strong) WKWebView *webView;
 @property(nonatomic,strong) NSTask *phpTask;
+@property(nonatomic,strong) NSTask *updateCheckTask;
+@property(nonatomic,strong) NSTask *updateApplyTask;
+@property(nonatomic,strong) NSString *phpBinaryPath;
+@property(nonatomic,strong) NSDictionary<NSString *,NSString *> *phpEnvironment;
 @property(nonatomic,assign) BOOL ownsPHP;
 @property(nonatomic,assign) NSInteger port;
 @property(nonatomic,strong) NSURL *platformURL;
@@ -81,7 +85,7 @@
 - (BOOL)isCompatiblePHP:(NSString *)path {
     NSTask *task=[[NSTask alloc] init];
     task.executableURL=[NSURL fileURLWithPath:path];
-    task.arguments=@[@"-r", @"echo (version_compare(PHP_VERSION,'8.2.0','>=') && extension_loaded('pdo_sqlite') && extension_loaded('curl') && extension_loaded('intl') && extension_loaded('mbstring') && extension_loaded('fileinfo') && extension_loaded('openssl') && extension_loaded('sodium')) ? 'DCP_OK' : 'DCP_MISSING';"];
+    task.arguments=@[@"-r", @"echo (version_compare(PHP_VERSION,'8.2.0','>=') && extension_loaded('pdo_sqlite') && extension_loaded('curl') && extension_loaded('intl') && extension_loaded('mbstring') && extension_loaded('fileinfo') && extension_loaded('openssl') && extension_loaded('sodium') && class_exists('PharData') && function_exists('posix_kill')) ? 'DCP_OK' : 'DCP_MISSING';"];
     NSPipe *pipe=[NSPipe pipe];task.standardOutput=pipe;task.standardError=[NSFileHandle fileHandleWithNullDevice];
     NSError *error=nil;
     if(![task launchAndReturnError:&error])return NO;
@@ -129,6 +133,7 @@
         }
     }
     if(!php){[self.webView loadHTMLString:@"<h2>Compatible PHP 8.2+ is required</h2><p>Run platform/dcp-env/scripts/bootstrap-macos.sh. DCP will not replace an existing PHP installation.</p>" baseURL:nil];return;}
+    self.phpBinaryPath=php;
     NSURL *publicDir=[self.platformURL URLByAppendingPathComponent:@"public" isDirectory:YES];
     NSURL *router=[publicDir URLByAppendingPathComponent:@"router.php"];
     NSURL *dataDir=[self.userDataURL URLByAppendingPathComponent:@"data" isDirectory:YES];
@@ -154,6 +159,13 @@
         environment[@"PHP_INI_SCAN_DIR"]=[[runtimeRoot URLByAppendingPathComponent:@"conf.d" isDirectory:YES] path];
     }
     self.phpTask.environment=environment;
+    self.phpEnvironment=[environment copy];
+    NSString *runtimePortPath=[storageDir.path stringByAppendingPathComponent:@"runtime-port.txt"];
+    NSString *runtimePidPath=[storageDir.path stringByAppendingPathComponent:@"runtime-pid.txt"];
+    [[NSString stringWithFormat:@"%ld\n",(long)self.port] writeToFile:runtimePortPath atomically:YES encoding:NSUTF8StringEncoding error:nil];
+    [[NSString stringWithFormat:@"%d\n",getpid()] writeToFile:runtimePidPath atomically:YES encoding:NSUTF8StringEncoding error:nil];
+    [[NSFileManager defaultManager] setAttributes:@{NSFilePosixPermissions:@0600} ofItemAtPath:runtimePortPath error:nil];
+    [[NSFileManager defaultManager] setAttributes:@{NSFilePosixPermissions:@0600} ofItemAtPath:runtimePidPath error:nil];
     self.phpTask.standardOutput=handle;
     self.phpTask.standardError=handle;
     NSError *error=nil;
@@ -180,68 +192,83 @@
     }] resume];
 }
 - (void)checkForUpdates {
-    NSURL *url=[NSURL URLWithString:@"https://api.github.com/repos/AmrAdeldotcom/DCP/releases?per_page=10"];
-    NSMutableURLRequest *request=[NSMutableURLRequest requestWithURL:url cachePolicy:NSURLRequestReloadIgnoringLocalCacheData timeoutInterval:8.0];
-    [request setValue:@"application/vnd.github+json" forHTTPHeaderField:@"Accept"];
-    [request setValue:@"DCP-macOS-Updater/1.0" forHTTPHeaderField:@"User-Agent"];
-    [[[NSURLSession sharedSession] dataTaskWithRequest:request completionHandler:^(NSData *data,NSURLResponse *response,NSError *error){
-        if(error || !data || [(NSHTTPURLResponse *)response statusCode]!=200) return;
-        NSError *jsonError=nil;
-        id json=[NSJSONSerialization JSONObjectWithData:data options:0 error:&jsonError];
-        if(jsonError || ![json isKindOfClass:[NSArray class]]) return;
-        NSSet *requiredAssets=[NSSet setWithArray:@[
-            @"DCP-Windows-x64.zip",
-            @"DCP-Windows-update.json",
-            @"DCP-macOS-Intel.zip",
-            @"DCP-macOS-AppleSilicon.zip",
-            @"DCP-Linux-x64.tar.gz",
-            @"DCP-Linux-x64.tar.gz.sha256"
-        ]];
-        NSDictionary *release=nil;
-        for(id item in (NSArray *)json){
-            if(![item isKindOfClass:[NSDictionary class]] || [item[@"draft"] boolValue]) continue;
-            NSMutableSet *assetNames=[NSMutableSet set];
-            for(NSDictionary *asset in item[@"assets"] ?: @[]){
-                NSString *name=asset[@"name"];
-                if([name isKindOfClass:[NSString class]]) [assetNames addObject:name];
-            }
-            if([requiredAssets isSubsetOfSet:assetNames]){ release=item; break; }
+    if(self.phpBinaryPath.length==0) return;
+    NSString *root=self.platformURL.URLByDeletingLastPathComponent.path;
+    NSString *script=[self.platformURL URLByAppendingPathComponent:@"scripts/update-macos.php"].path;
+    if(![[NSFileManager defaultManager] isReadableFileAtPath:script]) return;
+    NSString *version=[[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleShortVersionString"] ?: @"0.0.0";
+    NSInteger revision=[[[NSBundle mainBundle] objectForInfoDictionaryKey:@"DCPPackageRevision"] respondsToSelector:@selector(integerValue)]
+        ? [[[NSBundle mainBundle] objectForInfoDictionaryKey:@"DCPPackageRevision"] integerValue] : 0;
+    dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY,0), ^{
+        NSTask *check=[NSTask new];
+        self.updateCheckTask=check;
+        check.executableURL=[NSURL fileURLWithPath:self.phpBinaryPath];
+        check.arguments=@[script,@"--check",@"--root",root,@"--version",version,@"--revision",[NSString stringWithFormat:@"%ld",(long)revision]];
+        check.environment=self.phpEnvironment;
+        NSPipe *pipe=[NSPipe pipe];
+        check.standardOutput=pipe;
+        check.standardError=[NSFileHandle fileHandleWithNullDevice];
+        NSError *checkError=nil;
+        if(![check launchAndReturnError:&checkError]) {
+            dispatch_async(dispatch_get_main_queue(), ^{ if(self.updateCheckTask==check) self.updateCheckTask=nil; });
+            return;
         }
-        if(!release) return;
-        NSString *tag=[release[@"tag_name"] isKindOfClass:[NSString class]]?release[@"tag_name"]:@"";
-        NSString *latest=[tag hasPrefix:@"v"]?[tag substringFromIndex:1]:tag;
-        NSString *current=[[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleShortVersionString"] ?: @"0.0.0";
-        if([latest compare:current options:NSNumericSearch]!=NSOrderedDescending) return;
+        NSData *output=[pipe.fileHandleForReading readDataToEndOfFile];
+        [check waitUntilExit];
+        dispatch_async(dispatch_get_main_queue(), ^{ if(self.updateCheckTask==check) self.updateCheckTask=nil; });
+        if(check.terminationStatus!=0 || output.length==0) return;
+        NSError *jsonError=nil;
+        id response=[NSJSONSerialization JSONObjectWithData:output options:0 error:&jsonError];
+        if(jsonError || ![response isKindOfClass:[NSDictionary class]] || ![response[@"available"] boolValue]) return;
+        NSDictionary *update=(NSDictionary *)response;
         dispatch_async(dispatch_get_main_queue(), ^{
+            if(!self.window || !self.window.isVisible) return;
+            NSString *latest=[update[@"version"] isKindOfClass:[NSString class]]?update[@"version"]:@"new version";
+            NSString *strategy=[update[@"strategy"] isKindOfClass:[NSString class]]?update[@"strategy"]:@"full";
             NSAlert *alert=[NSAlert new];
-            alert.messageText=[NSString stringWithFormat:@"DCP %@ is available",tag];
-            alert.informativeText=@"A verified update package is available. DCP will close, update only its application package, preserve your local database and encryption keys, then reopen.";
+            alert.messageText=[NSString stringWithFormat:@"DCP %@ is available",latest];
+            alert.informativeText=[NSString stringWithFormat:@"A cryptographically verified %@ update is available. DCP will close, update its application package, preserve your local database and encryption keys, verify the local API, then reopen.",strategy];
             [alert addButtonWithTitle:@"Update now"];
             [alert addButtonWithTitle:@"Later"];
             if([alert runModal]!=NSAlertFirstButtonReturn) return;
 
-            NSString *root=self.platformURL.URLByDeletingLastPathComponent.path;
-            NSString *installer=[root stringByAppendingPathComponent:@"platform/Install-DCP-Online.sh"];
-            if(![[NSFileManager defaultManager] isExecutableFileAtPath:installer]){
-                installer=[root stringByAppendingPathComponent:@"platform/Install-DCP-Online.sh"];
-                [[NSFileManager defaultManager] setAttributes:@{NSFilePosixPermissions:@0700} ofItemAtPath:installer error:nil];
-            }
-            if(![[NSFileManager defaultManager] fileExistsAtPath:installer]){
-                NSAlert *failure=[NSAlert new]; failure.messageText=@"DCP updater is missing"; failure.informativeText=@"Run the official DCP Terminal installer to repair this installation."; [failure runModal]; return;
-            }
-            NSString *waitScript=@"pid=\"$1\"; installer=\"$2\"; install_root=\"$3\"; while kill -0 \"$pid\" 2>/dev/null; do sleep 1; done; DCP_INSTALL_DIR=\"$install_root\" /bin/bash \"$installer\" || open \"$install_root/DCP.app\"";
-            NSTask *updater=[NSTask new]; updater.executableURL=[NSURL fileURLWithPath:@"/bin/bash"];
-            updater.arguments=@[@"-c",waitScript,@"dcp-updater",[NSString stringWithFormat:@"%d",getpid()],installer,root];
+            NSTask *updater=[NSTask new];
+            self.updateApplyTask=updater;
+            updater.executableURL=[NSURL fileURLWithPath:@"/usr/bin/nohup"];
+            updater.arguments=@[
+                self.phpBinaryPath,script,@"--apply",@"--root",root,
+                @"--version",version,@"--revision",[NSString stringWithFormat:@"%ld",(long)revision],
+                @"--pid",[NSString stringWithFormat:@"%d",getpid()]
+            ];
+            updater.environment=self.phpEnvironment;
+            updater.standardOutput=[NSFileHandle fileHandleWithNullDevice];
+            updater.standardError=[NSFileHandle fileHandleWithNullDevice];
             NSError *launchError=nil;
             if(![updater launchAndReturnError:&launchError]){
-                NSAlert *failure=[NSAlert new]; failure.messageText=@"Could not start the DCP updater"; failure.informativeText=launchError.localizedDescription ?: @"Unknown error"; [failure runModal]; return;
+                NSAlert *failure=[NSAlert new];
+                failure.messageText=@"Could not start the DCP updater";
+                failure.informativeText=launchError.localizedDescription ?: @"Unknown error";
+                [failure runModal];
+                return;
             }
             [NSApp terminate:nil];
         });
-    }] resume];
+    });
 }
 - (void)applicationWillTerminate:(NSNotification *)notification {
-    if(self.ownsPHP && self.phpTask.running) [self.phpTask terminate];
+    if(self.updateCheckTask && self.updateCheckTask.running) {
+        [self.updateCheckTask terminate];
+        [self.updateCheckTask waitUntilExit];
+    }
+    NSString *storage=self.userDataURL.path;
+    NSString *portFile=[storage stringByAppendingPathComponent:@"storage/runtime-port.txt"];
+    NSString *pidFile=[storage stringByAppendingPathComponent:@"storage/runtime-pid.txt"];
+    [[NSFileManager defaultManager] removeItemAtPath:portFile error:nil];
+    [[NSFileManager defaultManager] removeItemAtPath:pidFile error:nil];
+    if(self.ownsPHP && self.phpTask.running) {
+        [self.phpTask terminate];
+        [self.phpTask waitUntilExit];
+    }
 }
 - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender { return YES; }
 @end
