@@ -63,5 +63,20 @@ $notify=$db->prepare('INSERT INTO notifications(id,title,body,kind,created_at) V
 foreach(['en','ar','nl','es','pt','fr','de','zh','ja'] as $locale){$j=json_decode(file_get_contents(dirname(__DIR__).'/locales/'.$locale.'.json'),true);ok(is_array($j)&&isset($j['ai_chat'])&&isset($j['notifications']),'locale JSON '.$locale);}
 $localAI=new LocalAIService($c);$localStatus=$localAI->status();ok(isset($localStatus['hardware']['os'],$localStatus['hardware']['ram_gb']),'local AI hardware detection');ok(count($localStatus['catalog'])>=5,'local AI free model catalogue');ok(isset($localStatus['engines']['ollama'],$localStatus['engines']['llama_cpp']),'local AI engine detection');
 $runtimeMethod=new ReflectionMethod(LocalAIService::class,'llamaRuntimeCandidates');$runtimeMethod->setAccessible(true);ok($runtimeMethod->invoke($localAI,'Linux','x86_64')===['linux-x64'],'Linux llama.cpp managed runtime path');ok($runtimeMethod->invoke($localAI,'Darwin','x86_64','SSE4.2')===['macos-x64-sse42'],'Intel Mac without AVX2 selects SSE4.2 runtime');ok($runtimeMethod->invoke($localAI,'Darwin','x86_64','AVX2 SSE4.2')===['macos-x64-avx2','macos-x64-sse42'],'Intel Mac with AVX2 selects compatible optimized runtime');ok($runtimeMethod->invoke($localAI,'Darwin','arm64')===['macos-arm64'],'Apple Silicon selects ARM64 runtime');
+if(PHP_OS_FAMILY!=='Windows') {
+ $ownershipDir=sys_get_temp_dir().'/dcp-ai-ownership-'.bin2hex(random_bytes(4));mkdir($ownershipDir.'/runtime',0700,true);
+ $proc=proc_open(['/bin/sleep','20'],[0=>['pipe','r'],1=>['file','/dev/null','w'],2=>['file','/dev/null','w']],$pipes);
+ if(is_resource($proc)) {
+  if(isset($pipes[0])&&is_resource($pipes[0]))fclose($pipes[0]);
+  $procInfo=proc_get_status($proc);$foreignPid=(int)($procInfo['pid']??0);
+  file_put_contents($ownershipDir.'/runtime/llama-server.json',json_encode(['managed'=>true,'pid'=>$foreignPid,'port'=>34567,'binary'=>'/bin/sleep','model'=>'test']));
+  $ownershipService=new LocalAIService(['storage'=>$ownershipDir]);$stopResult=$ownershipService->stop('llama.cpp');
+  $stillRunning=(bool)(proc_get_status($proc)['running']??false);
+  ok(($stopResult['stopped']??true)===false&&$stillRunning,'LocalAI stop refuses to kill a foreign process with a stale managed state');
+  proc_terminate($proc,9);proc_close($proc);
+ } else ok(false,'LocalAI process ownership test could start its harmless fixture');
+ @unlink($ownershipDir.'/runtime/llama-server.json');@rmdir($ownershipDir.'/runtime');@rmdir($ownershipDir);
+}
+
 $cloud=new CloudService($db,$crypto);ok(method_exists($cloud,'createPairingCode')&&method_exists($cloud,'requestPairing')&&method_exists($cloud,'decidePairing'),'cloud supports anonymous device identity and approval-based pairing');$cloudSettings=$db->query("SELECT COUNT(*) FROM settings WHERE key LIKE 'cloud.%token%enc'")->fetchColumn();ok((int)$cloudSettings===0,'cloud device and account tokens are not created or exposed by local unit tests');
 echo "ALL PLATFORM TESTS PASSED\n";
