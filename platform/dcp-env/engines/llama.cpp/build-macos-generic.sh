@@ -9,6 +9,16 @@ BUILD="$PLATFORM_ROOT/dcp-env/build/llama-macos-x64-sse42"
 DEST="$PLATFORM_ROOT/dcp-env/engines/llama.cpp/macos-x64-sse42"
 JOBS="${DCP_BUILD_JOBS:-4}"
 mkdir -p "$PLATFORM_ROOT/dcp-env/build" "$PROJECT_ROOT/DCP-UserData/macOS/storage/logs"
+CONFIG_LOG="$PROJECT_ROOT/DCP-UserData/macOS/storage/logs/llama-build-configure.log"
+BUILD_LOG="$PROJECT_ROOT/DCP-UserData/macOS/storage/logs/llama-build.log"
+on_error() {
+  code=$?
+  echo "llama.cpp SSE4.2 build failed (exit $code). Recent CMake/build output:" >&2
+  if [ -f "$CONFIG_LOG" ]; then tail -n 80 "$CONFIG_LOG" >&2; fi
+  if [ -f "$BUILD_LOG" ]; then tail -n 100 "$BUILD_LOG" >&2; fi
+  exit "$code"
+}
+trap on_error ERR
 cmake -S "$SOURCE" -B "$BUILD" \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_OSX_ARCHITECTURES=x86_64 \
@@ -19,9 +29,9 @@ cmake -S "$SOURCE" -B "$BUILD" \
   -DGGML_CPU_REPACK=OFF -DGGML_METAL=OFF -DGGML_CUDA=OFF \
   -DLLAMA_BUILD_SERVER=ON -DLLAMA_BUILD_UI=OFF \
   -DLLAMA_BUILD_EXAMPLES=OFF -DLLAMA_BUILD_TESTS=OFF -DLLAMA_CURL=ON \
-  > "$PROJECT_ROOT/DCP-UserData/macOS/storage/logs/llama-build-configure.log" 2>&1
+  > "$CONFIG_LOG" 2>&1
 cmake --build "$BUILD" --target llama-server -j "$JOBS" \
-  > "$PROJECT_ROOT/DCP-UserData/macOS/storage/logs/llama-build.log" 2>&1
+  > "$BUILD_LOG" 2>&1
 STAGE="$DEST.new"
 PREVIOUS="$DEST.previous"
 rm -rf "$STAGE" "$PREVIOUS"; mkdir -p "$STAGE"
@@ -37,5 +47,5 @@ if ! mv "$STAGE" "$DEST"; then
   exit 1
 fi
 rm -rf "$PREVIOUS"
-trap - EXIT
+trap - ERR
 echo "Generic SSE4.2 llama.cpp installed at $DEST"
