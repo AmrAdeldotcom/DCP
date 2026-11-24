@@ -13,7 +13,7 @@ $deviceRevokeRoute = ($deviceRevokeStart !== false && $deviceRevokeEnd !== false
     : '';
 
 $checks = [
-    'production APP_KEY must be at least 64 hexadecimal characters' => str_contains($source, "if(!preg_match('/^[a-f0-9]{64,}$/i',\$appKey))"),
+    'production APP_KEY must be at least 32 printable non-placeholder characters' => str_contains($source, 'strlen($appKey)<32') && str_contains($source, 'replace[-_ ]?with'),
     'account device listings are rate limited' => str_contains($source, "rate_limit('device-list',240,60)"),
     'pairing decisions are rate limited' => str_contains($source, "rate_limit('pairing-decision',60,3600)"),
     'paired-device listings are rate limited' => str_contains($source, "rate_limit('paired-device-list',240,60)"),
@@ -32,5 +32,37 @@ foreach ($checks as $label => $ok) {
     echo ($ok ? 'PASS: ' : 'FAIL: ') . $label . PHP_EOL;
     if (!$ok) $failed++;
 }
-echo $failed === 0 ? "ALL CLOUD CONTRACT CHECKS PASSED\n" : "$failed CLOUD CONTRACT CHECK(S) FAILED\n";
+$probeKey = static function(string $key): string {
+    $envFile = tempnam(sys_get_temp_dir(), 'dcp-cloud-env-');
+    if ($envFile === false) return '';
+    file_put_contents($envFile, 'APP_KEY=' . $key . PHP_EOL);
+    $process = proc_open(
+        [PHP_BINARY, __DIR__ . '/../cloud/index.php'],
+        [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']],
+        $pipes,
+        null,
+        ['DCP_CLOUD_ENV' => $envFile, 'REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/']
+    );
+    if (!is_resource($process)) { @unlink($envFile); return ''; }
+    fclose($pipes[0]);
+    $output = stream_get_contents($pipes[1]) ?: '';
+    fclose($pipes[1]);
+    fclose($pipes[2]);
+    proc_close($process);
+    @unlink($envFile);
+    return $output;
+};
+$validKeyOutput = $probeKey(str_repeat('A', 40) . '!@#$%^');
+$shortKeyOutput = $probeKey('short');
+$placeholderKeyOutput = $probeKey('REPLACE_WITH_AT_LEAST_64_RANDOM_HEX_CHARACTERS');
+$runtimeChecks = [
+    '46-character printable production-style APP_KEY is accepted' => str_contains($validKeyOutput, 'DCP Cloud') && !str_contains($validKeyOutput, 'security key is not configured'),
+    'short APP_KEY is rejected before database access' => str_contains($shortKeyOutput, 'DCP Cloud security key is not configured.'),
+    'example placeholder APP_KEY is rejected before database access' => str_contains($placeholderKeyOutput, 'DCP Cloud security key is not configured.'),
+];
+foreach ($runtimeChecks as $label => $ok) {
+    echo ($ok ? 'PASS: ' : 'FAIL: ') . $label . PHP_EOL;
+    if (!$ok) $failed++;
+}
+echo $failed === 0 ? "ALL CLOUD CONTRACT CHECKS PASSED\\n" : "$failed CLOUD CONTRACT CHECK(S) FAILED\\n";
 exit($failed === 0 ? 0 : 1);

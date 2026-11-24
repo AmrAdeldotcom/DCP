@@ -42,6 +42,8 @@ jobs:
           php platform/tests/cloud-contract.php
           php platform/tests/run.php
           grep -q '^DB_HOST=localhost$' platform/cloud/.env.example
+          grep -q '^APP_KEY=$' platform/cloud/.env.example
+          grep -q 'openssl rand -base64 48' platform/cloud/DEPLOYMENT.md
           test ! -e platform/cloud/.env
           grep -q 'pairing_codes' platform/cloud/schema.migrate.sql
           grep -q 'device_pairings' platform/cloud/schema.migrate.sql

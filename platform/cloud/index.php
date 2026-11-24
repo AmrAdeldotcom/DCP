@@ -6,7 +6,7 @@ $envFile=getenv('DCP_CLOUD_ENV')?: (is_file($privateEnv)?$privateEnv:__DIR__.'/.
 if(!is_file($envFile)){http_response_code(503);exit('DCP Cloud is not configured. Copy .env.example to .env and configure the database.');}
 foreach(file($envFile, FILE_IGNORE_NEW_LINES|FILE_SKIP_EMPTY_LINES) as $line){$line=trim($line);if($line===''||$line[0]==='#'||!str_contains($line,'='))continue;[$k,$v]=explode('=',$line,2);putenv(trim($k).'='.trim($v," \\t\\n\\r\\0\\x0B\\\"'"));}
 $appKey=(string)getenv('APP_KEY');
-if(!preg_match('/^[a-f0-9]{64,}$/i',$appKey)){http_response_code(503);exit('DCP Cloud security key is not configured.');}
+if(strlen($appKey)<32||preg_match('/[^\\x21-\\x7E]/',$appKey)||preg_match('/^(?:change[-_ ]?me|replace[-_ ]?with|your[-_ ]?key|example)/i',$appKey)){http_response_code(503);exit('DCP Cloud security key is not configured.');}
 function db():PDO{static $pdo=null;if($pdo)return $pdo;$dsn='mysql:host='.getenv('DB_HOST').';port='.(getenv('DB_PORT')?:3306).';dbname='.getenv('DB_NAME').';charset=utf8mb4';return $pdo=new PDO($dsn,(string)getenv('DB_USER'),(string)getenv('DB_PASSWORD'),[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC]);}
 function reply(int $status,array $data):never{http_response_code($status);header('Content-Type: application/json; charset=utf-8');header('Cache-Control: no-store');echo json_encode($data,JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE);exit;}
 set_exception_handler(static function(Throwable $e):void{error_log('[DCP Cloud] '.$e::class.': '.$e->getMessage());reply(503,['ok'=>false,'error'=>'cloud_backend_unavailable']);});
