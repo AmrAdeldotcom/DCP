@@ -227,7 +227,7 @@ try {
     fclose($lockHandle);
     checkMacUpdate($busyRecovery === -2, 'startup recovery refuses to race an active updater lock');
 
-    $processFixture = $root . '/process-ownership';
+    $processFixture = $root . '/process ownership';
     $fakeApp = $processFixture . '/DCP.app/Contents/MacOS/DCP';
     $processStorage = $processFixture . '/DCP-UserData/macOS/storage';
     mkdir(dirname($fakeApp), 0700, true);
@@ -243,7 +243,7 @@ try {
         trim((string)shell_exec('/bin/ps -p ' . $fakePid . ' -o pid=')) !== '';
     checkMacUpdate(!$fakeStillRunning, 'rollback process guard stops only the exact DCP.app executable even without runtime-pid.txt');
 
-    $aliasRoot = $root . '/process-alias';
+    $aliasRoot = $root . '/process alias';
     $aliasApp = $aliasRoot . '/DCP.app/Contents/MacOS/DCP';
     mkdir(dirname($aliasApp), 0700, true);
     mkdir($aliasRoot . '/platform/public', 0700, true);
