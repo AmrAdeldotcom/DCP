@@ -628,7 +628,7 @@
     },
     "releaseStatus": "Linux/Windows packages successful; macOS arm64 PHP successful; macOS x64 PHP and Intel llama in progress; Apple Silicon llama queued; no public release assets yet"
   },
-  "branchHead": "0a94542",
+  "branchHead": "c927fa5",
   "originBranchHead": "ab3d5c6",
   "dc21Checkpoint": {
     "timestamp": "2026-11-24T20:23:42+02:00",
@@ -845,5 +845,6 @@
       "implementationCommit": "0a94542"
     }
   },
-  "latestImplementationCommit": "0a94542"
+  "latestImplementationCommit": "0a94542",
+  "latestPushedCommit": "c927fa5"
 }
