@@ -5,6 +5,8 @@ require_once __DIR__ . '/lib/UpdateManifest.php';
 require_once __DIR__ . '/lib/LinuxUpdateTransaction.php';
 require_once __DIR__ . '/lib/GitHubReleaseFeed.php';
 
+final class DcpUpdateNetworkException extends RuntimeException {}
+
 const DCP_RELEASE_REPOSITORY = 'AmrAdeldotcom/DCP';
 const DCP_LINUX_MANIFEST = 'DCP-Linux-update-v3.json';
 const DCP_LINUX_SIGNATURE = 'DCP-Linux-update-v3.json.sig';
@@ -35,14 +37,16 @@ final class DcpLinuxUpdater
     private string $userData;
     private string $publicKey;
     private ?string $releaseDiscoveryNote = null;
+    private ?\Closure $requestOverride;
 
-    public function __construct(string $root)
+    public function __construct(string $root, ?callable $requestOverride = null)
     {
         $real = realpath($root);
         if ($real === false || !is_dir($real)) {
             throw new RuntimeException('DCP installation root is missing.');
         }
         $this->root = rtrim($real, DIRECTORY_SEPARATOR);
+        $this->requestOverride = $requestOverride === null ? null : \Closure::fromCallable($requestOverride);
         $this->userData = $this->root . '/DCP-UserData/Linux';
         $this->publicKey = $this->root . '/platform/update/release-public.pem';
         if (!is_dir($this->userData) || !is_file($this->root . '/platform/version.json')) {
@@ -65,6 +69,21 @@ final class DcpLinuxUpdater
     }
 
     private function checkUnlocked(): array
+    {
+        try {
+            return $this->checkUnlockedOnline();
+        } catch (DcpUpdateNetworkException $error) {
+            $this->releaseDiscoveryNote = $error->getMessage();
+            return [
+                'ok' => true,
+                'available' => false,
+                'retryable' => true,
+                'message' => 'GitHub is temporarily unreachable. DCP remains available; the updater will retry automatically.',
+            ];
+        }
+    }
+
+    private function checkUnlockedOnline(): array
     {
         $versionData = $this->installedVersion();
         $release = $this->latestCompleteRelease();
@@ -375,9 +394,13 @@ final class DcpLinuxUpdater
             CURLOPT_SSL_VERIFYPEER => true,
             CURLOPT_SSL_VERIFYHOST => 2,
         ]);
-        curl_exec($curl);
+        $result = curl_exec($curl);
         $status = (int)curl_getinfo($curl, CURLINFO_RESPONSE_CODE);
+        $error = curl_error($curl);
         curl_close($curl);
+        if ($result === false || $status === 0 || in_array($status, [408, 425, 429], true) || $status >= 500) {
+            throw new DcpUpdateNetworkException('GitHub release asset check is temporarily unavailable: ' . ($error ?: 'HTTP ' . $status));
+        }
         return $status >= 200 && $status < 300;
     }
 
@@ -463,6 +486,9 @@ final class DcpLinuxUpdater
 
     private function request(string $url, int $maxBytes): string
     {
+        if ($this->requestOverride !== null) {
+            return ($this->requestOverride)($url, $maxBytes);
+        }
         $parts = parse_url($url);
         if (!is_array($parts) || ($parts['scheme'] ?? '') !== 'https' || (strtolower((string)($parts['host'] ?? '')) !== 'api.github.com' && strtolower((string)($parts['host'] ?? '')) !== 'github.com')) {
             throw new RuntimeException('DCP update metadata must be fetched over HTTPS from GitHub.');
@@ -497,7 +523,10 @@ final class DcpLinuxUpdater
         $status = (int)curl_getinfo($handle, CURLINFO_RESPONSE_CODE);
         $error = curl_error($handle);
         curl_close($handle);
-        if ($result === false || $status !== 200) {
+        if ($result === false || $status === 0 || in_array($status, [408, 425, 429], true) || $status >= 500) {
+            throw new DcpUpdateNetworkException('GitHub update request is temporarily unavailable (' . $status . '): ' . ($error ?: 'network or server error'));
+        }
+        if ($status !== 200) {
             throw new RuntimeException('GitHub update request failed (' . $status . '): ' . ($error ?: 'HTTP error'), $status);
         }
         return $body;

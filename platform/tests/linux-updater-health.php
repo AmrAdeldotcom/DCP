@@ -28,6 +28,12 @@ try {
     mkdir($root . '/DCP-UserData/Linux/data', 0700, true);
     mkdir($root . '/DCP-UserData/Linux/storage', 0700, true);
     $updater = new DcpLinuxUpdater($root);
+    $offlineUpdater = new DcpLinuxUpdater($root, static function (string $url, int $maxBytes): string {
+        throw new DcpUpdateNetworkException('Simulated GitHub connection timeout.');
+    });
+    $offlineResult = $offlineUpdater->check();
+    linux_health_ok(($offlineResult['ok'] ?? false) === true && ($offlineResult['available'] ?? true) === false && ($offlineResult['retryable'] ?? false) === true, 'temporary GitHub outage is reported as retryable without failing the packaged updater health check');
+    linux_health_ok(str_contains((string)($offlineResult['message'] ?? ''), 'DCP remains available'), 'offline update check explicitly preserves normal DCP availability');
     $assetCheck = new ReflectionMethod(DcpLinuxUpdater::class, 'assertManifestAssetsPresent');
     $assetCheck->setAccessible(true);
     $fullUrl = 'https://github.com/AmrAdeldotcom/DCP/releases/download/v1.0.0-alpha.10/DCP-Linux-x64.tar.gz';

@@ -52,7 +52,7 @@ jobs:
           cp -a "$ROOT/." "$CHECK_ROOT/"
           RESULT="$(DCP_INSTALL_ROOT="$CHECK_ROOT" php "$CHECK_ROOT/platform/scripts/update-linux.php" --check)"
           echo "$RESULT"
-          php -r '$d=json_decode($argv[1],true,512,JSON_THROW_ON_ERROR); if (($d["ok"] ?? false) !== true || !is_bool($d["available"] ?? null)) exit(1);' "$RESULT"
+          php -r '$d=json_decode($argv[1],true,512,JSON_THROW_ON_ERROR); if (($d["ok"] ?? false) !== true || !is_bool($d["available"] ?? null) || (isset($d["retryable"]) && !is_bool($d["retryable"]))) exit(1);' "$RESULT"
       - name: Archive Linux package with executable permissions
         run: tar -czf DCP-Linux-distro-test.tar.gz -C platform/dist/linux .
       - name: Upload Linux package archive
@@ -119,4 +119,4 @@ jobs:
           cp -a platform/dist/linux/. "$CHECK_ROOT/"
           RESULT="$(DCP_INSTALL_ROOT="$CHECK_ROOT" php "$CHECK_ROOT/platform/scripts/update-linux.php" --check)"
           echo "$RESULT"
-          php -r '$d=json_decode($argv[1],true,512,JSON_THROW_ON_ERROR); if (($d["ok"] ?? false) !== true || !is_bool($d["available"] ?? null)) exit(1);' "$RESULT"
+          php -r '$d=json_decode($argv[1],true,512,JSON_THROW_ON_ERROR); if (($d["ok"] ?? false) !== true || !is_bool($d["available"] ?? null) || (isset($d["retryable"]) && !is_bool($d["retryable"]))) exit(1);' "$RESULT"
