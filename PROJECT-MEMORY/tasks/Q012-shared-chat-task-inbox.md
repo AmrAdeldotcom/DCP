@@ -59,6 +59,12 @@ Source spec: `platform/docs/proposals/DCP-Chat-Live-Task-Inbox-Interrupt-Queue.m
 - Workspace permission tests are OS-aware: Unix checks 0700 directories / 0600 files; Windows checks the effective named ACL principals. Device Agent output path comparison normalizes Windows separators.
 - Local full platform suite passes. GitHub full platform + background worker + HTTP E2E matrix run `45587700487`: Ubuntu 24.04 PASS, Windows Server 2025 PASS, macOS 15 queued at last check.
 
+## Next implementation plan
+
+Detailed implementation breakdown: `tasks/plan.md`.
+
+Ordered work: (1) shared MCP tool registry + explicit policy/schema validation, (2) provider-neutral structured tool-call contract, (3) bounded coordinator integrated with schema-v2 plan/step/result/approval persistence, (4) approval/review/resume APIs and UI, (5) worker heartbeat and crash-safe idempotent resume. No queued instruction or mutating tool may execute without explicit user review/approval.
+
 ## Remaining Q012 / Stage 6 work
 
 1. Connect the actual agent execution coordinator/tool loop to the new plan/step/result/approval persistence APIs; implement safe step-level resume with idempotency and recovery.
