@@ -9,7 +9,7 @@ Scope: DCP only. `DP_Anything` is explicitly deferred.
 - `chat_jobs` additive SQLite table for durable chat job state.
 - `ChatJobService` persists the user message and job before execution; validates provider/session/Task Inbox references; atomically claims jobs; persists assistant responses; tracks worker PID, status, errors, 30-minute lease and checkpoint intent.
 - `platform/bin/chat-worker.php` loads the installation-local DCP config, SQLite DB, provider config and executes independently from the HTTP request.
-- Detached process launch: `nohup` on POSIX; hidden PowerShell `Start-Process` on Windows.
+- Detached process launch: `nohup` on POSIX; detached Windows `cmd.exe start /B` launcher on Windows.
 - API: `POST /api/chat` returns a durable `job_id`; `GET /api/chat/jobs?id=...`; `GET /api/chat/jobs/active?session_id=...`; `POST /api/chat/jobs/interrupt`.
 - Chat UI polls job status, restores active jobs when reopening a session, and offers `Interrupt at Checkpoint`.
 - Task Inbox accepts new messages while the provider is working. Those messages stay queued; nothing is automatically executed or merged.

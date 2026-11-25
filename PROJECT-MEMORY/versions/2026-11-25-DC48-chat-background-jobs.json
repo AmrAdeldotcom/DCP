@@ -75,8 +75,9 @@
     "testAdjustment": "mock provider delay increased to 10s; HTTP test asserts API returns within 8s"
   },
   "windowsLauncherFix": {
-    "change": "Start-Process without -PassThru; immediate STARTED marker; worker writes its own PID during atomic claim",
+    "change": "Detached cmd.exe start /B launches private .cmd wrapper; parent reads STARTED marker line without waiting for child stdout EOF",
     "workerPid": "persisted by claim() using getmypid()",
-    "httpE2e": "assert /api/chat returns under 8 seconds with a 10-second provider delay"
+    "httpE2e": "assert /api/chat returns under 8 seconds with a 10-second provider delay",
+    "ci": "pending"
   }
 }

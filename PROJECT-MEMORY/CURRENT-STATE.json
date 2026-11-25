@@ -800,8 +800,8 @@
     "workflow": ".github/workflows/test-chat-worker.yml",
     "commit": "b554e08",
     "windowsLauncherFix": {
-      "status": "implemented-locally",
-      "details": "PowerShell Start-Process without PassThru returns STARTED immediately; worker writes its own PID atomically during claim()"
+      "status": "implemented-locally-pending-CI",
+      "details": "Detached cmd.exe start /B launches a private .cmd wrapper; PHP reads only the STARTED marker line, avoiding waiting on inherited child stdout handles; worker records its own PID atomically during claim()"
     },
     "ciFirstRun": {
       "run": 45549942820,
