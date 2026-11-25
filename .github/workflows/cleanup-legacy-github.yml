@@ -81,5 +81,5 @@ jobs:
                 ['Completed failed Actions runs', String(deletedRuns)],
                 ['Preserved stable release', stableTag]
               ])
-              .addLink('Stable release', stable.html_url)
-              .write();
+              .addLink('Stable release', stable.html_url);
+            await core.summary.write();
