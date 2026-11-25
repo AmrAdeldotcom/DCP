@@ -82,6 +82,8 @@ jobs:
           php -l platform/bin/chat-worker.php
           php -l platform/tests/chat-jobs.php
           php -l platform/tests/chat-worker-e2e.php
+      - name: Run full DCP platform contract suite
+        run: php platform/tests/run.php
       - name: Run real background worker integration test
         env:
           DCP_RUN_CHAT_WORKER_E2E: '1'
