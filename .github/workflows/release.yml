@@ -39,10 +39,13 @@ jobs:
         run: |
           set -euo pipefail
           git fetch origin "$DEFAULT_BRANCH"
-          git merge-base --is-ancestor "$GITHUB_SHA" "origin/$DEFAULT_BRANCH" || {
-            echo "Refusing to sign a release from a tag that is not merged into $DEFAULT_BRANCH." >&2
+          MAIN_SHA="$(git rev-parse "origin/$DEFAULT_BRANCH")"
+          if [[ "$GITHUB_SHA" != "$MAIN_SHA" ]]; then
+            echo "Refusing to sign a superseded release tag. Tag commit must equal the current $DEFAULT_BRANCH HEAD." >&2
+            echo "Tag commit: $GITHUB_SHA" >&2
+            echo "Branch HEAD: $MAIN_SHA" >&2
             exit 1
-          }
+          fi
 
       - name: Set up Python
         uses: actions/setup-python@v5

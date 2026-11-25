@@ -24,7 +24,7 @@ function New-UpdateFixture([string]$Name) {
 }
 
 function New-Entry([string]$Relative, [string]$Source) {
-    $item = Get-Item -LiteralPath $Source
+    $item = Get-Item -LiteralPath $Source -Force
     return [pscustomobject]@{
         path = $Relative
         size = [int64]$item.Length
@@ -50,6 +50,10 @@ try {
     $probe = Join-Path $success.Payload 'platform/app/updater-probe.txt'
     New-Item -ItemType Directory -Force -Path (Split-Path -Parent $probe) | Out-Null
     Set-Content -LiteralPath $probe -Value 'new release content'
+    $envExample = Join-Path $success.Payload 'platform/cloud/.env.example'
+    New-Item -ItemType Directory -Force -Path (Split-Path -Parent $envExample) | Out-Null
+    New-Item -ItemType File -Force -Path $envExample | Out-Null
+    Set-Content -LiteralPath $envExample -Value 'APP_KEY=replace-me'
     $oldProbe = Join-Path $success.Install 'platform/app/updater-probe.txt'
     New-Item -ItemType Directory -Force -Path (Split-Path -Parent $oldProbe) | Out-Null
     Set-Content -LiteralPath $oldProbe -Value 'old release content'
@@ -59,9 +63,13 @@ try {
     $keyBefore = (Get-FileHash -LiteralPath $key -Algorithm SHA256).Hash
     $obsolete = Join-Path $success.Install 'platform/app/obsolete.txt'
     Set-Content -LiteralPath $obsolete -Value 'obsolete package file'
-    Write-Manifest $success @((New-Entry 'platform/app/updater-probe.txt' $probe)) @('platform/app/obsolete.txt')
+    Write-Manifest $success @(
+        (New-Entry 'platform/app/updater-probe.txt' $probe),
+        (New-Entry 'platform/cloud/.env.example' $envExample)
+    ) @('platform/app/obsolete.txt')
     & $UpdaterScript -ProcessId 2147483647 -SourceRoot $success.Work -InstallRoot $success.Install -WorkRoot $success.Work -NoRestart
     if ((Get-Content -LiteralPath $oldProbe -Raw).Trim() -ne 'new release content') { throw 'Success case did not apply the new file.' }
+    if ((Get-Content -LiteralPath (Join-Path $success.Install 'platform/cloud/.env.example') -Raw).Trim() -ne 'APP_KEY=replace-me') { throw 'Success case did not install the safe environment example template.' }
     if (Test-Path -LiteralPath $obsolete) { throw 'Success case did not apply the signed deletion list.' }
     if ((Get-FileHash -LiteralPath $db -Algorithm SHA256).Hash -ne $dbBefore) { throw 'Success case changed SQLite data.' }
     if ((Get-FileHash -LiteralPath $key -Algorithm SHA256).Hash -ne $keyBefore) { throw 'Success case changed master.key.' }
@@ -164,6 +172,16 @@ try {
         throw 'Unsafe manifest changed the SQLite database.'
     }
     Write-Host 'PASS: user-data replacement paths are rejected'
+
+    $envSecret = New-UpdateFixture 'env-secret'
+    $envSecretSource = Join-Path $envSecret.Payload 'platform/cloud/.env.local'
+    New-Item -ItemType Directory -Force -Path (Split-Path -Parent $envSecretSource) | Out-Null
+    Set-Content -LiteralPath $envSecretSource -Value 'APP_KEY=real-secret'
+    Write-Manifest $envSecret @((New-Entry 'platform/cloud/.env.local' $envSecretSource))
+    $envSecretRejected = $false
+    try { & $UpdaterScript -ProcessId 2147483647 -SourceRoot $envSecret.Work -InstallRoot $envSecret.Install -WorkRoot $envSecret.Work -NoRestart } catch { $envSecretRejected = $true }
+    if (-not $envSecretRejected) { throw 'Updater accepted a real .env.local secret file.' }
+    Write-Host 'PASS: .env.example is updateable while .env.local remains protected'
 
     $reserved = New-UpdateFixture 'reserved-paths'
     $reservedFile = Join-Path $reserved.Payload 'platform/app/safe.txt'

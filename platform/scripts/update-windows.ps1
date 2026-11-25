@@ -46,7 +46,7 @@ function Test-SafeUpdatePath([string]$Relative, [string]$Root) {
     if ([string]::IsNullOrWhiteSpace($Relative) -or [IO.Path]::IsPathRooted($Relative) -or
         $Relative -match '(^|[\\/])\.\.([\\/]|$)' -or $Relative -match '^[A-Za-z]:' -or
         $Relative -match '^[\\/]' -or $Relative.Contains(':')) { return $false }
-    if ($Relative -match '^(DCP-UserData|platform[\\/](data|storage))([\\/]|$)' -or $Relative -match '(^|[\\/])\.env(?:$|\.)') { return $false }
+    if ($Relative -match '^(DCP-UserData|platform[\\/](data|storage))([\\/]|$)' -or $Relative -match '(^|[\\/])\.env(?:$|\.(?!example$))') { return $false }
     if ($Relative.IndexOfAny([char[]](@(0..31) + 127)) -ge 0) { return $false }
     foreach ($segment in ($Relative -split '/')) {
         if ($segment.EndsWith('.') -or $segment.EndsWith(' ') -or
@@ -127,7 +127,7 @@ try {
         if (-not (Test-Path -LiteralPath $Source -PathType Leaf)) { throw "Update payload is missing: $Relative" }
         $ExpectedHash = ([string]$Entry.sha256).ToLowerInvariant()
         if ($ExpectedHash -notmatch '^[0-9a-f]{64}$') { throw "Invalid SHA-256 in manifest: $Relative" }
-        $Info = Get-Item -LiteralPath $Source
+        $Info = Get-Item -LiteralPath $Source -Force
         if ([int64]$Entry.size -lt 0 -or $Info.Length -ne [int64]$Entry.size) { throw "File size mismatch: $Relative" }
         $Hash = (Get-FileHash -LiteralPath $Source -Algorithm SHA256).Hash.ToLowerInvariant()
         if ($Hash -ne $ExpectedHash) { throw "Checksum mismatch: $Relative" }
