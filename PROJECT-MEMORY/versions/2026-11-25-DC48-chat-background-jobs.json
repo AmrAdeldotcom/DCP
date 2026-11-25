@@ -57,7 +57,21 @@
     "workflowYaml": "pass",
     "gitDiffCheck": "pass"
   },
-  "ci": "pending retry after Windows detached-launcher fix",
+  "ci": {
+    "run": 45550728368,
+    "status": "success",
+    "matrix": {
+      "ubuntu-24.04": "success",
+      "windows-2025": "success",
+      "macos-15": "success"
+    },
+    "checks": [
+      "PHP lint",
+      "detached worker E2E",
+      "authenticated Chat API + delayed provider + checkpoint + Task Inbox HTTP E2E"
+    ],
+    "url": "https://github.com/AmrAdeldotcom/DCP/actions/runs/45550728368"
+  },
   "next": [
     "cross-platform CI validation",
     "durable checkpoint context snapshots",
@@ -75,9 +89,10 @@
     "testAdjustment": "mock provider delay increased to 10s; HTTP test asserts API returns within 8s"
   },
   "windowsLauncherFix": {
-    "change": "Detached cmd.exe start /B launches private .cmd wrapper; parent reads STARTED marker line without waiting for child stdout EOF",
+    "change": "Detached cmd.exe start /B launches private .cmd wrapper; parent reads immediate STARTED marker only; worker persists own PID",
     "workerPid": "persisted by claim() using getmypid()",
     "httpE2e": "assert /api/chat returns under 8 seconds with a 10-second provider delay",
-    "ci": "pending"
+    "ci": "pending",
+    "status": "verified-by-windows-2025-ci"
   }
 }

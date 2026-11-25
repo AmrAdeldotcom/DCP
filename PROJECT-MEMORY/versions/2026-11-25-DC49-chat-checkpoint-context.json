@@ -1,0 +1,47 @@
+{
+  "checkpoint": "DC49",
+  "timestamp": "2026-11-25T07:05:46+02:00",
+  "repository": "AmrAdeldotcom/DCP",
+  "branch": "feature/local-ai-runtime-discovery",
+  "scope": "DCP only; DP_Anything deferred",
+  "features": [
+    "chat_job_checkpoints durable snapshot table",
+    "checkpoint_id on chat_jobs",
+    "snapshot of last provider call and last 30 conversation messages",
+    "up to 50 pending Task Inbox instructions",
+    "SHA-256 context hash",
+    "human_review_required=true",
+    "automatic_execution=false",
+    "GET /api/chat/jobs/checkpoint endpoint",
+    "Chat UI snapshot ID/hash/queue preview"
+  ],
+  "tests": {
+    "platformSuite": "ALL PLATFORM TESTS PASSED",
+    "workerE2E": "DCP_CHAT_WORKER_BACKGROUND_E2E_PASS",
+    "httpE2E": "DCP_CHAT_JOB_HTTP_E2E_PASS including checkpoint snapshot + SHA-256 verification",
+    "phpLint": "pass",
+    "jsSyntax": "pass",
+    "gitDiffCheck": "pass"
+  },
+  "previousCrossPlatformBaseline": {
+    "run": 45550728368,
+    "ubuntu-24.04": "success",
+    "windows-2025": "success",
+    "macos-15": "success"
+  },
+  "currentCi": "pending after push",
+  "limitations": [
+    "checkpoint is provider-call boundary, not mid-tool-loop",
+    "snapshot does not yet include plan/tool-result graph",
+    "no automatic context merge or queue execution",
+    "worker lease is fail-closed timeout; no heartbeat/retry"
+  ],
+  "next": [
+    "cross-platform CI for DC49",
+    "plan/tool-result/resumable step snapshot",
+    "human review/context merger and explicit approval",
+    "worker lease heartbeat/crash recovery/idempotency",
+    "separate task mode",
+    "packaged desktop acceptance"
+  ]
+}

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Exercise the authenticated DCP Chat API, background worker, checkpoint and Task Inbox end-to-end."""
-import http.cookiejar, json, os, re, shutil, socket, subprocess, tempfile, time, urllib.error, urllib.parse, urllib.request
+import hashlib, http.cookiejar, json, os, re, shutil, socket, subprocess, tempfile, time, urllib.error, urllib.parse, urllib.request
 
 ROOT=os.path.abspath(os.path.join(os.path.dirname(__file__),'..'))
 TMP=tempfile.mkdtemp(prefix='dcp-chat-http-e2e-')
@@ -61,6 +61,12 @@ try:
         time.sleep(.1)
     assert final and final.get('status')=='checkpoint_ready',final
     assert final.get('reply')=='DELAYED_CHAT_OK:long running chat request',final
+    status,checkpoint=request('/api/chat/jobs/checkpoint?id='+urllib.parse.quote(job_id))
+    assert status==200 and checkpoint.get('checkpoint'),(status,checkpoint)
+    snapshot=checkpoint['checkpoint']['snapshot']
+    assert checkpoint['checkpoint']['context_hash']==hashlib.sha256(json.dumps(snapshot,ensure_ascii=False,separators=(',',':')).encode()).hexdigest(),checkpoint
+    assert snapshot.get('human_review_required') is True and snapshot.get('automatic_execution') is False,snapshot
+    assert any(item.get('id')==inbox_id for item in snapshot.get('pending_instructions',[])),snapshot
     status,messages=request('/api/chat/messages?id='+urllib.parse.quote(session_id))
     assert status==200 and any(m['role']=='assistant' and m['content']==final['reply'] for m in messages['messages']),(status,messages)
     status,queue=request('/api/task-inbox?session_id='+urllib.parse.quote(session_id))
@@ -71,6 +77,7 @@ try:
     print('PASS: independent Task Inbox accepted a new instruction while the provider was still working')
     print('PASS: checkpoint request waited for the in-flight provider call to finish')
     print('PASS: response and conversation history were persisted exactly through the Chat API')
+    print('PASS: durable checkpoint API returned conversation + pending queue snapshot with verifiable SHA-256 context hash')
     print('PASS: queued instruction remained queued and was not automatically executed')
     print('PASS: active-job recovery endpoint reports no active job after checkpoint completion')
     print('DCP_CHAT_JOB_HTTP_E2E_PASS')

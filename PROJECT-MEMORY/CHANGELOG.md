@@ -465,3 +465,11 @@
 - DP_Anything explicitly deferred; continue DCP only.
 
 - Windows CI exposed that the PowerShell launcher could block the HTTP request. Changed it to `Start-Process` without `-PassThru` and an immediate `STARTED` marker; the worker now persists its own PID at atomic claim time. Local worker and delayed-provider HTTP E2E pass; cross-platform CI retry pending.
+
+- Cross-platform worker CI run `45550728368` passed both real background-worker E2E and authenticated delayed-provider HTTP/checkpoint E2E on Ubuntu 24.04, Windows Server 2025 and macOS 15. Windows uses a detached `cmd.exe start /B` launcher; its HTTP response now returns before the provider call completes.
+
+
+## 2026-11-25 — DC49: Durable checkpoint context snapshots
+- Added atomic SQLite checkpoint snapshots containing provider result, recent conversation, pending Task Inbox messages and SHA-256 context hash.
+- Added checkpoint retrieval API and Chat UI summary. Queued instructions remain manual-review only; no auto-merge or execution.
+- Unit and authenticated HTTP E2E verify snapshot contents and hash. New cross-platform CI run pending.

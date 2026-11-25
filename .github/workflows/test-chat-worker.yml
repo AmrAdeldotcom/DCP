@@ -23,6 +23,9 @@ on:
       - 'platform/config/app.php'
       - 'platform/plugins/providers/openai-compatible/**'
       - 'platform/tests/chat-worker-e2e.php'
+      - 'platform/tests/chat-jobs.php'
+      - 'platform/tests/task-inbox-ui-contract.php'
+      - 'platform/tests/run.php'
       - 'platform/tests/mock-provider-router.php'
       - '.github/workflows/test-chat-worker.yml'
   pull_request:
@@ -46,6 +49,9 @@ on:
       - 'platform/config/app.php'
       - 'platform/plugins/providers/openai-compatible/**'
       - 'platform/tests/chat-worker-e2e.php'
+      - 'platform/tests/chat-jobs.php'
+      - 'platform/tests/task-inbox-ui-contract.php'
+      - 'platform/tests/run.php'
       - 'platform/tests/mock-provider-router.php'
       - '.github/workflows/test-chat-worker.yml'
   workflow_dispatch:
@@ -70,8 +76,11 @@ jobs:
           extensions: curl, mbstring, pdo_sqlite, sodium
       - name: Validate worker PHP files
         run: |
+          php -l platform/app/Core/Database.php
+          php -l platform/app/Controllers/ApiController.php
           php -l platform/app/Services/ChatJobService.php
           php -l platform/bin/chat-worker.php
+          php -l platform/tests/chat-jobs.php
           php -l platform/tests/chat-worker-e2e.php
       - name: Run real background worker integration test
         env:
