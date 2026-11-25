@@ -54,9 +54,6 @@ jobs:
       - name: Verify four-platform signed release assembly and full fallback
         run: bash platform/tests/release-assembly.sh
 
-      - name: Regress real Alpha 9 Linux package repair Delta
-        run: bash platform/tests/alpha9-linux-delta-regression.sh
-
       - name: Verify atomic cross-platform release workflow wiring
         run: ruby platform/tests/release-workflow-contract.rb
 

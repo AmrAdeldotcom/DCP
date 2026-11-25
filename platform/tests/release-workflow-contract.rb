@@ -24,7 +24,9 @@ publish = jobs.fetch('publish-signed-release')
 assert(%w[linux windows macos].all? { |name| Array(publish['needs']).include?(name) }, 'signed release waits for every platform package')
 steps = publish.fetch('steps')
 merge_guard = steps.find { |step| step['name'].to_s.include?('Require release tag commit') }
-assert(merge_guard && merge_guard['run'].include?('git merge-base --is-ancestor'), 'release signing is blocked until the tag commit is merged into the default branch')
+assert(merge_guard && merge_guard['run'].include?('MAIN_SHA=') && merge_guard['run'].include?('GITHUB_SHA') && merge_guard['run'].include?('origin/$DEFAULT_BRANCH'), 'release signing requires the tag commit to equal the current default-branch HEAD')
+base_step = steps.find { |step| step['name'].to_s.include?('preceding release packages') }
+assert(base_step && base_step['run'].include?('v1.0.0-alpha.10') && base_step['run'].include?('BASE_TAG=""'), 'first approved release uses complete Full packages without a legacy base')
 assembly_test = steps.find { |step| step['name'].to_s.include?('ephemeral test key') }
 assert(assembly_test && assembly_test['run'].include?('platform/tests/release-assembly.sh'), 'release workflow runs a four-platform assembly test before using the production key')
 download = steps.find { |step| step['uses'].to_s.start_with?('actions/download-artifact@') }
