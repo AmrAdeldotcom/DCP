@@ -127,3 +127,12 @@ DCP MCP now has two intentionally distinct surfaces:
 - **DCP Cloud MCP:** authenticated read-only account control plane for devices, pairings, shared resources, teams and resource grants. It never runs shell commands on the Cloud host and never returns owner-local secret references.
 
 Cloud MCP token scopes are persisted per API token and upgraded idempotently. Five tools are discoverable according to the token's exact read scopes. Mutating Cloud actions and remote execution remain separate, explicit REST/target-approval workflows rather than being smuggled into read-only MCP tools.
+
+
+## DC68 — Owner-local resource invocation
+
+- Added `DcpResourceInvocationService` and the shared `DcpResourceChatClient` adapter contract.
+- Local model resources can invoke Ollama by registered model ID. External API resources use an opaque `provider:<provider-id>` secret reference; `ChatService` resolves the encrypted API credential from the owner-local ProviderService vault at call time.
+- Invocation starts and closes the quota/concurrency ledger. Failed calls close as `failed`; provider diagnostics/credential-bearing error text are written only to the local log and are not returned to MCP/API callers.
+- Added `dcp_resource_invoke` to the shared MCP registry and a CSRF-protected `/api/resources/invoke` route. Provider/model invocation is marked sensitive and agent plans require exact plan-bound approval; no secret material is sent to Cloud.
+- Supported adapters in this slice: Ollama local models and configured OpenAI-compatible providers. MCP server, arbitrary tools, datasets, remote shared-resource proxying and Hermes remain separate adapters/tasks.

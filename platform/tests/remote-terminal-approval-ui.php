@@ -12,3 +12,5 @@ ok(str_contains($js,'Approve this exact command')&&str_contains($js,'Reject')&&s
 
 ok(str_contains($api,"/api/cloud/terminal-requests/execute")&&str_contains($js,'data-terminal-execute')&&str_contains($js,'Execute approved command'),'Target approval requires a separate explicit Execute click on the executing device');
 ok(str_contains($api,'CloudTerminalExecutionService')&&str_contains($api,'$this->terminal'),'Approved remote command is executed through the local TerminalService on the target device');
+
+ok(str_contains($api,"/api/cloud/terminal-requests/status")&&str_contains($page,'terminal-remote-check')&&str_contains($js,'checkRemoteTerminalStatus')&&str_contains($js,'terminal-remote-result-output'),'Source device can retrieve and display the signed remote execution result from Cloud');

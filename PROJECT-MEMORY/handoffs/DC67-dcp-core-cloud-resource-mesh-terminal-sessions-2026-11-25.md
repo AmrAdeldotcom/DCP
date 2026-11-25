@@ -21,10 +21,10 @@ Working directory: /Volumes/Data/ChatGPT/DCP-Source
 - Added app/Services/DcpTerminalSessionClient.php and bin/terminal-session-daemon.php.
 - Private runtime/token/state live under DCP user data runtime/terminal-sessions; daemon binds only 127.0.0.1 and authenticates each request with a 256-bit local token.
 - TerminalService delegates session start/read/write/stop to the daemon for normal application contexts; daemon worker retains process handles beyond individual PHP request lifetimes.
-- STDIO MCP, local HTTP MCP and provider-neutral tools now expose all 34 tools, including interactive session start/read/write/stop.
+- STDIO MCP, local HTTP MCP and provider-neutral tools now expose all 35 tools, including interactive session start/read/write/stop.
 - Added daemon sharing E2E across two independent TerminalService instances.
 - Added HTTP MCP E2E that starts a session in one HTTP request, reads it in later requests and stops it.
-- Raised provider tool-definition count cap from 32 to 64 to support the 34-tool registry; provider tool-call count remains separately bounded.
+- Raised provider tool-definition count cap from 32 to 64 to support the 35-tool registry; provider tool-call count remains separately bounded.
 - Limitations: this is a persistent process/pipe session daemon, not yet native PTY/ConPTY terminal emulation. Daemon crash recovery/reattach is not implemented. Windows detached launcher path has not been executed on Windows in this turn.
 
 ## Local Resource Mesh
@@ -45,7 +45,7 @@ Working directory: /Volumes/Data/ChatGPT/DCP-Source
 - Signed delivery, execution polling and signed results are not implemented yet; target UI only records approval and no remote terminal execution is exposed.
 
 ## Verification
-- php platform/tests/run.php: ALL PLATFORM TESTS PASSED after Resource Registry, Cloud contracts, terminal daemon, HTTP session reconnect, and 34-tool provider schema changes.
+- php platform/tests/run.php: ALL PLATFORM TESTS PASSED after Resource Registry, Cloud contracts, terminal daemon, HTTP session reconnect, and 35-tool provider schema changes.
 - The suite includes Q012 Tasks 5, 6 and 7, MCP STDIO keepalive/logo, MCP local HTTP, Resource Registry grants/invocation, daemon sharing, HTTP session reconnect, Cloud schema/migration contracts and remote terminal approval contract.
 - PHP lint passed for new service, daemon, Cloud index, tests and provider adapters during this turn.
 - git diff --check passed before final docs/checkpoint updates; rerun final lint/diff checks after the checkpoint edits.

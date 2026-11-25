@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
-final class ChatService {
+require_once __DIR__.'/DcpResourceChatClient.php';
+final class ChatService implements DcpResourceChatClient {
  public function __construct(private ProviderService $providers,private PluginManager $plugins){}
  private function adapter(string $driver):ProviderAdapter{$dir=dirname(__DIR__,2).'/plugins/providers/'.$driver.'/driver.php';if(!is_file($dir))throw new RuntimeException('Provider adapter is not installed: '.$driver);$adapter=require $dir;if(!$adapter instanceof ProviderAdapter)throw new RuntimeException('Invalid provider adapter.');return $adapter;}
  public function models(string $id):array{if($id==='ollama')return $this->adapter('ollama')->models(['base_url'=>'http://127.0.0.1:11434']);$p=$this->providers->secret($id);$plugin=$this->plugins->get($p['driver']);$driver=$p['driver'];if(!$plugin)throw new RuntimeException('Provider plugin missing.');return $this->adapter($driver)->models($p);}

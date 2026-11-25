@@ -107,6 +107,7 @@ require __DIR__ . '/task-inbox.php';
 require __DIR__ . '/chat-jobs.php';
 require __DIR__ . '/mcp-tool-registry.php';
 require __DIR__ . '/resource-registry.php';
+require __DIR__ . '/resource-invocation.php';
 require __DIR__ . '/terminal-session-daemon.php';
 require __DIR__ . '/cloud-resource-contract.php';
 require __DIR__ . '/cloud-terminal-signing.php';

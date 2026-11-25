@@ -1,11 +1,14 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__.'/DcpFilesystemService.php';
+require_once __DIR__.'/DcpResourceRegistryService.php';
+require_once __DIR__.'/DcpResourceInvocationService.php';
 final class DcpToolRegistry {
- private array $definitions;private DcpFilesystemService $filesystem;private CloudService $cloud;private DcpResourceRegistryService $resources;
+ private array $definitions;private DcpFilesystemService $filesystem;private CloudService $cloud;private DcpResourceRegistryService $resources;private DcpResourceInvocationService $resourceInvocations;
  private array $policies=[
   'dcp_get_status'=>['classification'=>'safe-read','capability'=>'platform.status','approval_required'=>false],
   'dcp_resource_discover'=>['classification'=>'safe-read','capability'=>'resource.discover','approval_required'=>false],
+  'dcp_resource_invoke'=>['classification'=>'sensitive-read','capability'=>'resource.invoke','approval_required'=>true],
   'dcp_resource_register'=>['classification'=>'state-change','capability'=>'resource.manage','approval_required'=>true],
   'dcp_resource_grant'=>['classification'=>'state-change','capability'=>'resource.share','approval_required'=>true],
   'dcp_resource_revoke'=>['classification'=>'state-change','capability'=>'resource.share','approval_required'=>true],
@@ -40,11 +43,12 @@ final class DcpToolRegistry {
   'dcp_process_terminate'=>['classification'=>'state-change','capability'=>'process.terminate','approval_required'=>true],
  ];
  public function __construct(private array $config,private PDO $db,private ProviderService $providers,private DeviceService $devices,private TerminalService $terminal,private PluginManager $plugins,private Crypto $crypto){
-  $this->filesystem=new DcpFilesystemService((string)($config['terminal_root']??getcwd()));$this->cloud=new CloudService($db,$crypto);$this->resources=new DcpResourceRegistryService($db);
+  $this->filesystem=new DcpFilesystemService((string)($config['terminal_root']??getcwd()));$this->cloud=new CloudService($db,$crypto);$this->resources=new DcpResourceRegistryService($db);$this->resourceInvocations=new DcpResourceInvocationService($this->resources,new ChatService($providers,$plugins));
   $empty=['type'=>'object','properties'=>(object)[],'additionalProperties'=>false];
   $this->definitions=[
    ['name'=>'dcp_get_status','description'=>'Read DCP local platform and Ollama health.','inputSchema'=>$empty,'annotations'=>['readOnlyHint'=>true]],
    ['name'=>'dcp_resource_discover','description'=>'Discover resources owned by or explicitly shared with this DCP user. Returns metadata only, never credentials.','inputSchema'=>['type'=>'object','properties'=>['kind'=>['type'=>'string','maxLength'=>40],'provider'=>['type'=>'string','maxLength'=>100],'model'=>['type'=>'string','maxLength'=>160],'device_id'=>['type'=>'string','maxLength'=>100],'operation'=>['type'=>'string','maxLength'=>64]],'additionalProperties'=>false],'annotations'=>['readOnlyHint'=>true]],
+   ['name'=>'dcp_resource_invoke','description'=>'Send a prompt to an AI resource registered on this DCP owner device. Provider credentials are resolved only from the owner-local encrypted provider vault; invocation may transmit prompt data and incur provider charges. Agent plans require explicit approval.','inputSchema'=>['type'=>'object','properties'=>['resource_id'=>['type'=>'string','minLength'=>1,'maxLength'=>100],'message'=>['type'=>'string','minLength'=>1,'maxLength'=>200000]],'required'=>['resource_id','message'],'additionalProperties'=>false],'annotations'=>['readOnlyHint'=>false,'destructiveHint'=>false]],
    ['name'=>'dcp_resource_register','description'=>'Register a local model, engine, API endpoint, MCP server, tool, agent or dataset. Credentials must remain in the owner-local vault; only secret_ref may be supplied.','inputSchema'=>['type'=>'object','properties'=>['kind'=>['type'=>'string','enum'=>['local_model','inference_engine','external_api','mcp_server','tool','agent','dataset']],'name'=>['type'=>'string','minLength'=>1,'maxLength'=>160],'device_id'=>['type'=>'string','maxLength'=>100],'provider'=>['type'=>'string','maxLength'=>100],'model'=>['type'=>'string','maxLength'=>160],'endpoint_class'=>['type'=>'string','maxLength'=>40],'operations'=>['type'=>'array','minItems'=>1,'maxItems'=>32,'items'=>['type'=>'string','maxLength'=>64]],'metadata'=>['type'=>'object'],'capacity'=>['type'=>'object'],'data_classification'=>['type'=>'string','enum'=>['public','internal','confidential','restricted']],'locality'=>['type'=>'string','enum'=>['device','region','cloud']],'secret_ref'=>['type'=>'string','maxLength'=>160],'published'=>['type'=>'boolean']],'required'=>['kind','name'],'additionalProperties'=>false],'annotations'=>['readOnlyHint'=>false]],
    ['name'=>'dcp_resource_grant','description'=>'Share an owned resource with a user, team, client or device using a bounded operation grant and optional expiry/quota.','inputSchema'=>['type'=>'object','properties'=>['resource_id'=>['type'=>'string','minLength'=>1,'maxLength'=>100],'grantee_type'=>['type'=>'string','enum'=>['user','team','client','device']],'grantee_id'=>['type'=>'string','minLength'=>1,'maxLength'=>160],'operations'=>['type'=>'array','minItems'=>1,'maxItems'=>32,'items'=>['type'=>'string','maxLength'=>64]],'expires_at'=>['type'=>'string','maxLength'=>40],'quota_limit'=>['type'=>'integer','minimum'=>0,'maximum'=>1000000],'concurrency_limit'=>['type'=>'integer','minimum'=>1,'maximum'=>128]],'required'=>['resource_id','grantee_type','grantee_id','operations'],'additionalProperties'=>false],'annotations'=>['readOnlyHint'=>false]],
    ['name'=>'dcp_resource_revoke','description'=>'Revoke an active resource grant.','inputSchema'=>['type'=>'object','properties'=>['grant_id'=>['type'=>'string','minLength'=>1,'maxLength'=>100]],'required'=>['grant_id'],'additionalProperties'=>false],'annotations'=>['readOnlyHint'=>false]],
@@ -91,6 +95,7 @@ final class DcpToolRegistry {
   $validated=$this->validateProposal($name,$arguments);$policy=$validated['policy'];$this->authorize($policy,$arguments,$context);
   switch($name){
    case 'dcp_resource_discover':return ['resources'=>$this->resources->discover((string)($context['owner_id']??'local'),$arguments)];
+   case 'dcp_resource_invoke':return $this->resourceInvocations->invoke((string)$arguments['resource_id'],(string)($context['owner_id']??'local'),(string)$arguments['message']);
    case 'dcp_resource_register':return $this->resources->register($arguments,(string)($context['owner_id']??'local'),'user');
    case 'dcp_resource_grant':return $this->resources->grant($arguments['resource_id'],(string)($context['owner_id']??'local'),$arguments['grantee_type'],$arguments['grantee_id'],$arguments['operations'],$arguments['expires_at']??null,(int)($arguments['quota_limit']??0),(int)($arguments['concurrency_limit']??1));
    case 'dcp_resource_revoke':return $this->resources->revokeGrant($arguments['grant_id'],(string)($context['owner_id']??'local'));

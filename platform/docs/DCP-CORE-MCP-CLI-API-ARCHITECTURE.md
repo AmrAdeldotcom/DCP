@@ -225,7 +225,7 @@ Task 6 adds execution-plan review and approval-decision APIs/UI. Approval decisi
 ### Local DCP Core MCP
 - STDIO MCP host advertises the DCP logo and remains alive across multiple JSON-RPC requests.
 - Local Streamable HTTP endpoint is `/mcp`, bound to loopback, with independently scoped bearer tokens, Origin validation, CSRF-free bearer authentication, bounded request bodies and protocol metadata checks.
-- STDIO and HTTP use the same provider-neutral DCP Core registry. STDIO supports all 34 tools, including persistent terminal sessions; HTTP exposes request-safe tools and uses the shared terminal-session daemon for interactive sessions.
+- STDIO and HTTP use the same provider-neutral DCP Core registry. STDIO supports all 35 tools, including persistent terminal sessions and owner-local resource invocation; HTTP exposes request-safe tools and uses the shared terminal-session daemon for interactive sessions.
 - Local memory tools are read-only over MCP until the explicit memory-write authorization path is enabled.
 - Token creation/revocation: `platform/bin/mcp-token.php` and `platform/bin/mcp-token-revoke.php`.
 
@@ -239,7 +239,7 @@ Task 6 adds execution-plan review and approval-decision APIs/UI. Approval decisi
 - Remote terminal execution, task dispatch, resource invocation and mutations are deliberately not exposed as Cloud MCP tools. Those require the separate Q015 signed Node/target-approval path and owner-local execution.
 
 ### Acceptance
-- Local STDIO keepalive/logo, all 34 tool definitions and MCP tool dispatch are covered by the local host E2E tests.
+- Local STDIO keepalive/logo, all 35 tool definitions and MCP tool dispatch are covered by the local host E2E tests.
 - Local Streamable HTTP authentication/scope denial, terminal session continuity and MCP request handling are covered by HTTP E2E tests.
 - Cloud MCP SQLite service tests cover token scope filtering, account isolation, device/pairing discovery, user/team/device resource grants, expiry, grant ownership and secret-reference non-disclosure.
 - Cloud router contracts cover protocol metadata, token scope schema/migration, rate limits and absence of shell/dispatch tools.

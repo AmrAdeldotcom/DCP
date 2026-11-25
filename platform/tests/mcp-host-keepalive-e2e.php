@@ -47,7 +47,7 @@ if (($clientPing['id'] ?? null) !== 2 || !isset($clientPing['result'])) throw ne
 
 $send(['jsonrpc'=>'2.0','id'=>3,'method'=>'tools/list','params'=>new stdClass()]);
 $tools = $read();
-if (count($tools['result']['tools'] ?? []) !== 34) throw new RuntimeException('MCP tool registry must expose exactly 34 tools with one full terminal.');
+if (count($tools['result']['tools'] ?? []) !== 35) throw new RuntimeException('MCP tool registry must expose exactly 35 tools with one full terminal.');
 
 fclose($pipes[0]);
 $stdoutRemainder = stream_get_contents($pipes[1]);
