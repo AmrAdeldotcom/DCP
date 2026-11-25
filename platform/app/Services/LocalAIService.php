@@ -182,20 +182,39 @@ final class LocalAIService {
   if($port<1024)throw new RuntimeException('The operating system returned an invalid local port.');
   return $port;
  }
+ private function windowsLlamaProcessId(int $port,string $binary,int $expectedPid=0):int {
+  $script=$this->storage.'/verify-llama-server.ps1';
+  $body=<<<'PS'
+param([int]$Port,[string]$Executable,[int]$ExpectedPid=0)
+$c=Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
+if($c -and ($ExpectedPid -le 0 -or $c.OwningProcess -eq $ExpectedPid)) {
+ $p=Get-CimInstance Win32_Process -Filter ("ProcessId = " + $c.OwningProcess)
+ if($p -and $p.ExecutablePath -ieq $Executable){Write-Output $p.ProcessId}
+}
+PS;
+  if(file_put_contents($script,$body."\n")===false)return 0;
+  $argv=['powershell.exe','-NoLogo','-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File',$script,'-Port',(string)(int)$port,'-Executable',$binary,'-ExpectedPid',(string)(int)$expectedPid];
+  $spec=[0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']];
+  $proc=@proc_open($argv,$spec,$pipes,$this->root,null,['bypass_shell'=>true]);
+  if(!is_resource($proc))return 0;
+  fclose($pipes[0]);stream_set_blocking($pipes[1],false);stream_set_blocking($pipes[2],false);
+  $stdout='';$started=microtime(true);$exit=-1;
+  do {
+   $stdout.=stream_get_contents($pipes[1])?:'';stream_get_contents($pipes[2]);
+   $status=proc_get_status($proc);
+   if(!$status['running']){$exit=(int)$status['exitcode'];break;}
+   if(microtime(true)-$started>5){proc_terminate($proc);$exit=124;break;}
+   usleep(50000);
+  } while(true);
+  $stdout.=stream_get_contents($pipes[1])?:'';fclose($pipes[1]);fclose($pipes[2]);
+  $closed=proc_close($proc);if($exit<0)$exit=$closed;
+  return $exit===0?(int)trim($stdout):0;
+ }
  private function managedProcessMatches(array $state):bool {
   if(!($state['managed']??false))return false;
   $pid=(int)($state['pid']??0);$port=(int)($state['port']??0);$binary=(string)($state['binary']??'');
   if($pid<1||$port<1024||$port>65535||$binary==='')return false;
-  if(PHP_OS_FAMILY==='Windows') {
-   $ps='$p=Get-CimInstance Win32_Process -Filter "ProcessId = '.$pid.'"; if($p){[pscustomobject]@{Path=$p.ExecutablePath;CommandLine=$p.CommandLine}|ConvertTo-Json -Compress}';
-   $raw=$this->run('powershell.exe -NoLogo -NoProfile -NonInteractive -Command '.escapeshellarg($ps),4);
-   $info=json_decode($raw,true);
-   if(!is_array($info))return false;
-   $actual=strtolower(str_replace('/','\\',(string)($info['Path']??'')));
-   $expected=strtolower(str_replace('/','\\',$binary));
-   $line=(string)($info['CommandLine']??'');
-   return $actual!==''&&$actual===$expected&&preg_match('/(?:^|\\s)--port\\s+'.preg_quote((string)$port,'/').'(?:\\s|$)/',$line)===1;
-  }
+  if(PHP_OS_FAMILY==='Windows')return $this->windowsLlamaProcessId($port,$binary,$pid)===$pid;
   $line=$this->run('ps -p '.(int)$pid.' -o command=',3);
   if($line===''||!str_contains($line,$binary))return false;
   return preg_match('/(?:^|\\s)--port\\s+'.preg_quote((string)$port,'/').'(?:\\s|$)/',$line)===1;
@@ -203,6 +222,11 @@ final class LocalAIService {
  private function processRunning(string $name):bool {
   if(PHP_OS_FAMILY==='Windows')return $this->run('powershell.exe -NoProfile -NonInteractive -Command "Get-Process -Name '.preg_replace('/[^A-Za-z0-9_-]/','',$name).' -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty Id"',3)!=='';
   return $this->run('pgrep -x '.escapeshellarg($name),3)!=='';
+ }
+ private function processIdRunning(int $pid):bool {
+  if($pid<1)return false;
+  if(PHP_OS_FAMILY==='Windows')return $this->run('powershell.exe -NoLogo -NoProfile -NonInteractive -Command "Get-Process -Id '.(int)$pid.' -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Id"',3)!=='';
+  return $this->run('ps -p '.(int)$pid.' -o pid= 2>/dev/null',2)!=='';
  }
  private function port(int $port):bool {
   $socket=@fsockopen('127.0.0.1',$port,$error,$message,.3);
@@ -271,7 +295,11 @@ PS;
   if($pid>0) {
    if(PHP_OS_FAMILY==='Windows')$this->run('powershell.exe -NoProfile -NonInteractive -Command "Stop-Process -Id '.$pid.' -Force -ErrorAction SilentlyContinue"',4);
    else $this->run('kill '.(int)$pid.' 2>/dev/null || true',3);
+   $stopped=false;
+   for($attempt=0;$attempt<30;$attempt++){if(!$this->processIdRunning($pid)){$stopped=true;break;}usleep(100000);}
+   if(!$stopped)throw new RuntimeException('DCP could not confirm that its managed llama.cpp process stopped.');
   }
+  if(PHP_OS_FAMILY==='Windows'&&($state['task_name']??'')!==''){$task=preg_replace('/[^A-Za-z0-9_-]/','',(string)$state['task_name']);$this->run('powershell.exe -NoLogo -NoProfile -NonInteractive -Command "Stop-ScheduledTask -TaskName '.$task.' -ErrorAction SilentlyContinue; Unregister-ScheduledTask -TaskName '.$task.' -Confirm:$false -ErrorAction SilentlyContinue"',4);}
   @unlink($this->llamaStateFile());
   return ['ok'=>true,'stopped'=>true,'message'=>'DCP-managed llama.cpp server stopped.'];
  }
@@ -325,6 +353,25 @@ PS;
  private function llamaModelProfiles():array {
   return ['qwen3:0.6b'=>'mradermacher/Qwen3-0.6B-GGUF:Q4_K_M','qwen3:1.7b'=>'tensorblock/Qwen_Qwen3-1.7B-GGUF:Q4_K_M','qwen3:4b'=>'Qwen/Qwen3-4B-GGUF:Q4_K_M','llama3.2:3b'=>'bartowski/Llama-3.2-3B-Instruct-GGUF:Q4_K_M'];
  }
+ private function llamaModelFileName(string $model):string {
+  return ['qwen3:0.6b'=>'Qwen3-0.6B.Q4_K_M.gguf'][$model]??'';
+ }
+ private function llamaModelArguments(string $model):array {
+  $profiles=$this->llamaModelProfiles();$profile=$profiles[$model]??'';
+  if($profile==='')throw new InvalidArgumentException('This model is not enabled for llama.cpp yet.');
+  $filename=$this->llamaModelFileName($model);
+  if($filename!=='') {
+   [$repo]=explode(':',$profile,2);
+   $repoPath=$this->llamaCacheDirectory().'/models--'.str_replace('/','--',$repo);
+   $refFile=$repoPath.'/refs/main';
+   $revision=is_file($refFile)?trim((string)file_get_contents($refFile)):'';
+   if($revision!==''&&preg_match('/^[a-f0-9]{40,64}$/i',$revision)===1) {
+    $modelFile=$repoPath.'/snapshots/'.$revision.'/'.$filename;
+    if(is_file($modelFile)&&filesize($modelFile)>1024*1024)return ['-m',$modelFile];
+   }
+  }
+  return ['-hf',$profile];
+ }
  private function llamaContextSize(string $model):int {
   return $model==='qwen3:0.6b'?2048:4096;
  }
@@ -346,31 +393,52 @@ PS;
   // Do not bind a requested model name to an unrelated external llama.cpp service.
   // Leave external services untouched and start the requested model on a separate port.
   $bin=$this->llamaBinary();if($bin==='')throw new RuntimeException('llama-server is not installed or could not be detected.');
-  $port=$this->freePort();$os=PHP_OS_FAMILY;$log=$this->storage.'/logs/llama-server.log';if(!is_dir(dirname($log)))mkdir(dirname($log),0700,true);$cache=$this->llamaCacheDirectory();if(!is_dir($cache)&&!mkdir($cache,0700,true)&&!is_dir($cache))throw new RuntimeException('Could not create the private llama.cpp model cache.');
-  $args=['-hf',$profiles[$model],'-c',(string)$this->llamaContextSize($model),'-ngl','0','--host','127.0.0.1','--port',(string)$port];
+  $port=$this->freePort();$os=PHP_OS_FAMILY;$log=$this->storage.'/logs/llama-server.log';if(!is_dir(dirname($log)))mkdir(dirname($log),0700,true);$cache=$this->llamaCacheDirectory();if(!is_dir($cache)&&!mkdir($cache,0700,true)&&!is_dir($cache))throw new RuntimeException('Could not create the private llama.cpp model cache.');$runtime=dirname($this->llamaStateFile());if(!is_dir($runtime)&&!mkdir($runtime,0700,true)&&!is_dir($runtime))throw new RuntimeException('Could not create the managed runtime state directory.');
+  $args=array_merge($this->llamaModelArguments($model),['-c',(string)$this->llamaContextSize($model),'-ngl','0','--host','127.0.0.1','--port',(string)$port]);
+  $taskName='';
   if($os==='Windows') {
-   $ps=$this->storage.'/start-llama-server.ps1';$exe=str_replace("'","''",$bin);$out=str_replace("'","''",$this->storage.'/logs/llama-server.stdout.log');$err=str_replace("'","''",$this->storage.'/logs/llama-server.stderr.log');
-   $quoted=implode(',',array_map(static fn($value)=>"'".str_replace("'","''",$value)."'", $args));
-   $body=<<<'PS'
-$ErrorActionPreference = 'Stop'
+   $taskName='DCP-Managed-Llama-'.$port;
+   $wrapper=$this->storage.'/run-llama-server.ps1';
+   $launcher=$this->storage.'/register-llama-server-task.ps1';
+   $exe=str_replace("'","''",$bin);$cacheEsc=str_replace("'","''",$cache);$logEsc=str_replace("'","''",$log);
+   $quoted=implode(' ',array_map(static fn($value)=>"'".str_replace("'","''",$value)."'", $args));
+   $wrapperBody=<<<'PS'
+$ErrorActionPreference = 'Continue'
 $env:LLAMA_CACHE = '__CACHE__'
-$p = Start-Process -FilePath '__EXE__' -ArgumentList @(__ARGS__) -WindowStyle Hidden -PassThru -RedirectStandardOutput '__OUT__' -RedirectStandardError '__ERR__'
-Write-Output $p.Id
+& '__EXE__' __ARGS__ *> '__LOG__'
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 PS;
-   $cacheEsc=str_replace("'","''",$cache);
-   $body=str_replace(['__CACHE__','__EXE__','__ARGS__','__OUT__','__ERR__'],[$cacheEsc,$exe,$quoted,$out,$err],$body)."\n";
-   file_put_contents($ps,$body);
-   $pid=(int)$this->run('powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File '.escapeshellarg($ps),8);
-   if($pid<1)throw new RuntimeException('Windows could not start llama-server. Check the llama.cpp runtime log.');
+   $wrapperBody=str_replace(['__CACHE__','__EXE__','__ARGS__','__LOG__'],[$cacheEsc,$exe,$quoted,$logEsc],$wrapperBody)."\n";
+   if(file_put_contents($wrapper,$wrapperBody)===false)throw new RuntimeException('Could not write the managed llama.cpp runner.');
+   $wrapperWin=str_replace('/','\\',$wrapper);$wrapperEsc=str_replace("'","''",$wrapperWin);$taskNameEsc=str_replace("'","''",$taskName);
+   $launcherBody=<<<'PS'
+$ErrorActionPreference = 'Stop'
+$action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument ('-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + '__WRAPPER__' + '"') -WorkingDirectory '__WORKDIR__'
+$trigger = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(2)
+$principal = New-ScheduledTaskPrincipal -UserId ([Security.Principal.WindowsIdentity]::GetCurrent().Name) -LogonType Interactive -RunLevel Limited
+Register-ScheduledTask -TaskName '__TASK__' -Action $action -Trigger $trigger -Principal $principal -Force | Out-Null
+Start-ScheduledTask -TaskName '__TASK__'
+Write-Output '__TASK__'
+PS;
+   $workDir=str_replace("'","''",dirname($bin));
+   $launcherBody=str_replace(['__WRAPPER__','__WORKDIR__','__TASK__'],[$wrapperWin,$workDir,$taskNameEsc],$launcherBody)."\n";
+   if(file_put_contents($launcher,$launcherBody)===false)throw new RuntimeException('Could not write the interactive llama.cpp task launcher.');
+   $launched=$this->run('powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File '.escapeshellarg($launcher),8);
+   if($launched!==$taskName)throw new RuntimeException('Windows could not start the interactive DCP llama.cpp task.');
+   $exePs=str_replace("'","''",$bin);
+   $pid=0;for($attempt=0;$attempt<120;$attempt++){$pid=$this->windowsLlamaProcessId($port,$bin);if($pid>0)break;usleep(500000);}
+   if($pid<1){$this->run('powershell.exe -NoLogo -NoProfile -NonInteractive -Command "Unregister-ScheduledTask -TaskName '.escapeshellarg($taskName).' -Confirm:$false -ErrorAction SilentlyContinue"',4);throw new RuntimeException('Windows did not expose the interactive DCP llama-server process. Check the llama.cpp runtime log.');}
   } else {
    $command=escapeshellarg($bin);foreach($args as $arg)$command.=' '.escapeshellarg($arg);
    $pid=(int)$this->run('nohup env LLAMA_CACHE='.escapeshellarg($cache).' '.$command.' > '.escapeshellarg($log).' 2>&1 < /dev/null & echo $!',5);
    if($pid<1)throw new RuntimeException('Could not launch llama-server. Check the DCP Engine activity log.');
   }
-  $runtime=dirname($this->llamaStateFile());if(!is_dir($runtime))mkdir($runtime,0700,true);
-  $state=['port'=>$port,'pid'=>$pid,'binary'=>$bin,'model'=>$model,'managed'=>true,'started_at'=>date(DATE_ATOM)];
-  file_put_contents($this->llamaStateFile(),json_encode($state,JSON_UNESCAPED_SLASHES),LOCK_EX);
-  return ['ok'=>true,'started'=>true,'message'=>'llama.cpp is starting on an available loopback port.','model'=>$model,'base_url'=>'http://127.0.0.1:'.$port.'/v1','port'=>$port,'pid'=>$pid];
+  $state=['port'=>$port,'pid'=>$pid,'binary'=>$bin,'model'=>$model,'managed'=>true,'task_name'=>$taskName,'started_at'=>date(DATE_ATOM)];
+  if(file_put_contents($this->llamaStateFile(),json_encode($state,JSON_UNESCAPED_SLASHES),LOCK_EX)===false)throw new RuntimeException('Could not persist the managed llama-server process identity.');
+  if(!$this->managedProcessMatches($state)){@unlink($this->llamaStateFile());throw new RuntimeException('The launched llama-server process identity could not be verified.');}
+  $ready=false;for($attempt=0;$attempt<40;$attempt++){if($this->llamaApiReady($port)){$ready=true;break;}usleep(250000);}
+  if(!$ready)throw new RuntimeException('The managed llama.cpp process started but its OpenAI-compatible API did not become ready. Check the llama.cpp runtime log.');
+  return ['ok'=>true,'started'=>true,'message'=>'llama.cpp is ready on an available loopback port.','model'=>$model,'base_url'=>'http://127.0.0.1:'.$port.'/v1','port'=>$port,'pid'=>$pid];
  }
 
  public function pull(string $model):array {
