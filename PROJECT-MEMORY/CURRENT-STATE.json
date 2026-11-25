@@ -465,7 +465,7 @@
     "endToEndUpdateTest": "Pending: after all three Alpha10 clients are running and public Alpha10 release is published, add harmless platform probe and publish Alpha11; verify download/apply and probe hash on Windows, Ubuntu and macOS."
   },
   "lastCheckpoint": "DC20 three Alpha 10 installs verified; macOS Little Snitch github.com allow pending; release workflow still building 2026-11-24T20:50:00+02:00",
-  "latestHandoff": "PROJECT-MEMORY/handoffs/DC21-alpha10-update-monitor-fixes-and-ci-2026-11-24.md",
+  "latestHandoff": "PROJECT-MEMORY/handoffs/DC46-stage6-signed-device-agent-e2e-2026-11-25.md",
   "linuxUpdaterDC17": {
     "status": "implemented-locally-not-committed",
     "files": [
@@ -647,8 +647,8 @@
       "target update/rollback acceptance pending signed release and fresh backups"
     ]
   },
-  "lastUpdated": "2026-11-25T05:20:00+02:00",
-  "currentCheckpoint": "DC37 — local security hardening complete; release gate remains open",
+  "lastUpdated": "2026-11-25T05:57:38+02:00",
+  "currentCheckpoint": "DC46 — signed Device Agent task transport integrated end-to-end; Stage 6 remains open pending live OS acceptance",
   "localAIWindows": {
     "status": "real interactive-user Qwen3 0.6B start/chat/stop smoke passed",
     "user": "AMRWIN11\\amradeldotcom",
@@ -676,6 +676,52 @@
       "Cloud APP_KEY rotation approval and live pairing acceptance",
       "authenticated Desktop Commander/DSH lifecycle",
       "retry macOS Intel source fetch after GitHub DNS failure"
+    ]
+  },
+  "q012TaskInbox": {
+    "status": "active-first-slice-implemented-locally",
+    "spec": "platform/docs/proposals/DCP-Chat-Live-Task-Inbox-Interrupt-Queue.md",
+    "task": "PROJECT-MEMORY/tasks/Q012-shared-chat-task-inbox.md",
+    "handoff": "PROJECT-MEMORY/handoffs/DC43-task-inbox-queue-mvp-2026-11-25.md",
+    "capabilities": [
+      "persistent local queue",
+      "enqueue/list/reprioritize/cancel/mark-sent",
+      "chat UI independent of provider busy state",
+      "insert queued instruction into composer",
+      "audit log for queue mutations"
+    ],
+    "validation": "full platform suite, PHP lint, JS syntax, isolated HTTP smoke, isolated Chrome DOM smoke and git diff check passed",
+    "limits": [
+      "manual send only",
+      "no autonomous execution",
+      "no interrupt/checkpoint/recovery",
+      "no remote dispatch/shared participants"
+    ],
+    "next": "design and test safe checkpoint coordinator and task lifecycle"
+  },
+  "q014CapabilityMatrix": {
+    "status": "active-ed25519-device-agent-transport-integrated-and-e2e-tested-locally",
+    "services": [
+      "platform/app/Services/DeviceWorkspaceService.php",
+      "platform/app/Services/TaskEnvelopeService.php",
+      "platform/app/Services/DeviceCapabilityMatrix.php"
+    ],
+    "agent": "platform/plugins/agents/dcp-node/device-agent.php provisions per-device workspace, pins server signing key, verifies signed task envelopes and signs results",
+    "server": "paired agent public key registration, signed task issue, result verification and atomic envelope acknowledgement",
+    "legacyCompatibility": "unregistered old agents remain on bearer-token legacy protocol; registered or revoked agents cannot downgrade",
+    "security": [
+      "Ed25519 envelope binds issuer, key ID, target, task ID, action, payload, nonce and expiry",
+      "replay ledger on agent and server acknowledgement",
+      "private signing keys encrypted at rest",
+      "task actions restricted to workspace read/write",
+      "worker path traversal/backslash/drive/symlink protections"
+    ],
+    "validation": "full platform suite exit 0, 55 PHP lint files, JS syntax, signed API E2E, forged result rejection, unsigned downgrade rejection, legacy compatibility, HTTP and Chrome smoke, diff check passed",
+    "remaining": [
+      "live Windows/Ubuntu/macOS agent acceptance",
+      "updater key/workspace preservation",
+      "task lease recovery",
+      "key revoke/re-pair UI"
     ]
   }
 }

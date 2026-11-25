@@ -20,7 +20,7 @@ This folder is the durable continuity layer for ChatGPT and other authorized eng
 - `architecture/`: architecture notes and cross-component contracts.
 - `bugs/`: reproducible bug records and diagnostics.
 - `testing/`: test baselines and verification evidence.
-- `handoffs/`: concise handoff notes for new conversations. Latest checkpoint: `handoffs/DC42-stable-tag-and-release-run-2026-11-25.md`.
+- `handoffs/`: concise handoff notes for new conversations. Latest checkpoint: `handoffs/DC46-stage6-signed-device-agent-e2e-2026-11-25.md`.
 
 ## Update protocol
 - After each meaningful task: update CURRENT-STATE.json, append CHANGELOG.md, and create a timestamped checkpoint in versions/.
@@ -36,3 +36,11 @@ This folder is the durable continuity layer for ChatGPT and other authorized eng
 - Latest handoff: PROJECT-MEMORY/handoffs/DC42-stable-tag-and-release-run-2026-11-25.md — main fast-forward to cb3087e, v1.0.0 stable tag at exact main HEAD, Alpha10 Delta base, release run 45538884432 progress and post-publish cleanup workflow.
 
 - Latest Alpha 10 cross-platform rollout checkpoint: PROJECT-MEMORY/handoffs/DC20-alpha10-three-platform-update-rollout-2026-11-24.md (Windows and Ubuntu installed; macOS Little Snitch github.com allow pending; signed release workflow still building).
+
+- Latest checkpoint: PROJECT-MEMORY/handoffs/DC43-task-inbox-queue-mvp-2026-11-25.md — Stage 6 remains open; Q012 persistent Task Inbox first slice implemented locally and fully tested.
+
+- Latest checkpoint: PROJECT-MEMORY/handoffs/DC44-stage6-capability-matrix-2026-11-25.md — Stage 6 remains open; Q012 Task Inbox and Q014 read-only per-device capability matrix slices pass local tests.
+
+- Latest checkpoint: PROJECT-MEMORY/handoffs/DC45-stage6-workspaces-signed-envelopes-2026-11-25.md — isolated workspaces and Ed25519 envelope foundation pass local tests; legacy Device Agent is available but not signed-envelope integrated.
+
+- Latest checkpoint: PROJECT-MEMORY/handoffs/DC46-stage6-signed-device-agent-e2e-2026-11-25.md — signed remote Device Agent task/result protocol passes local end-to-end tests; real OS acceptance remains.

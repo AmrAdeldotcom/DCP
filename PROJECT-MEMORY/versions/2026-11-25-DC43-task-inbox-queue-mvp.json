@@ -1,0 +1,35 @@
+{
+  "checkpoint": "DC43",
+  "timestamp": "2026-11-25T05:33:13+02:00",
+  "branch": "feature/local-ai-runtime-discovery",
+  "main": "cb3087e27c344af774ecf60aca40c98904859a85",
+  "roadmapStage6": "active-not-complete",
+  "q005": "stable tag pushed; release publication/cleanup/target acceptance pending",
+  "q006": "done",
+  "q012": "active; persistent Task Inbox Queue MVP implemented locally",
+  "tests": {
+    "platform": "ALL PLATFORM TESTS PASSED",
+    "php_lint": "passed",
+    "javascript_syntax": "passed",
+    "git_diff_check": "passed"
+  },
+  "changes": [
+    "platform/app/Core/Database.php",
+    "platform/app/Services/TaskInboxService.php",
+    "platform/app/Controllers/ApiController.php",
+    "platform/app/Controllers/PageController.php",
+    "platform/bootstrap/app.php",
+    "platform/public/assets/app.js",
+    "platform/public/assets/app.css",
+    "platform/tests/task-inbox.php",
+    "platform/tests/task-inbox-ui-contract.php",
+    "platform/tests/run.php"
+  ],
+  "limits": [
+    "manual/review-only queue",
+    "no automatic execution",
+    "no safe interrupt or checkpoint recovery",
+    "no remote task transport or shared agent dispatch"
+  ],
+  "git": "local uncommitted; no push/merge/release/deployment"
+}

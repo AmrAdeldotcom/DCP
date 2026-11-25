@@ -1,0 +1,25 @@
+{
+  "checkpoint": "DC45",
+  "timestamp": "2026-11-25T05:45:10+02:00",
+  "branch": "feature/local-ai-runtime-discovery",
+  "main": "cb3087e27c344af774ecf60aca40c98904859a85",
+  "roadmapStage6": "active-not-complete",
+  "q006": "done",
+  "q012": "persistent manual Task Inbox first slice implemented locally",
+  "q014": "per-device workspaces and Ed25519 signed envelope foundation implemented locally; legacy bearer-token Device Agent remains available_legacy; signed envelopes not integrated",
+  "tests": {
+    "platform": "ALL PLATFORM TESTS PASSED",
+    "php_lint": "passed",
+    "javascript_syntax": "passed",
+    "http": "DCP_DC45_HTTP_PASS",
+    "chrome_dom": "DCP_DC45_CHROME_DOM_PASS",
+    "git_diff_check": "passed"
+  },
+  "limits": [
+    "no signed envelope integration with legacy Device Agent endpoints",
+    "no trusted key exchange over Cloud pairing",
+    "DCP_WORKSPACE not yet bound to allocated workspace",
+    "no task execution by envelope verifier"
+  ],
+  "git": "local uncommitted; no push/merge/release/deployment"
+}

@@ -1,0 +1,38 @@
+{
+  "checkpoint": "DC46",
+  "timestamp": "2026-11-25T05:57:38+02:00",
+  "branch": "feature/local-ai-runtime-discovery",
+  "main": "cb3087e27c344af774ecf60aca40c98904859a85",
+  "roadmapStage6": "active-not-complete",
+  "q006": "done",
+  "q012": "persistent manual Task Inbox first slice implemented locally",
+  "q014": "Ed25519 signed Device Agent task transport integrated end-to-end and tested locally; live OS acceptance pending",
+  "signedTransport": {
+    "agentKeyRegistration": "HTTPS bearer-authenticated; server pins per paired device",
+    "serverKeyPinning": "Agent pins server key; silent rotation/revocation rejected",
+    "envelope": "canonical Ed25519, issuer/key ID, target, task ID, action, nonce, 15-300 second expiry",
+    "agentVerification": "signature, trusted issuer, target, task ID, action/payload match, expiry, replay ledger",
+    "result": "agent signs result; server verifies signature and atomically acknowledges exact task envelope",
+    "legacy": "unregistered older agents retain bearer-token compatibility; registered agents cannot downgrade",
+    "workspace": "per-device private workspace provisioned automatically; worker rejects traversal, backslash, drive-prefix and symlink escapes"
+  },
+  "tests": {
+    "platform": "completed exit 0",
+    "php_lint": "55 files passed",
+    "javascript_syntax": "passed",
+    "signed_api_e2e": "passed",
+    "forged_signature": "rejected",
+    "unsigned_downgrade": "rejected",
+    "legacy_compatibility": "passed",
+    "http": "DCP_DC46_HTTP_PASS",
+    "chrome_dom": "DCP_DC46_CHROME_DOM_PASS",
+    "git_diff_check": "passed"
+  },
+  "remaining": [
+    "live Windows/Ubuntu/macOS agent acceptance",
+    "updater preserves signing keys/workspaces",
+    "task lease recovery",
+    "signing key revoke/re-pair UI"
+  ],
+  "git": "local uncommitted; scoped feature-branch commit/push pending; main/tag unchanged"
+}

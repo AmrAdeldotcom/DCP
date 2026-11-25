@@ -417,3 +417,34 @@
 - Fast-forwarded `main` to `cb3087e` after green feature-branch CI and pushed annotated `v1.0.0` tag at exactly the same commit.
 - Started stable signed cross-platform release run `45538884432`. Linux and Windows package jobs passed; macOS Intel/Apple Silicon and managed PHP jobs are queued.
 - Added stable Alpha10→1.0.0 Delta regression coverage and committed cleanup automation to remove prior Alpha/Beta releases/tags and completed failed Actions runs only after stable release assets/signatures are verified.
+
+
+## 2026-11-25 — DC43: Stage 6 Task Inbox Queue MVP first slice
+- Clarified canonical roadmap status: Stage 6 Device Collaboration and Agents remains open; Q006 Local AI is done, while Q005 stable-release acceptance remains open.
+- Implemented a persistent SQLite Task Inbox with enqueue/list/reprioritize/cancel/mark-sent service transitions and CSRF-protected API routes.
+- Added Chat UI queue controls that remain usable while a provider request is busy; queued messages are review/manual-send only and never auto-execute.
+- Added service and UI contract tests. Full platform suite, PHP lint, JS syntax and git diff check passed.
+- Changes remain local and uncommitted on feature/local-ai-runtime-discovery; no push, merge, release or deployment.
+
+
+## 2026-11-25 — DC44: Stage 6 read-only per-device capability matrix
+- Added a fail-closed capability matrix derived from the verified DCP Local Node status and explicit paired-device scopes.
+- Local workspace writes are marked as requiring explicit task approval; current local terminal is identified as safe/allow-listed. Remote workspace, terminal, task dispatch and browser control remain not implemented.
+- Extended Cloud status and Devices UI to render local and paired-device capability matrices.
+- Re-ran full platform/security tests, PHP lint, JS syntax, isolated Task Inbox HTTP smoke, isolated Chrome DOM smoke and git diff check; all passed.
+- Changes remain local and uncommitted; no remote execution, Cloud deployment, push or release.
+
+
+## 2026-11-25 — DC45: Stage 6 workspaces and signed task-envelope foundation
+- Added isolated per-device workspace allocation with stable identity manifests, private permissions and traversal/symlink protection.
+- Added Ed25519 device signing keys encrypted at rest, explicit approved issuer-key registry, canonical signed envelopes, target binding, expiry and replay ledger. Verification does not execute tasks.
+- Reconciled existing legacy bearer-token Device Agent polling: it is already implemented behind explicit task approval and allow-listed workspace actions; new signed envelopes are not integrated with it yet. Capability API/UI now distinguishes legacy task agents from Cloud signaling pairings.
+- Full platform/security suite, PHP lint, JS syntax, isolated HTTP, Chrome DOM and diff checks passed. Changes remain local/uncommitted.
+
+
+## 2026-11-25 — DC46: Signed Device Agent transport end-to-end
+- Bound Device Agent to an automatically provisioned per-device workspace and hardened worker path checks for backslash/drive-prefix traversal.
+- Integrated Ed25519 key registration/pinning, task-bound signed envelopes, action/target/expiry/replay verification, signed results and server-side atomic envelope acknowledgement.
+- Preserved legacy bearer-token compatibility only for devices without a registered signing key; signed devices cannot downgrade, and revoked keys block dispatch.
+- End-to-end API test covers explicit approval, signed execution/result, forged signature rejection, downgrade rejection and legacy compatibility. Full platform suite, 55 PHP lint files, JS syntax, HTTP/Chrome smoke and diff check passed.
+- Stage 6 remains open pending real Windows/Ubuntu/macOS agent acceptance, updater preservation and task lease/revocation workflows.

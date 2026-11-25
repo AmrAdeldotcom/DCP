@@ -20,6 +20,16 @@ final class Database {
   $db->exec("CREATE TABLE IF NOT EXISTS chat_sessions (id TEXT PRIMARY KEY,title TEXT NOT NULL,provider_id TEXT NOT NULL,created_at TEXT NOT NULL,updated_at TEXT NOT NULL)");
   $db->exec("CREATE TABLE IF NOT EXISTS chat_messages (id INTEGER PRIMARY KEY AUTOINCREMENT,session_id TEXT NOT NULL,role TEXT NOT NULL,content TEXT NOT NULL,created_at TEXT NOT NULL,FOREIGN KEY(session_id) REFERENCES chat_sessions(id) ON DELETE CASCADE)");
   $db->exec("CREATE INDEX IF NOT EXISTS idx_chat_messages_session ON chat_messages(session_id,id)");
+  $db->exec("CREATE TABLE IF NOT EXISTS task_inbox (id TEXT PRIMARY KEY,session_id TEXT NULL,message TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'queued' CHECK(status IN ('queued','cancelled','sent')),priority INTEGER NOT NULL DEFAULT 100,created_at TEXT NOT NULL,updated_at TEXT NOT NULL,FOREIGN KEY(session_id) REFERENCES chat_sessions(id) ON DELETE CASCADE)");
+  $db->exec("CREATE INDEX IF NOT EXISTS idx_task_inbox_queue ON task_inbox(status,priority,created_at)");
+  $db->exec("CREATE INDEX IF NOT EXISTS idx_task_inbox_session ON task_inbox(session_id,status,priority,created_at)");
+  $db->exec("CREATE TABLE IF NOT EXISTS device_workspaces (device_id TEXT PRIMARY KEY,workspace_id TEXT NOT NULL UNIQUE,relative_path TEXT NOT NULL,created_at TEXT NOT NULL,updated_at TEXT NOT NULL)");
+  $db->exec("CREATE TABLE IF NOT EXISTS device_signing_keys (device_id TEXT PRIMARY KEY,public_key TEXT NOT NULL,private_key_enc TEXT NOT NULL,created_at TEXT NOT NULL,rotated_at TEXT NOT NULL,revoked_at TEXT NULL)");
+  $db->exec("CREATE TABLE IF NOT EXISTS trusted_device_signing_keys (device_id TEXT PRIMARY KEY,public_key TEXT NOT NULL,approved_by TEXT NOT NULL,approved_at TEXT NOT NULL,revoked_at TEXT NULL)");
+  $db->exec("CREATE TABLE IF NOT EXISTS task_envelopes (envelope_id TEXT PRIMARY KEY,issuer_device_id TEXT NOT NULL,target_device_id TEXT NOT NULL,action TEXT NOT NULL,payload_hash TEXT NOT NULL,status TEXT NOT NULL CHECK(status IN ('issued','consumed','rejected')),expires_at TEXT NOT NULL,created_at TEXT NOT NULL,consumed_at TEXT NULL,task_id TEXT NULL)");
+  $db->exec("CREATE INDEX IF NOT EXISTS idx_task_envelopes_target ON task_envelopes(target_device_id,status,expires_at)");
+  $db->exec("CREATE TABLE IF NOT EXISTS device_agent_signing_keys (device_id TEXT PRIMARY KEY,public_key TEXT NOT NULL,created_at TEXT NOT NULL,rotated_at TEXT NOT NULL,revoked_at TEXT NULL)");
+  $envelopeCols=$db->query('PRAGMA table_info(task_envelopes)')->fetchAll(PDO::FETCH_COLUMN,1);if(!in_array('task_id',$envelopeCols,true))$db->exec('ALTER TABLE task_envelopes ADD COLUMN task_id TEXT NULL');
   $cols=$db->query('PRAGMA table_info(tasks)')->fetchAll(PDO::FETCH_COLUMN,1);if(!in_array('target_device_id',$cols,true))$db->exec("ALTER TABLE tasks ADD COLUMN target_device_id TEXT NOT NULL DEFAULT 'local'");
  }
 }

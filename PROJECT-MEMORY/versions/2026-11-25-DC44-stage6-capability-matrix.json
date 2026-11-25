@@ -1,0 +1,28 @@
+{
+  "checkpoint": "DC44",
+  "timestamp": "2026-11-25T05:36:23+02:00",
+  "branch": "feature/local-ai-runtime-discovery",
+  "main": "cb3087e27c344af774ecf60aca40c98904859a85",
+  "roadmapStage6": "active-not-complete",
+  "q006": "done",
+  "q012": "Task Inbox Queue MVP first slice implemented locally; manual/review-only",
+  "q014": "read-only capability matrix implemented locally; remote execution fail-closed",
+  "tests": {
+    "platform": "ALL PLATFORM TESTS PASSED",
+    "php_lint": "passed",
+    "javascript_syntax": "passed",
+    "task_inbox_http": "DCP_Q012_HTTP_TASK_INBOX_PASS",
+    "git_diff_check": "passed",
+    "chrome_dom": "DCP_DC44_CHROME_DOM_PASS"
+  },
+  "githubReleaseRun": 45538884432,
+  "githubAtCheckpoint": {
+    "linux_x64": "success",
+    "windows_x64": "success",
+    "macos_arm64_llama": "success",
+    "macos_intel_llama": "in_progress",
+    "macos_managed_php_x64": "queued",
+    "macos_managed_php_arm64": "queued"
+  },
+  "git": "local uncommitted; no push/merge/release/deployment"
+}
