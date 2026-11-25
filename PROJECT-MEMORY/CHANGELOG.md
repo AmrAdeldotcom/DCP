@@ -448,3 +448,10 @@
 - Preserved legacy bearer-token compatibility only for devices without a registered signing key; signed devices cannot downgrade, and revoked keys block dispatch.
 - End-to-end API test covers explicit approval, signed execution/result, forged signature rejection, downgrade rejection and legacy compatibility. Full platform suite, 55 PHP lint files, JS syntax, HTTP/Chrome smoke and diff check passed.
 - Stage 6 remains open pending real Windows/Ubuntu/macOS agent acceptance, updater preservation and task lease/revocation workflows.
+
+
+## 2026-11-25 — DC47: Stable release and cleanup verified
+- Published `v1.0.0` as stable/latest with 19 assets; release workflow `45538884432` succeeded.
+- Fixed the legacy cleanup Actions pagination mapper and added manual/push repair triggers plus a stable-publication cutoff; cleanup run `45544044653` succeeded. Legacy Alpha/Beta release records/tags are gone; no completed failures were found among the latest 100 Actions runs.
+- Q005 remains open only for actual Windows/Ubuntu/macOS installed-client update, rollback and data-preservation acceptance.
+- Stage 6 continues on `feature/local-ai-runtime-discovery`: Q012 Task Inbox and Q014 signed Device Agent protocol are implemented/tested locally; real OS acceptance and safe checkpoint integration remain.

@@ -1,0 +1,55 @@
+{
+  "checkpoint": "DC47",
+  "timestamp": "2026-11-25T06:05:07+02:00",
+  "repository": "AmrAdeldotcom/DCP",
+  "branch": "feature/local-ai-runtime-discovery",
+  "featureCommitAtCheckpoint": "d3eed0c",
+  "main": "d4fe3d1",
+  "stableTag": "v1.0.0",
+  "stableTagCommit": "cb3087e27c344af774ecf60aca40c98904859a85",
+  "release": {
+    "run": 45538884432,
+    "status": "success",
+    "published": true,
+    "prerelease": false,
+    "latest": true,
+    "assetCount": 19,
+    "deltaBase": "v1.0.0-alpha.10",
+    "fullFallback": true
+  },
+  "cleanup": {
+    "firstRun": 45543379283,
+    "firstRunResult": "failed due to Actions pagination mapper; release/tag deletion already completed",
+    "fixCommit": "d4fe3d1",
+    "successfulRun": 45544044653,
+    "status": "success",
+    "legacyAlphaBetaReleases": 0,
+    "legacyAlphaBetaTags": 0,
+    "completedFailuresInLast100Runs": 0
+  },
+  "q005": "stable release and cleanup complete; actual Windows/Ubuntu/macOS update, rollback and data-preservation acceptance still pending",
+  "q006": "done",
+  "q012": "Task Inbox Queue MVP first slice implemented; safe checkpoint/context integration remains open",
+  "q014": "signed Device Agent transport end-to-end tested locally; live cross-platform agent acceptance remains open",
+  "stage6": "active-not-complete",
+  "featureCi": {
+    "linuxDistro": 45543895730,
+    "windowsBuild": 45543895807,
+    "updateTooling": 45543895817,
+    "cloudPhp": 45543895868,
+    "windowsPackage": 45543896051,
+    "macosPackage": 45543895943
+  },
+  "mainCi": {
+    "cloudPhp": 45544044627,
+    "windowsBuild": 45544044678,
+    "updateTooling": 45544044717,
+    "linuxWebView": 45544044752,
+    "linuxDistro": 45544044637
+  },
+  "next": [
+    "Q012 safe checkpoint coordinator",
+    "Q014 real Windows/Ubuntu/macOS Device Agent acceptance",
+    "Q005 real client update/rollback/data preservation"
+  ]
+}

@@ -20,7 +20,7 @@ This folder is the durable continuity layer for ChatGPT and other authorized eng
 - `architecture/`: architecture notes and cross-component contracts.
 - `bugs/`: reproducible bug records and diagnostics.
 - `testing/`: test baselines and verification evidence.
-- `handoffs/`: concise handoff notes for new conversations. Latest checkpoint: `handoffs/DC46-stage6-signed-device-agent-e2e-2026-11-25.md`.
+- `handoffs/`: concise handoff notes for new conversations. Latest checkpoint: `handoffs/DC47-stable-release-cleanup-and-stage6-2026-11-25.md`.
 
 ## Update protocol
 - After each meaningful task: update CURRENT-STATE.json, append CHANGELOG.md, and create a timestamped checkpoint in versions/.
@@ -44,3 +44,5 @@ This folder is the durable continuity layer for ChatGPT and other authorized eng
 - Latest checkpoint: PROJECT-MEMORY/handoffs/DC45-stage6-workspaces-signed-envelopes-2026-11-25.md — isolated workspaces and Ed25519 envelope foundation pass local tests; legacy Device Agent is available but not signed-envelope integrated.
 
 - Latest checkpoint: PROJECT-MEMORY/handoffs/DC46-stage6-signed-device-agent-e2e-2026-11-25.md — signed remote Device Agent task/result protocol passes local end-to-end tests; real OS acceptance remains.
+
+- Latest checkpoint: PROJECT-MEMORY/handoffs/DC47-stable-release-cleanup-and-stage6-2026-11-25.md — stable v1.0.0 and cleanup verified; Q005 live device acceptance remains; Stage 6 continues.
