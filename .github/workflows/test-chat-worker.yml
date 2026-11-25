@@ -38,6 +38,7 @@ on:
       - 'platform/tests/task-inbox-ui-contract.php'
       - 'platform/tests/run.php'
       - 'platform/tests/local-ai-ui-contract.php'
+      - '.gitattributes'
       - 'platform/tests/mock-provider-router.php'
       - '.github/workflows/test-chat-worker.yml'
   pull_request:
@@ -76,6 +77,7 @@ on:
       - 'platform/tests/task-inbox-ui-contract.php'
       - 'platform/tests/run.php'
       - 'platform/tests/local-ai-ui-contract.php'
+      - '.gitattributes'
       - 'platform/tests/mock-provider-router.php'
       - '.github/workflows/test-chat-worker.yml'
   workflow_dispatch:

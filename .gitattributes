@@ -1,0 +1,3 @@
+# The pinned update public key is hashed byte-for-byte by the verifier.
+# Keep its PEM line endings identical on Windows, macOS and Linux.
+platform/update/release-public.pem text eol=lf
