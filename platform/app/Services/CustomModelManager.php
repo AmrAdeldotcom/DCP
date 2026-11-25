@@ -97,8 +97,16 @@ trait CustomModelManager
         foreach ($models as &$model) {
             $name = (string)($model['ollama_name'] ?? '');
             $model['ollama_installed'] = $name !== '' && (in_array($name, $installed, true) || in_array($name . ':latest', $installed, true));
-            if ($model['ollama_installed']) $model['ollama_status'] = 'ready';
-            elseif (($model['ollama_status'] ?? '') === 'creating' && !$this->customPidRunning((int)($model['ollama_pid'] ?? 0), $name)) $model['ollama_status'] = 'failed';
+            if ($model['ollama_installed']) {
+                $model['ollama_status'] = 'ready';
+                $model['ollama_pid'] = 0;
+                $model['ollama_started_at'] = null;
+            } elseif (($model['ollama_status'] ?? '') === 'creating' && !$this->customPidRunning((int)($model['ollama_pid'] ?? 0), $name)) {
+                // Ollama can finish `create` before /api/tags exposes its new manifest.
+                // Keep the UI in its verifying state briefly instead of reporting a false failure.
+                $startedAt = strtotime((string)($model['ollama_started_at'] ?? $model['created_at'] ?? ''));
+                if ($startedAt === false || time() - $startedAt > 120) $model['ollama_status'] = 'failed';
+            }
             $model['path'] = null;
         }
         unset($model);
@@ -153,6 +161,7 @@ trait CustomModelManager
             'ollama_name' => '',
             'ollama_status' => 'not-created',
             'ollama_pid' => 0,
+            'ollama_started_at' => null,
         ];
         $models[] = $entry;
         $this->writeCustomModels($models);
@@ -168,7 +177,7 @@ trait CustomModelManager
         if (!$status['online']) throw new RuntimeException('Start Ollama before converting a custom GGUF model.');
         $existing = array_map(static fn($m) => (string)($m['id'] ?? ''), $status['models']);
         if (in_array($name, $existing, true) || in_array($name . ':latest', $existing, true)) {
-            foreach ($models as &$model) if ($model['id'] === $id) { $model['ollama_name'] = $name; $model['ollama_status'] = 'ready'; $model['ollama_pid'] = 0; }
+            foreach ($models as &$model) if ($model['id'] === $id) { $model['ollama_name'] = $name; $model['ollama_status'] = 'ready'; $model['ollama_pid'] = 0; $model['ollama_started_at'] = null; }
             unset($model);
             $this->writeCustomModels($models);
             return ['ok' => true, 'already_installed' => true, 'id' => $id, 'ollama_name' => $name];
@@ -207,7 +216,7 @@ trait CustomModelManager
             $pid = (int)$this->run($command, 5);
         }
         if ($pid < 1) throw new RuntimeException('Could not start the Ollama GGUF conversion process.');
-        foreach ($models as &$model) if ($model['id'] === $id) { $model['ollama_name'] = $name; $model['ollama_status'] = 'creating'; $model['ollama_pid'] = $pid; $model['ollama_log'] = basename($log); }
+        foreach ($models as &$model) if ($model['id'] === $id) { $model['ollama_name'] = $name; $model['ollama_status'] = 'creating'; $model['ollama_pid'] = $pid; $model['ollama_started_at'] = date(DATE_ATOM); $model['ollama_log'] = basename($log); }
         unset($model);
         $this->writeCustomModels($models);
         return ['ok' => true, 'started' => true, 'id' => $id, 'ollama_name' => $name, 'pid' => $pid, 'message' => 'Ollama model creation started.'];

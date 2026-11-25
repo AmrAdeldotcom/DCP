@@ -7,7 +7,8 @@ $api = file_get_contents(__DIR__ . '/../app/Controllers/ApiController.php');
 $terminal = file_get_contents(__DIR__ . '/../app/Services/TerminalService.php');
 $dsh = file_get_contents(__DIR__ . '/../plugins/agents/deepseek-harness/driver.php');
 $desktopCommander = file_get_contents(__DIR__ . '/../plugins/agents/desktop-commander/driver.php');
-if (!is_string($page) || !is_string($js) || !is_string($api) || !is_string($terminal) || !is_string($dsh) || !is_string($desktopCommander)) {
+$ollamaDriver = file_get_contents(__DIR__ . '/../plugins/providers/ollama/driver.php');
+if (!is_string($page) || !is_string($js) || !is_string($api) || !is_string($terminal) || !is_string($dsh) || !is_string($desktopCommander) || !is_string($ollamaDriver)) {
     fwrite(STDERR, "FAIL: system tools source files could not be read.\n");
     exit(1);
 }
@@ -21,6 +22,7 @@ $checks = [
     'Windows terminal pwd uses PowerShell Get-Location instead of cmd cd argument quoting' => str_contains($terminal, "['powershell.exe','-NoProfile','-NonInteractive','-Command','(Get-Location).Path']"),
     'DeepSeek Harness process probing is restricted to macOS where its app can exist' => str_contains($dsh, "PHP_OS_FAMILY !== 'Darwin'") && str_contains($dsh, '/Applications/DeepSeek Harness.app'),
     'Desktop Commander process status uses PowerShell on Windows and pgrep on Unix' => str_contains($desktopCommander, "PHP_OS_FAMILY === 'Windows'") && str_contains($desktopCommander, 'Get-CimInstance Win32_Process') && str_contains($desktopCommander, '/usr/bin/pgrep'),
+    'Ollama provider disables Qwen3 thinking so short chat responses are returned as content' => str_contains($ollamaDriver, "\$payload['think']=false") && str_contains($ollamaDriver, "preg_match('/^qwen3(?::|\$)/i',\$model)"),
     'notification panel and mark-all-read control are present' => str_contains($page, 'id="notification-panel"') && str_contains($page, 'id="notifications-read-all"'),
     'notification list supports read-one and read-all lifecycle' => str_contains($js, "api('/api/notifications/read',{id:b.dataset.notification},'POST')") && str_contains($js, "api('/api/notifications/read',{all:true},'POST')"),
     'notification endpoints are implemented server-side' => str_contains($api, "if(\$method==='GET'&&\$path==='/api/notifications')") && str_contains($api, "if(\$method==='POST'&&\$path==='/api/notifications/read')"),
