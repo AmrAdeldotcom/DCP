@@ -8,5 +8,8 @@ if ($basePath === '.' || $basePath === '/') $basePath = '';
 $_SERVER['DCP_BASE_PATH'] = $basePath;
 putenv('DCP_MODE=web-preview');
 $_SERVER['DCP_MODE'] = 'web-preview';
+$webPreviewDataRoot = getenv('DCP_WEB_PREVIEW_DATA_DIR') ?: (dirname(__DIR__) . '/DCP-UserData/WebPreview');
+putenv('DCP_USER_DATA_DIR=' . $webPreviewDataRoot);
+$_SERVER['DCP_USER_DATA_DIR'] = $webPreviewDataRoot;
 
 require __DIR__ . '/bootstrap/app.php';

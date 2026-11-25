@@ -6,6 +6,12 @@ final class CloudService {
     private string $baseUrl;
     public function __construct(private PDO $db, private Crypto $crypto, ?string $baseUrl = null) {
         $this->baseUrl = rtrim($baseUrl ?? self::BASE_URL, '/');
+        $scheme = strtolower((string)parse_url($this->baseUrl, PHP_URL_SCHEME));
+        $host = strtolower(trim((string)parse_url($this->baseUrl, PHP_URL_HOST), '[]'));
+        $loopback = in_array($host, ['localhost', '127.0.0.1', '::1'], true);
+        if ($scheme !== 'https' && !($scheme === 'http' && $loopback)) {
+            throw new InvalidArgumentException('DCP Cloud must use HTTPS; plain HTTP is allowed only for loopback tests.');
+        }
     }
 
     private function value(string $key): string {
@@ -20,7 +26,7 @@ final class CloudService {
     private function request(string $method,string $path,?array $body=null,string $token=''):array {
         $ch=curl_init($this->baseUrl.$path);if($ch===false)throw new RuntimeException('Could not initialize the DCP Cloud connection.');
         $headers=['Accept: application/json'];if($token!=='')$headers[]='Authorization: Bearer '.$token;if($body!==null)$headers[]='Content-Type: application/json';
-        $opts=[CURLOPT_RETURNTRANSFER=>true,CURLOPT_CONNECTTIMEOUT=>6,CURLOPT_TIMEOUT=>18,CURLOPT_HTTPHEADER=>$headers,CURLOPT_CUSTOMREQUEST=>strtoupper($method),CURLOPT_FOLLOWLOCATION=>false];
+        $opts=[CURLOPT_RETURNTRANSFER=>true,CURLOPT_CONNECTTIMEOUT=>6,CURLOPT_TIMEOUT=>18,CURLOPT_HTTPHEADER=>$headers,CURLOPT_CUSTOMREQUEST=>strtoupper($method),CURLOPT_FOLLOWLOCATION=>false,CURLOPT_SSL_VERIFYPEER=>true,CURLOPT_SSL_VERIFYHOST=>2];
         if($body!==null)$opts[CURLOPT_POSTFIELDS]=json_encode($body,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);
         curl_setopt_array($ch,$opts);$raw=curl_exec($ch);$status=(int)curl_getinfo($ch,CURLINFO_RESPONSE_CODE);$err=curl_error($ch);curl_close($ch);
         if($raw===false)throw new RuntimeException('DCP Cloud is unreachable: '.($err?:'network error'));

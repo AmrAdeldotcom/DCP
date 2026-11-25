@@ -65,3 +65,7 @@ platform/dcp-env/engines/llama.cpp/source/
 platform/dcp-env/engines/llama.cpp/macos-x64/
 platform/dcp-env/engines/llama.cpp/linux-x64/
 platform/dcp-env/engines/ollama/linux-x64/
+
+# Local-only release signing material and temporary test harnesses
+DCP-KEYS/
+.tmp/
