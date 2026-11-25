@@ -3,7 +3,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 WORK="$(mktemp -d "${TMPDIR:-/tmp}/dcp-release-assembly-test.XXXXXX")"
 trap 'rm -rf "$WORK"' EXIT HUP INT TERM
-mkdir -p "$WORK/current" "$WORK/out-full" "$WORK/empty-base" "$WORK/revision-base" "$WORK/revision-current" "$WORK/out-revision"
+mkdir -p "$WORK/current" "$WORK/out-full" "$WORK/empty-base" "$WORK/revision-base" "$WORK/revision-current" "$WORK/out-revision" "$WORK/stable-current" "$WORK/out-stable"
 
 python3 - "$WORK" <<'PY'
 import json,os,stat,sys,tarfile,zipfile
@@ -58,6 +58,14 @@ for platform,arch,name,fmt in specs:
  create_tree(revised,platform,arch,2)
  archive(base,work/'revision-base'/name,fmt)
  archive(revised,work/'revision-current'/name,fmt)
+ stable=work/'stable-current'/(platform+'-'+arch)
+ create_tree(stable,platform,arch,1)
+ (stable/'platform/version.json').write_text(json.dumps({
+  'version':'1.0.0','releaseTag':'v1.0.0','channel':'stable',
+  'build':'10','packageRevision':1
+ },indent=2)+'\n')
+ (stable/'platform/app/index.php').write_text('first stable app based on Alpha 10')
+ archive(stable,work/'stable-current'/name,fmt)
 PY
 
 openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out "$WORK/private.pem" >/dev/null 2>&1
@@ -111,4 +119,22 @@ for p in root.glob('DCP-*-update-v3.json'):
  assert any(x['path']=='platform/app/revision-two.php' for x in m['delta']['files'])
 print('PASS: subsequent packageRevision update selects the exact preceding approved package and creates Delta assets')
 PY
+bash "$ROOT/platform/scripts/assemble-signed-release.sh" \
+  v1.0.0 bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb \
+  "$WORK/stable-current" "$WORK/revision-base" "$WORK/out-stable" v1.0.0-alpha.10
+python3 - "$WORK/out-stable" <<'PY'
+import json,pathlib,sys
+root=pathlib.Path(sys.argv[1])
+for p in root.glob('DCP-*-update-v3.json'):
+ m=json.loads(p.read_text())
+ assert m['version']=='1.0.0' and m['release_tag']=='v1.0.0' and m['package_revision']==1
+ assert m['delta'] is not None
+ assert m['delta']['base']=={'version':'1.0.0-alpha.10','release_tag':'v1.0.0-alpha.10','package_revision':1}
+ assert any(x['path']=='platform/app/index.php' for x in m['delta']['files'])
+print('PASS: first stable v1.0.0 creates synchronized Delta packages directly from the approved Alpha 10 full packages')
+PY
+for manifest in "$WORK/out-stable"/DCP-*-update-v3.json; do
+  openssl dgst -sha256 -verify "$WORK/public.pem" -signature "$manifest.sig" "$manifest" >/dev/null
+done
+echo 'PASS: all four stable transition manifest signatures verify'
 echo 'ALL SIGNED RELEASE ASSEMBLY TESTS PASSED'

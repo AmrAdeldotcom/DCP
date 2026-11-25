@@ -30,6 +30,8 @@ assert(base_step && base_step['run'].include?('v1.0.0-alpha.10') && base_step['r
 assert(base_step['run'].include?('GITHUB_REF_NAME" == "v1.0.0"') && base_step['run'].include?('BASE_TAG="v1.0.0-alpha.10"'), 'first stable v1.0.0 release uses Alpha 10 as its exact Delta base')
 assembly_test = steps.find { |step| step['name'].to_s.include?('ephemeral test key') }
 assert(assembly_test && assembly_test['run'].include?('platform/tests/release-assembly.sh'), 'release workflow runs a four-platform assembly test before using the production key')
+assembly_source = File.read(File.join(ROOT, 'platform', 'tests', 'release-assembly.sh'))
+assert(assembly_source.include?('v1.0.0 bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb') && assembly_source.include?('first stable v1.0.0 creates synchronized Delta packages directly from the approved Alpha 10 full packages'), 'release assembly regression covers the Alpha 10 to stable 1.0.0 Delta transition')
 download = steps.find { |step| step['uses'].to_s.start_with?('actions/download-artifact@') }
 assert(download && download.dig('with', 'pattern') == 'dcp-*-package-release', 'release assembly downloads only platform package artifacts')
 assembly = steps.find { |step| step['name'].to_s.include?('Build and sign synchronized') }
