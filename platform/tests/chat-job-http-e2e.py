@@ -35,11 +35,15 @@ try:
     status,saved=request('/api/providers/save','POST',{'name':'Chat HTTP E2E mock','plugin_id':'openai-compatible','base_url':f'http://127.0.0.1:{provider_port}/v1','model':'mock-delay','api_key':'','enabled':True})
     assert status==200 and saved.get('provider',{}).get('id'),(status,saved)
     provider_id=saved['provider']['id']
+    started_at=time.monotonic()
     status,started=request('/api/chat','POST',{'provider_id':provider_id,'model':'mock-delay','message':'long running chat request'})
+    elapsed=time.monotonic()-started_at
+    assert elapsed<8.0,('Chat API must return before the 10-second provider fixture completes; elapsed=%.2fs'%elapsed)
     assert status==200 and started.get('job_id') and started.get('async') is True,(status,started)
+    print('PASS: /api/chat returned its durable job ID in %.2fs'%elapsed,flush=True)
     job_id=started['job_id'];session_id=started['session_id']
     running=None
-    for _ in range(100):
+    for _ in range(200):
         status,running=request('/api/chat/jobs?id='+urllib.parse.quote(job_id))
         if running.get('status')=='running':break
         if running.get('status') in ('failed','checkpoint_ready','completed'):raise RuntimeError('Worker did not enter its running state before the delayed provider call: '+repr(running))
@@ -51,7 +55,7 @@ try:
     status,interrupted=request('/api/chat/jobs/interrupt','POST',{'id':job_id})
     assert status==200 and interrupted['job']['status'] in ('checkpoint_requested','checkpoint_ready'),(status,interrupted)
     final=None
-    for _ in range(100):
+    for _ in range(200):
         status,final=request('/api/chat/jobs?id='+urllib.parse.quote(job_id))
         if final.get('status') in ('checkpoint_ready','completed','failed'):break
         time.sleep(.1)

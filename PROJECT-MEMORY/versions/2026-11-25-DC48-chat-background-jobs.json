@@ -57,7 +57,7 @@
     "workflowYaml": "pass",
     "gitDiffCheck": "pass"
   },
-  "ci": "pending after push; Ubuntu/Windows/macOS matrix",
+  "ci": "retry pending after test-fixture timing adjustment",
   "next": [
     "cross-platform CI validation",
     "durable checkpoint context snapshots",
@@ -66,5 +66,12 @@
     "live Windows/Ubuntu/macOS Device Agent acceptance",
     "Q005 real installed-client update/rollback/data preservation"
   ],
-  "implementationCommit": "b554e08"
+  "implementationCommit": "b554e08",
+  "ciFirstRun": {
+    "run": 45549942820,
+    "ubuntu": "success",
+    "macos": "success",
+    "windows": "worker-e2e-success; http-test-raced-because-2.5s-delay-fixture-finished-before-first-poll",
+    "testAdjustment": "mock provider delay increased to 10s; HTTP test asserts API returns within 8s"
+  }
 }
