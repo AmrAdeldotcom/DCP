@@ -2,7 +2,7 @@
 
 Date: 2026-11-25
 Branch: `feature/local-ai-runtime-discovery`
-HEAD: `cdd65d6`
+HEAD: `19c56d5`
 Source: `/Volumes/Data/ChatGPT/DCP-Source`
 
 ## User direction
@@ -16,8 +16,9 @@ Source: `/Volumes/Data/ChatGPT/DCP-Source`
 - `c9620e5 feat(resources): invoke owner-local AI resources and return signed remote results`
 - `33ecfbf docs(project): checkpoint DC68 MCP closure and Q015 progress`
 - `cdd65d6 test(security): verify DCP device signatures against Cloud`
+- `19c56d5 docs(project): record DC68 signing interoperability validation`
 
-All five commits are local. Branch is five commits ahead of origin. No push, release or production deployment was performed.
+All five commits are local. Branch is six commits ahead of origin. No push, release or production deployment was performed.
 
 ## Local MCP — source implementation complete
 - Local STDIO host keeps alive, advertises the DCP logo and supports multiple JSON-RPC requests.
