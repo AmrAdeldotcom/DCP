@@ -5,7 +5,7 @@
   "session": "DC71",
   "repository": "/Volumes/Data/ChatGPT/DCP-Source",
   "branch": "feature/local-ai-runtime-discovery",
-  "headCommit": "pending-DC71",
+  "headCommit": "4e83a58",
   "latestReleaseTag": "v1.0.0",
   "workingTree": "DC71: fixed port registry and cross-platform wrapper checks; Ubuntu DCP is active on 60776. Chat workspace redesigned with 25/75 history/chat split and bottom AI/Tasks/device dock; Send and hamburger handlers wired; @ suggestions added. Windows wrapper complete publish deployed with portable-first LocalAppData fallback, but latest Windows process did not start PHP or create runtime-port, so Windows acceptance remains open. Architecture docs for cross-device tasks/resources/permissions and external DC/DSH installation written. Full platform tests pass.",
   "device": {
@@ -24,7 +24,7 @@
     "conversation": "DC71",
     "date": "2026-11-26",
     "branch": "feature/local-ai-runtime-discovery",
-    "branchHead": "pending-DC71",
+    "branchHead": "4e83a58",
     "stage": "DCP fixed port map active on Ubuntu; chat context dock and JS controls implemented; Windows runtime acceptance unresolved; architecture docs created.",
     "completed": [
       "DCP port registry maps logical codes 210776,310707,270603,780908,770808,901214,121216 to TCP ports 60776,60707,60603,60908,60808,60214,60216 respectively.",
@@ -1003,13 +1003,13 @@
       }
     }
   },
-  "latestImplementationCommit": "pending-DC71",
-  "latestPushedCommit": "pending-DC71",
+  "latestImplementationCommit": "4e83a58",
+  "latestPushedCommit": "4e83a58",
   "folderSeparation": {
     "source": "DCP-Source",
     "sourcePath": "/Volumes/Data/ChatGPT/DCP-Source",
     "sourceBranch": "feature/local-ai-runtime-discovery",
-    "sourceHead": "pending-DC71",
+    "sourceHead": "4e83a58",
     "sourceWorkingTree": "DC71 changes remain on feature/local-ai-runtime-discovery; stable /Volumes/Data/DiGiPL/DCP v1.0.0 untouched.",
     "releaseInstall": "DCP",
     "releaseInstallPath": "/Volumes/Data/DiGiPL/DCP",

@@ -3,7 +3,7 @@
   "session": "DC71",
   "date": "2026-11-26",
   "branch": "feature/local-ai-runtime-discovery",
-  "headCommit": "pending-DC71",
+  "headCommit": "4e83a58",
   "releasePublished": false,
   "ports": [
     {

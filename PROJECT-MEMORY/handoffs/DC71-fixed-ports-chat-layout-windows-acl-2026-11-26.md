@@ -2,6 +2,7 @@
 
 Date: 2026-11-26
 Branch: feature/local-ai-runtime-discovery
+Commit: 4e83a58
 Repository: /Volumes/Data/ChatGPT/DCP-Source
 VMs: Ubuntu 192.168.8.88; Windows 192.168.8.99
 
