@@ -32,7 +32,7 @@ final class DcpResourceInvocationService {
             return ['invocation_id'=>$invocation['invocation_id'],'resource_id'=>$resourceId,'status'=>'completed','provider'=>$resource['provider'],'model'=>$model,'text'=>$text];
         } catch (Throwable $error) {
             try {$this->registry->finishInvocation($invocation['invocation_id'],$ownerId,'failed');} catch (Throwable) {}
-            error_log('[DCP Resource Invocation] '.$error::class.': '.$error->getMessage());
+            error_log('[DCP Resource Invocation] '.$error::class.' for resource '.$resourceId.'; provider details redacted.');
             throw new RuntimeException('Resource invocation failed. Credentials and provider response details were not returned to the caller.',0,$error);
         }
     }
