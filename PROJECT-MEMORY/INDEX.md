@@ -80,3 +80,5 @@ This folder is the durable continuity layer for ChatGPT and other authorized eng
 
 
 - Current handoff (DC71): PROJECT-MEMORY/handoffs/DC71-fixed-ports-chat-layout-windows-acl-2026-11-26.md; fixed DCP port registry, bottom chat context dock, Send/hamburger handlers and device-orchestration architecture docs. Windows runtime acceptance remains open.
+
+- Model portability decision: docs/architecture/MODEL-PORTABILITY-AND-DEVICE-IDENTITY.md — GGUF SHA remains stable; device UUID/signing identity rotates on clone; Cloud re-pair required.

@@ -57,6 +57,10 @@ All bind to loopback by default. These are local conventions, not worldwide or I
 - Wired hamburger to persistent sidebar collapse/expand.
 - The current front-end context picker is an initial UI surface; it does not yet dispatch signed remote tasks or bypass/implement grants.
 
+## Model portability decision
+
+GGUF bytes remain in DCP private user data under storage/models/gguf and are content-addressed by SHA-256. Device identity is a separate random UUID plus device-local signing keypair. A copied installation must preserve models but rotate identity and require fresh Cloud pairing; provider secrets are not blindly cloned. See docs/architecture/MODEL-PORTABILITY-AND-DEVICE-IDENTITY.md. This clone-rotation flow is a design decision and still needs implementation.
+
 ## Architecture docs
 
 - docs/architecture/CHAT-AND-DEVICE-ORCHESTRATION.md defines the unified chat, AI/Tasks/device contexts, @ routing, DP-Core/DC/DSH targets, signed remote request flow, owner approval, permanent grants, revocation, audit, secret locality, planned APIs and acceptance criteria.
