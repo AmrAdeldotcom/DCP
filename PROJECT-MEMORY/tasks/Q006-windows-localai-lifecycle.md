@@ -54,3 +54,18 @@ GitHub signed release run 45515068071 completed with failure. Linux, Windows, ma
 2. Run equivalent Linux live Qwen3 0.6B start/chat/stop using the existing cached model without disturbing unrelated services.
 3. Verify the Windows UI's Run with llama.cpp action against the managed API and confirm stop/status refresh.
 4. Continue Q007 and remaining queued phases. No release or target app update is authorized by this checkpoint.
+
+## Linux real-device acceptance — 2026-11-25
+Machine: Ubuntu 24.04 x86_64.
+Runtime binary: existing managed DCP llama.cpp build 1.0.0-dev (build 12681, commit d141011c2).
+Model cache: reused the existing 484,220,448-byte Qwen3 0.6B Q4_K_M blob through a read-only symlink in an isolated /tmp cache fixture.
+Harness: copied the current LocalAIService.php and CustomModelManager.php into /tmp/DCP-Q006-Linux; used a temporary storage directory and the installed llama-server binary. No installed app files were replaced.
+Result:
+1. Managed Linux llama-server started on loopback port 34117.
+2. /v1/models returned the loaded model.
+3. /v1/chat/completions returned exact probe DCP_QWEN06_LINUX_OK.
+4. LocalAIService stop confirmed the owned PID exited and cleared its temporary runtime state.
+5. Post-test probe found no llama-server process, confirmed temporary runtime state removal, and confirmed the pre-existing DCP update watcher PID 799817 remained running.
+No production DCP app files, SQLite, master.key, or existing services were changed. The temporary /tmp harness is disposable.
+
+Updated Q006 state: real low-memory model start/chat/stop now passes on both Windows interactive user and Ubuntu Linux. Remaining Q006 work: verify the Windows UI action/status path and macOS managed low-memory runtime path; then move on to remaining queued product phases.
