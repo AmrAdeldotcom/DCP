@@ -19,6 +19,10 @@ on:
       - 'platform/plugins/tools/mcp-host/server.php'
       - 'platform/tests/mcp-tool-registry.php'
       - 'platform/tests/mcp-host-e2e.php'
+      - 'platform/app/Services/DcpToolRegistry.php'
+      - 'platform/plugins/tools/mcp-host/server.php'
+      - 'platform/tests/mcp-tool-registry.php'
+      - 'platform/tests/mcp-host-e2e.php'
       - 'platform/app/Services/DeviceWorkspaceService.php'
       - 'platform/tests/device-workspace-envelope.php'
       - 'platform/tests/device-agent-workspace.php'
@@ -49,6 +53,10 @@ on:
       - 'platform/tests/chat-job-http-e2e.py'
       - 'platform/tests/mock-chat-delay-router.php'
       - 'platform/app/Services/ChatJobService.php'
+      - 'platform/app/Services/DcpToolRegistry.php'
+      - 'platform/plugins/tools/mcp-host/server.php'
+      - 'platform/tests/mcp-tool-registry.php'
+      - 'platform/tests/mcp-host-e2e.php'
       - 'platform/app/Services/DcpToolRegistry.php'
       - 'platform/plugins/tools/mcp-host/server.php'
       - 'platform/tests/mcp-tool-registry.php'
@@ -95,6 +103,10 @@ jobs:
           php -l platform/app/Core/Database.php
           php -l platform/app/Controllers/ApiController.php
           php -l platform/app/Services/ChatJobService.php
+          php -l platform/app/Services/DcpToolRegistry.php
+          php -l platform/plugins/tools/mcp-host/server.php
+          php -l platform/tests/mcp-tool-registry.php
+          php -l platform/tests/mcp-host-e2e.php
           php -l platform/app/Services/DcpToolRegistry.php
           php -l platform/plugins/tools/mcp-host/server.php
           php -l platform/tests/mcp-tool-registry.php
