@@ -3,7 +3,6 @@
   "timestamp": "2026-11-25T06:53:33+02:00",
   "repository": "AmrAdeldotcom/DCP",
   "branch": "feature/local-ai-runtime-discovery",
-  "baseCommit": "d1892ae",
   "scope": "DCP only; DP_Anything deferred",
   "q012": {
     "status": "local-e2e-pass-cross-platform-ci-pending",
@@ -66,5 +65,6 @@
     "worker lease heartbeat/idempotency/restart recovery",
     "live Windows/Ubuntu/macOS Device Agent acceptance",
     "Q005 real installed-client update/rollback/data preservation"
-  ]
+  ],
+  "implementationCommit": "b554e08"
 }

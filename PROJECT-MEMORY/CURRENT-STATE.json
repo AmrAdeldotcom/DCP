@@ -5,7 +5,7 @@
   "session": "DC48",
   "repository": "/Volumes/Data/ChatGPT/DCP",
   "branch": "feature/local-ai-runtime-discovery",
-  "headCommit": "d1892ae",
+  "headCommit": "b554e08",
   "latestReleaseTag": "v1.0.0",
   "workingTree": "DC48: DCP-only work on feature/local-ai-runtime-discovery. Persistent Task Inbox + background Chat Jobs + provider-boundary checkpoint. Do not stage unrelated pre-existing untracked handoffs/version files or modify DP_Anything.",
   "device": {
@@ -26,7 +26,7 @@
     "timestamp": "2026-11-25T06:53:33+02:00",
     "project": "DCP only; DP_Anything deferred",
     "branch": "feature/local-ai-runtime-discovery",
-    "headCommit": "d1892ae",
+    "headCommit": "b554e08",
     "q012": "Task Inbox + independent background Chat Jobs + provider-boundary checkpoint implemented; locally E2E tested",
     "tests": {
       "platformSuite": "ALL PLATFORM TESTS PASSED",
@@ -626,7 +626,7 @@
     },
     "releaseStatus": "Linux/Windows packages successful; macOS arm64 PHP successful; macOS x64 PHP and Intel llama in progress; Apple Silicon llama queued; no public release assets yet"
   },
-  "branchHead": "d3eed0c",
+  "branchHead": "b554e08",
   "originBranchHead": "ab3d5c6",
   "dc21Checkpoint": {
     "timestamp": "2026-11-24T20:23:42+02:00",
@@ -794,6 +794,8 @@
       "lease timeout fails closed; no worker heartbeat/retry",
       "Windows/Linux/macOS CI results pending"
     ],
-    "workflow": ".github/workflows/test-chat-worker.yml"
-  }
+    "workflow": ".github/workflows/test-chat-worker.yml",
+    "commit": "b554e08"
+  },
+  "latestImplementationCommit": "b554e08"
 }
