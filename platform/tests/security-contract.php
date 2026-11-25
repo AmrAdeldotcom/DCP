@@ -29,6 +29,13 @@ $checks = [
     'repository ignores local signing keys and disposable test harnesses' => str_contains($gitignore, 'DCP-KEYS/') && str_contains($gitignore, '.tmp/'),
     'GGUF import enforces extension, size, symlink, hash and private file mode checks' => str_contains($gguf, "PATHINFO_EXTENSION") && str_contains($gguf, '21474836480') && str_contains($gguf, 'is_link($source)') && str_contains($gguf, "hash_file('sha256'") && str_contains($gguf, '0600'),
 ];
+$cloudClient = file_get_contents(__DIR__ . '/../app/Services/CloudService.php');
+$macWrapper = file_get_contents(__DIR__ . '/../wrappers/macos/main.m');
+$winWrapper = file_get_contents(__DIR__ . '/../wrappers/windows/Program.cs');
+$linuxWrapper = file_get_contents(__DIR__ . '/../wrappers/linux/dcp-webview.c');
+$checks['Cloud heartbeat retries transient network failures without retrying unsafe mutations'] = str_contains($cloudClient, "\$path==='/devices/heartbeat'") && str_contains($cloudClient, '$attempts=') && str_contains($cloudClient, 'automatic reconnect attempts');
+$checks['all three desktop launchers permit large GGUF file uploads'] = str_contains($macWrapper, 'upload_max_filesize=1G') && str_contains($winWrapper, 'upload_max_filesize=1G') && str_contains($linuxWrapper, 'upload_max_filesize=1G');
+$checks['Windows and macOS desktop wrapper logs start fresh on each launch'] = str_contains($macWrapper, 'removeItemAtPath:log.path') && str_contains($winWrapper, 'File.WriteAllText(LogPath, string.Empty)');
 $failed = 0;
 foreach ($checks as $label => $ok) {
     echo ($ok ? 'PASS: ' : 'FAIL: ') . $label . PHP_EOL;

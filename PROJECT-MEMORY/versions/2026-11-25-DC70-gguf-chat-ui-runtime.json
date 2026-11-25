@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "session": "DC70",
+  "date": "2026-11-25",
+  "branch": "feature/local-ai-runtime-discovery",
+  "headCommit": "pending-DC70",
+  "releaseTag": "v1.0.0",
+  "releasePublished": false,
+  "verified": {
+    "platformTests": "ALL PLATFORM TESTS PASSED",
+    "phpLint": "PASS",
+    "javascriptSyntax": "PASS",
+    "gitDiffCheck": "PASS",
+    "ubuntuDynamicPort": "PASS on 35937",
+    "macLlamaCppInference": "PASS: DCP_QWEN3_OK",
+    "ollamaConversion": "PASS: dcp-qwen3-0.6b-q4-k-m:latest",
+    "ollamaInference": "PASS: DCP_OK",
+    "cloudHeartbeat": "connected=true; account_linked=false"
+  },
+  "blockers": [
+    "Windows interactive GUI acceptance pending",
+    "main is 119 commits behind feature branch; signed release requires tag SHA equal current default branch HEAD",
+    "Q015 Cloud owner-node invocation and production Cloud signing/migration gates remain open"
+  ],
+  "model": {
+    "file": "Qwen3-0.6B-Q4_K_M.gguf",
+    "sizeBytes": 396705472,
+    "sha256": "ac2d97712095a558e31573f62f466a3f9d93990898b0ec79d7c974c1780d524a"
+  },
+  "vm": {
+    "ubuntu": "192.168.8.88",
+    "windows": "192.168.8.99"
+  }
+}

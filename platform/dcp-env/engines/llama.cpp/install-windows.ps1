@@ -1,4 +1,5 @@
 $ErrorActionPreference = 'Stop'
+$ProgressPreference = 'SilentlyContinue'
 $PlatformRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
 $Dest = Join-Path $PlatformRoot 'dcp-env\engines\llama.cpp\windows-x64'
 $SystemServer = Get-Command 'llama-server.exe' -ErrorAction SilentlyContinue

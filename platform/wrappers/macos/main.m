@@ -56,6 +56,13 @@
     return ([url.scheme.lowercaseString isEqualToString:@"http"] || [url.scheme.lowercaseString isEqualToString:@"https"]) &&
            ([host isEqualToString:@"127.0.0.1"] || [host isEqualToString:@"localhost"]);
 }
+- (void)webView:(WKWebView *)webView runOpenPanelWithParameters:(WKOpenPanelParameters *)parameters initiatedByFrame:(WKFrameInfo *)frame completionHandler:(void (^)(NSArray<NSURL *> * _Nullable URLs))completionHandler {
+    NSOpenPanel *panel=[NSOpenPanel openPanel];
+    panel.canChooseFiles=YES; panel.canChooseDirectories=NO; panel.allowsMultipleSelection=parameters.allowsMultipleSelection;
+    panel.allowedFileTypes=@[@"gguf"];
+    panel.message=@"Choose a GGUF model to copy into DCP private model storage";
+    [panel beginWithCompletionHandler:^(NSModalResponse response){ completionHandler(response==NSModalResponseOK ? panel.URLs : nil); }];
+}
 - (void)webView:(WKWebView *)webView decidePolicyForNavigationAction:(WKNavigationAction *)action decisionHandler:(void (^)(WKNavigationActionPolicy))decisionHandler {
     NSURL *url=action.request.URL;
     if(url && [self isDCPInternalURL:url]) { decisionHandler(WKNavigationActionPolicyAllow); return; }
@@ -145,12 +152,13 @@
     NSURL *logs=[storageDir URLByAppendingPathComponent:@"logs" isDirectory:YES];
     [[NSFileManager defaultManager] createDirectoryAtURL:logs withIntermediateDirectories:YES attributes:@{NSFilePosixPermissions:@0700} error:nil];
     NSURL *log=[logs URLByAppendingPathComponent:@"desktop-wrapper.log"];
+    [[NSFileManager defaultManager] removeItemAtPath:log.path error:nil];
     [[NSFileManager defaultManager] createFileAtPath:log.path contents:nil attributes:@{NSFilePosixPermissions:@0600}];
     NSFileHandle *handle=[NSFileHandle fileHandleForWritingAtPath:log.path];
     self.phpTask=[[NSTask alloc] init];
     self.phpTask.executableURL=[NSURL fileURLWithPath:php];
     NSString *address=[NSString stringWithFormat:@"127.0.0.1:%ld",(long)self.port];
-    self.phpTask.arguments=@[@"-S",address,@"-t",publicDir.path,router.path];
+    self.phpTask.arguments=@[@"-d",@"upload_max_filesize=1G",@"-d",@"post_max_size=1G",@"-d",@"max_input_time=0",@"-d",@"max_execution_time=0",@"-S",address,@"-t",publicDir.path,router.path];
     self.phpTask.currentDirectoryURL=self.platformURL;
     NSMutableDictionary *environment=[NSMutableDictionary dictionaryWithDictionary:[[NSProcessInfo processInfo] environment]];
     // DCP embedded PHP/libcurl can stall on external HTTPS when launched with

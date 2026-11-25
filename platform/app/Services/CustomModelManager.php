@@ -68,7 +68,7 @@ trait CustomModelManager
 
         if (PHP_OS_FAMILY === 'Windows') {
             $ps = '$p=Get-CimInstance Win32_Process -Filter "ProcessId = ' . $pid . '"; if($p){[pscustomobject]@{Path=$p.ExecutablePath;CommandLine=$p.CommandLine}|ConvertTo-Json -Compress}';
-            $raw = $this->run('powershell.exe -NoLogo -NoProfile -NonInteractive -Command ' . escapeshellarg($ps), 3);
+            $raw = $this->runWindowsPowerShell(['-Command', $ps], 3);
             $info = json_decode($raw, true);
             if (!is_array($info)) return false;
             $actual = strtolower(str_replace('/', chr(92), (string)($info['Path'] ?? '')));
@@ -95,6 +95,11 @@ trait CustomModelManager
         $ollama = $this->ollama();
         $installed = array_map(static fn($m) => (string)($m['id'] ?? ''), $ollama['models']);
         foreach ($models as &$model) {
+            // Give the supplied Qwen3 starter a stable catalogue identity even when
+            // older uploads were named after PHP's temporary upload file.
+            if (hash_equals('ac2d97712095a558e31573f62f466a3f9d93990898b0ec79d7c974c1780d524a', strtolower((string)($model['sha256'] ?? '')))) {
+                $model['name'] = 'Qwen3 0.6B · GGUF Q4_K_M';
+            }
             $name = (string)($model['ollama_name'] ?? '');
             $model['ollama_installed'] = $name !== '' && (in_array($name, $installed, true) || in_array($name . ':latest', $installed, true));
             if ($model['ollama_installed']) {
@@ -113,12 +118,12 @@ trait CustomModelManager
         return $models;
     }
 
-    public function importGguf(string $sourcePath, string $displayName = ''): array
+    public function importGguf(string $sourcePath, string $displayName = '', string $originalFilename = ''): array
     {
         @set_time_limit(0);
         $source = realpath($sourcePath);
         if ($source === false || !is_file($source) || is_link($sourcePath) || is_link($source)) throw new InvalidArgumentException('Choose an existing regular GGUF file, not a symlink.');
-        if (strtolower(pathinfo($source, PATHINFO_EXTENSION)) !== 'gguf') throw new InvalidArgumentException('Custom model import accepts .gguf files only.');
+        if (strtolower(pathinfo($originalFilename !== '' ? $originalFilename : $source, PATHINFO_EXTENSION)) !== 'gguf') throw new InvalidArgumentException('Custom model import accepts .gguf files only.');
         $size = filesize($source);
         if ($size === false || $size < 24 || $size > 21474836480) throw new InvalidArgumentException('GGUF file size must be between 24 bytes and 20 GB.');
         $handle = fopen($source, 'rb');
@@ -131,7 +136,8 @@ trait CustomModelManager
 
         $sha = hash_file('sha256', $source);
         if (!is_string($sha)) throw new RuntimeException('Could not calculate the GGUF SHA-256 checksum.');
-        $baseName = trim($displayName) !== '' ? trim($displayName) : pathinfo($source, PATHINFO_FILENAME);
+        $fallbackName = $originalFilename !== '' ? pathinfo($originalFilename, PATHINFO_FILENAME) : pathinfo($source, PATHINFO_FILENAME);
+        $baseName = trim($displayName) !== '' ? trim($displayName) : $fallbackName;
         $slug = $this->customModelSlug($baseName);
         $id = $slug . '-' . substr($sha, 0, 12);
         $models = $this->readCustomModels();
@@ -210,7 +216,7 @@ trait CustomModelManager
             $errorPath = str_replace("'", "''", $log . '.err');
             $body = "\$ErrorActionPreference = 'Stop'\n\$modelName = '$modelName'\n\$fileArg = '$fileArg'\n\$arguments = 'create ' + \$modelName + ' -f \"' + \$fileArg + '\"'\n\$p = Start-Process -FilePath '$exe' -ArgumentList \$arguments -PassThru -WindowStyle Hidden -RedirectStandardOutput '$logPath' -RedirectStandardError '$errorPath'\nWrite-Output \$p.Id\n";
             file_put_contents($script, $body);
-            $pid = (int)$this->run('powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ' . escapeshellarg($script), 8);
+            $pid = (int)$this->runWindowsPowerShell(['-File', $script], 8);
         } else {
             $command = 'nohup ' . escapeshellarg($bin) . ' create ' . escapeshellarg($name) . ' -f ' . escapeshellarg($modelfile) . ' > ' . escapeshellarg($log) . ' 2>&1 < /dev/null & echo $!';
             $pid = (int)$this->run($command, 5);

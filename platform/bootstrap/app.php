@@ -13,6 +13,37 @@ ini_set('display_errors','0');
 ini_set('log_errors','1');
 ini_set('error_log',$config['storage'].'/logs/php-error.log');
 if(!is_dir($config['storage'].'/logs'))mkdir($config['storage'].'/logs',0700,true);
+// Start a fresh, bounded log set once per desktop PHP server process. The
+// marker lives in private user storage and the lock prevents concurrent first
+// requests from rotating the same files more than once.
+$logSessionDir=$config['storage'].'/runtime';
+if(!is_dir($logSessionDir))mkdir($logSessionDir,0700,true);
+$logSessionFile=$logSessionDir.'/application-log-session.json';
+$logSessionLock=fopen($logSessionDir.'/application-log-session.lock','c');
+if($logSessionLock){
+ @chmod($logSessionDir.'/application-log-session.lock',0600);
+ if(flock($logSessionLock,LOCK_EX)){
+  $logSession=json_decode((string)@file_get_contents($logSessionFile),true);
+  $currentPid=getmypid();
+  if(!is_array($logSession)||(int)($logSession['pid']??0)!==$currentPid){
+   $stamp=date('Ymd-His').'-'.$currentPid;
+   $logNames=['php-error.log','php-server.log','local-ai-install.log','local-ai-pull.log','ollama-server.log','llama-server.log','llama-server.stdout.log','llama-server.stderr.log'];
+   if(PHP_OS_FAMILY==='Windows')$logNames[]='desktop-wrapper.log';
+   foreach($logNames as $logName){
+    $logPath=$config['storage'].'/logs/'.$logName;
+    if(is_file($logPath)&&filesize($logPath)>0){$archive=$logPath.'.'.$stamp.'.previous';@rename($logPath,$archive);}
+    if(!is_file($logPath)){$handle=@fopen($logPath,'wb');if($handle){fclose($handle);@chmod($logPath,0600);}}
+    $archives=glob($logPath.'.*.previous')?:[];
+    usort($archives,static fn(string $a,string $b):int=>(filemtime($b)?:0)<=>(filemtime($a)?:0));
+    foreach(array_slice($archives,5) as $staleArchive)@unlink($staleArchive);
+   }
+   @file_put_contents($logSessionFile,json_encode(['pid'=>$currentPid,'started_at'=>date(DATE_ATOM),'archive_suffix'=>$stamp],JSON_UNESCAPED_SLASHES),LOCK_EX);
+   @chmod($logSessionFile,0600);
+  }
+  flock($logSessionLock,LOCK_UN);
+ }
+ fclose($logSessionLock);
+}
 if(!is_dir($config['storage'].'/reports'))mkdir($config['storage'].'/reports',0700,true);
 register_shutdown_function(static function()use($config):void{
  $e=error_get_last();if(!$e||!in_array($e['type'],[E_ERROR,E_PARSE,E_CORE_ERROR,E_COMPILE_ERROR,E_USER_ERROR],true))return;

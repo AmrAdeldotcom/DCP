@@ -563,3 +563,18 @@
 - Next: Cloud owner-node resource invocation/proxy, local team/device grant parity, Hermes, two-device Windows/Ubuntu acceptance, native PTY/ConPTY and daemon crash recovery.
 
 - DC68 follow-on (`cdd65d6`): verified interoperability between the real local `TaskEnvelopeService` device signer and the Cloud Ed25519 result verifier; altered results are rejected. Resource provider exception details are now redacted from local logs. Full platform suite passes.
+
+
+## 2026-11-25 — DC69
+- Recorded user-confirmed static VM IPs (.88 Ubuntu, .99 Windows), updated strict SSH aliases, and documented verified guest host keys.
+- Added offline GGUF selection/import, direct custom llama.cpp run, Ollama conversion, Qwen3 0.6B starter suggestion, Termius-style terminal UI, fresh log sessions and Cloud heartbeat retry/reconnect.
+- macOS upload E2E passed; Ubuntu source sync complete; Linux wrapper rebuild and Windows package install/model distribution remain in progress.
+
+## 2026-11-25 — DC70: GGUF execution, chat context tabs and cross-platform fixes
+- Fixed Ubuntu blank WebView by replacing hard-coded port 18765 (owned by Ollama) with a dynamically allocated loopback port; rebuilt and relaunched Ubuntu DCP on port 35937 with HTTP 200 asset responses.
+- Corrected GGUF upload fallback naming to preserve the original filename and repaired the supplied Qwen3 starter identity by SHA-256.
+- Fixed Windows PowerShell argv-based process launch and canonical executable identity checks.
+- Reworked Chat workspace into compact Tasks, Local AI, API providers and Devices context tabs.
+- Repaired Intel Mac DCP-managed llama-server RPATH locally with @loader_path; real Qwen3 llama.cpp inference returned DCP_QWEN3_OK. Same GGUF converted to Ollama dcp-qwen3-0.6b-q4-k-m:latest; Ollama inference returned DCP_OK.
+- Cloud health, anonymous identity and heartbeat verified; account remains Guest/unlinked. Stable DiGiPL v1.0.0 install and user data untouched.
+- Full platform suite, PHP lint, JS syntax and git diff checks passed. Windows interactive GUI acceptance and signed-release integration remain pending.

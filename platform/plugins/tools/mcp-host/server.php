@@ -28,7 +28,12 @@ require $root . '/app/Services/DcpFilesystemService.php';
 require $root . '/app/Services/DeviceService.php';
 require $root . '/app/Services/CloudService.php';
 require $root . '/app/Services/ChatService.php';
+require_once $root . '/app/Services/DcpResourceChatClient.php';
+require_once $root . '/app/Services/DcpResourceInvocationService.php';
 require $root . '/app/Services/DcpToolRegistry.php';
+if (!class_exists(DcpResourceInvocationService::class, false)) {
+    throw new RuntimeException('DCP MCP bootstrap could not load the resource invocation service.');
+}
 
 $db = Database::connect($config);
 Database::migrate($db);

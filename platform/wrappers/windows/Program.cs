@@ -43,6 +43,7 @@ internal sealed class MainWindow : Form
     private async void StartDcp(object? sender, EventArgs e)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(LogPath)!);
+        File.WriteAllText(LogPath, string.Empty); // One fresh desktop-wrapper log per app launch.
         Port = FindAvailablePort();
         AppendLog($"DCP startup: launching an isolated local PHP service on 127.0.0.1:{Port}. Remote update check is deferred to background.");
 
@@ -80,6 +81,10 @@ internal sealed class MainWindow : Form
             RedirectStandardOutput = true,
             RedirectStandardError = true
         };
+        start.ArgumentList.Add("-d"); start.ArgumentList.Add("upload_max_filesize=1G");
+        start.ArgumentList.Add("-d"); start.ArgumentList.Add("post_max_size=1G");
+        start.ArgumentList.Add("-d"); start.ArgumentList.Add("max_input_time=0");
+        start.ArgumentList.Add("-d"); start.ArgumentList.Add("max_execution_time=0");
         start.ArgumentList.Add("-S");
         start.ArgumentList.Add($"127.0.0.1:{Port}");
         start.ArgumentList.Add("-t");

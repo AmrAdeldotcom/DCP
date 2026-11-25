@@ -695,3 +695,25 @@ This file is the durable resume point. Update status, evidence and next action a
 - Production gates: DCP Cloud must receive a protected `DCP_CLOUD_SIGNING_SEED`; `api_tokens.scopes_json` migration must be applied; Q007 APP_KEY approval remains pending. Never commit secrets or bypass the secret-file guard.
 - Remaining Q015: Cloud owner-node resource invocation/proxy with signed result and quotas/concurrency; local team/device grant discovery parity; Hermes/provider-neutral universal gateway; real Mac↔Windows/Ubuntu two-device acceptance; native PTY/ConPTY and terminal daemon crash recovery.
 - Stable installed v1.0.0 and existing DiGEMA MySQL/model data were not modified. `PROJECT-MEMORY/NETWORK-RESUME-REQUEST.json` remains untracked and was intentionally excluded.
+
+
+## DC70 active queue — runtime/UI fixes and Q015 continuation
+
+### Completed and locally verified
+- [x] Fix Ubuntu WebView port collision: Ollama owns 18765; DCP now selects a dynamic loopback port. Ubuntu app relaunched on 35937 and PHP assets return 200.
+- [x] Fix GGUF original filename fallback and Qwen3 catalogue identity by SHA-256.
+- [x] Fix Windows PowerShell argv-based process launch and canonical executable identity checks.
+- [x] Add Chat context tabs: Tasks, Local AI, API providers, Devices.
+- [x] Run imported Qwen3 GGUF on Intel Mac llama.cpp; inference returns DCP_QWEN3_OK.
+- [x] Convert same GGUF to Ollama; model dcp-qwen3-0.6b-q4-k-m:latest reaches ready and returns DCP_OK.
+- [x] Full platform tests, PHP lint, JS syntax and git diff checks pass.
+
+### Still open
+- [ ] Verify Windows DCP.exe in interactive desktop session; test current file chooser, GGUF launch/process identity and Ollama conversion.
+- [ ] Visually verify Ubuntu post-relaunch UI and chat context tabs.
+- [ ] Verify signed macOS llama.cpp package RPATH is relocatable before release.
+- [ ] Commit/push feature branch and open reviewed PR. Release workflow requires tag SHA equal current default-branch HEAD; do not bypass. Main is 119 commits behind this branch.
+- [ ] Continue Q015 Cloud owner-node signed resource invocation, quotas/concurrency, team/device grant parity, Hermes and real two-device resource invocation.
+- [ ] Cloud MCP deployment/migration remains gated by protected DCP_CLOUD_SIGNING_SEED and Q007 APP_KEY approval.
+
+Preserve: static VM IPs Ubuntu 192.168.8.88, Windows 192.168.8.99; stable /Volumes/Data/DiGiPL/DCP v1.0.0 untouched; never stage PROJECT-MEMORY/NETWORK-RESUME-REQUEST.json.

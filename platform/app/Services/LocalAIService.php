@@ -8,7 +8,7 @@ final class LocalAIService {
  private string $root;
  private string $storage;
  private array $catalog=[
-  ['id'=>'qwen3:0.6b','name'=>'Qwen3 0.6B','ram'=>4,'download'=>'~0.5 GB','tier'=>'Starter','note'=>'Very light; basic chat and quick tasks'],
+  ['id'=>'qwen3:0.6b','name'=>'Qwen3 0.6B · GGUF Q4_K_M','ram'=>4,'min_ram_gb'=>2,'download'=>'~397 MB · offline import recommended','tier'=>'Starter · First suggestion','note'=>'Import the supplied GGUF file once, then run it with llama.cpp or convert the same file into Ollama'],
   ['id'=>'qwen3:1.7b','name'=>'Qwen3 1.7B','ram'=>8,'download'=>'~1.4 GB','tier'=>'Light','note'=>'Good balance for low-memory devices'],
   ['id'=>'qwen3:4b','name'=>'Qwen3 4B','ram'=>12,'download'=>'~2.5 GB','tier'=>'Balanced','note'=>'Recommended everyday assistant'],
   ['id'=>'qwen3:8b','name'=>'Qwen3 8B','ram'=>20,'download'=>'~5.2 GB','tier'=>'Powerful','note'=>'Better reasoning; needs more memory'],
@@ -91,9 +91,10 @@ final class LocalAIService {
    $systemApp='/Applications/Ollama.app/Contents/Resources/ollama';
    if(PHP_OS_FAMILY==='Darwin'&&is_executable($systemApp))return $systemApp;
    $managed=PHP_OS_FAMILY==='Linux'
-    ?$this->root.'/dcp-env/engines/ollama/linux-x64/ollama'
+    ?$this->root.'/dcp-env/engines/ollama/linux-x64/bin/ollama'
     :$this->root.'/dcp-env/engines/ollama/'.$osArch.'/Ollama.app/Contents/Resources/ollama';
    if(is_executable($managed))return $managed;
+   if(PHP_OS_FAMILY==='Linux'&&is_executable($this->root.'/dcp-env/engines/ollama/linux-x64/ollama'))return $this->root.'/dcp-env/engines/ollama/linux-x64/ollama';
   }
   return '';
  }
@@ -189,7 +190,11 @@ param([int]$Port,[string]$Executable,[int]$ExpectedPid=0)
 $c=Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
 if($c -and ($ExpectedPid -le 0 -or $c.OwningProcess -eq $ExpectedPid)) {
  $p=Get-CimInstance Win32_Process -Filter ("ProcessId = " + $c.OwningProcess)
- if($p -and $p.ExecutablePath -ieq $Executable){Write-Output $p.ProcessId}
+ if($p -and $p.ExecutablePath) {
+ $actual=[System.IO.Path]::GetFullPath([string]$p.ExecutablePath).TrimEnd([char]92)
+ $expected=[System.IO.Path]::GetFullPath($Executable).TrimEnd([char]92)
+ if([string]::Equals($actual,$expected,[System.StringComparison]::OrdinalIgnoreCase)){Write-Output $p.ProcessId}
+}
 }
 PS;
   if(file_put_contents($script,$body."\n")===false)return 0;
@@ -232,13 +237,32 @@ PS;
   $socket=@fsockopen('127.0.0.1',$port,$error,$message,.3);
   if($socket){fclose($socket);return true;}return false;
  }
+ private function runWindowsPowerShell(array $arguments,int $timeout=8):string {
+  $command=array_merge(['powershell.exe','-NoLogo','-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass'],$arguments);
+  $spec=[0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']];
+  $proc=@proc_open($command,$spec,$pipes,$this->root,null,['bypass_shell'=>true]);
+  if(!is_resource($proc))throw new RuntimeException('Could not launch Windows PowerShell without a shell-quoting layer.');
+  fclose($pipes[0]);stream_set_blocking($pipes[1],false);stream_set_blocking($pipes[2],false);
+  $stdout='';$stderr='';$started=microtime(true);$exit=-1;
+  do {$stdout.=stream_get_contents($pipes[1])?:'';$stderr.=stream_get_contents($pipes[2])?:'';$state=proc_get_status($proc);if(!$state['running']){$exit=(int)$state['exitcode'];break;}if(microtime(true)-$started>$timeout){proc_terminate($proc,9);$exit=124;break;}usleep(50000);} while(true);
+  $stdout.=stream_get_contents($pipes[1])?:'';$stderr.=stream_get_contents($pipes[2])?:'';fclose($pipes[1]);fclose($pipes[2]);proc_close($proc);
+  if($exit!==0)throw new RuntimeException('Windows PowerShell operation failed'.($stderr!==''?': '.mb_substr(trim($stderr),0,500):'.'));
+  return trim($stdout);
+ }
+ private function startWindowsPowerShellScript(string $script):int {
+  $childArgs='-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "'.$script.'"';
+  $command='$p=Start-Process -FilePath "powershell.exe" -ArgumentList ' . "'" . str_replace("'","''",$childArgs) . "'" . ' -WindowStyle Hidden -PassThru; [Console]::Out.Write($p.Id)';
+  $utf16=iconv('UTF-8','UTF-16LE',$command);
+  if($utf16===false)throw new RuntimeException('Could not encode the Windows installer launch command.');
+  return (int)$this->runWindowsPowerShell(['-EncodedCommand',base64_encode($utf16)],8);
+ }
  private function tailLog():string {
   $out=[];
   foreach(['local-ai-install.log','local-ai-pull.log','ollama-server.log','llama-server.log','llama-server.stdout.log','llama-server.stderr.log'] as $name) {
    $file=$this->storage.'/logs/'.$name;
-   if(is_file($file)){$lines=array_slice(file($file)?:[],-8);if($lines){$out[]='--- '.$name.' ---';$out=array_merge($out,$lines);}}
+   if(is_file($file)){$all=file($file)?:[];$all=array_values(array_filter($all,static function($line){$v=trim($line);return $v!==''&&!preg_match('/^[#O=\-]+\s*\d+(?:\.\d+)?%?\s*$/',$v);}));$lines=array_slice($all,-5);if($lines){$out[]='--- '.$name.' ---\n';$out=array_merge($out,$lines);}}
   }
-  return implode('',array_slice($out,-24));
+  return mb_substr(implode('',array_slice($out,-18)),-12000);
  }
 
  public function status(bool $refreshHardware=false):array {
@@ -257,7 +281,7 @@ PS;
   if($this->ollama()['online'])return ['ok'=>true,'already_running'=>true,'message'=>'Ollama is already running; DCP is reusing the existing service.'];
   $bin=$this->binary('ollama');if($bin==='')throw new RuntimeException('Ollama is not installed.');
   if($this->port(11434))throw new RuntimeException('Port 11434 is occupied by another service. DCP will not replace or reconfigure it.');
-  $log=$this->storage.'/logs/ollama-server.log';if(!is_dir(dirname($log)))mkdir(dirname($log),0700,true);
+  $log=$this->storage.'/logs/ollama-server.log';if(!is_dir(dirname($log)))mkdir(dirname($log),0700,true);file_put_contents($log,'',LOCK_EX);
   $managed=str_contains(str_replace('\\','/',$bin),'/dcp-env/');
   if(PHP_OS_FAMILY==='Windows') {
    $script=$this->storage.'/start-ollama.ps1';$exe=str_replace("'","''",$bin);$logPath=str_replace("'","''",$log);
@@ -272,7 +296,7 @@ PS;
    $modelEnv=$managed?'$env:OLLAMA_MODELS = ' . "'" . str_replace("'","''",$models) . "'\n":'';
    $body=str_replace(['__MODEL_ENV__','__EXE__','__LOG__'],[$modelEnv,$exe,$logPath],$body);
    file_put_contents($script,$body);
-   $pid=(int)$this->run('powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File '.escapeshellarg($script),8);
+   $pid=(int)$this->runWindowsPowerShell(['-File',$script],8);
    if($pid<1)throw new RuntimeException('Windows could not start Ollama.');
   } else {
    $envPrefix=$managed?'OLLAMA_MODELS='.escapeshellarg(dirname($this->storage).'/models/ollama').' OLLAMA_HOST=127.0.0.1:11434 ':'';
@@ -328,22 +352,16 @@ Start-Transcript -Path '__LOG__' -Append
 try { & '__SCRIPT__' } finally { Stop-Transcript }
 PS;
    $body=str_replace(['__LOG__','__SCRIPT__'],[$logEsc,$scriptEsc],$body)."\n";
-   file_put_contents($launcher,$body);
-   pclose(popen('start \"\" powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File '.escapeshellarg($launcher),'r'));
+   if(file_put_contents($launcher,$body)===false)throw new RuntimeException('Could not write the Windows local AI installer launcher.');
+   $pid=$this->startWindowsPowerShellScript($launcher);
+   if($pid<1)throw new RuntimeException('Windows could not start the DCP-managed local AI installer.');
   } elseif($os==='Linux') {
    $folder=$engine==='llama.cpp'?'llama.cpp':'ollama';
    $script=$this->root.'/dcp-env/engines/'.$folder.'/install-linux.sh';
    if(!is_file($script))throw new RuntimeException('DCP Linux runtime installer is missing: '.$script);
-   if($engine==='llama.cpp') {
-    // Execute from the application tree: the installer derives its platform root
-    // relative to its own location and writes the managed engine beside the app.
-    $launch='nohup /bin/bash '.escapeshellarg($script).' >> '.escapeshellarg($log).' 2>&1 < /dev/null & echo $!';
-   } else {
-    if($this->run('id -u')==='0')$prefix='';
-    elseif($this->run('sudo -n true >/dev/null 2>&1; echo $? ',3)==='0')$prefix='sudo -n ';
-    else {$pkexec=$this->binary('pkexec');if($pkexec==='')throw new RuntimeException('Ollama installation requires administrator approval. Run the DCP installer from a terminal with sudo access.');$prefix=escapeshellarg($pkexec).' ';}
-    $launch='nohup '.$prefix.'/bin/bash '.escapeshellarg($script).' >> '.escapeshellarg($log).' 2>&1 < /dev/null & echo $!';
-   }
+   // Both engines are installed into the per-app DCP runtime tree; no sudo,
+   // system package mutation, or global /usr/local install is required.
+   $launch='nohup /bin/bash '.escapeshellarg($script).' >> '.escapeshellarg($log).' 2>&1 < /dev/null & echo $!';
    $pid=(int)$this->run($launch,5);
    if($pid<1)throw new RuntimeException('Could not launch the Linux runtime installer. Check Engine activity logs.');
   } else throw new RuntimeException('Unsupported operating system: '.$os);
@@ -351,10 +369,10 @@ PS;
  }
 
  private function llamaModelProfiles():array {
-  return ['qwen3:0.6b'=>'mradermacher/Qwen3-0.6B-GGUF:Q4_K_M','qwen3:1.7b'=>'tensorblock/Qwen_Qwen3-1.7B-GGUF:Q4_K_M','qwen3:4b'=>'Qwen/Qwen3-4B-GGUF:Q4_K_M','llama3.2:3b'=>'bartowski/Llama-3.2-3B-Instruct-GGUF:Q4_K_M'];
+  return ['qwen3:0.6b'=>'unsloth/Qwen3-0.6B-GGUF:Q4_K_M','qwen3:1.7b'=>'tensorblock/Qwen_Qwen3-1.7B-GGUF:Q4_K_M','qwen3:4b'=>'Qwen/Qwen3-4B-GGUF:Q4_K_M','llama3.2:3b'=>'bartowski/Llama-3.2-3B-Instruct-GGUF:Q4_K_M'];
  }
  private function llamaModelFileName(string $model):string {
-  return ['qwen3:0.6b'=>'Qwen3-0.6B.Q4_K_M.gguf'][$model]??'';
+  return ['qwen3:0.6b'=>'Qwen3-0.6B-Q4_K_M.gguf'][$model]??'';
  }
  private function llamaModelArguments(string $model):array {
   $profiles=$this->llamaModelProfiles();$profile=$profiles[$model]??'';
@@ -384,7 +402,9 @@ PS;
  }
  public function startLlama(string $model):array {
   $profiles=$this->llamaModelProfiles();
-  if(!isset($profiles[$model]))throw new InvalidArgumentException('This model is not enabled for llama.cpp yet.');
+  $customEntry=null;
+  if(str_starts_with($model,'custom:')){$customId=substr($model,7);$customEntry=$this->customModelById($customId,$this->readCustomModels());}
+  elseif(!isset($profiles[$model]))throw new InvalidArgumentException('This model is not enabled for llama.cpp yet.');
   $state=$this->llamaState();
   if($state&&($state['managed']??false)===true) {
    if($this->isSameManagedLlamaModel($state,$model)&&$this->managedProcessMatches($state)&&$this->llamaApiReady((int)$state['port']))return ['ok'=>true,'already_running'=>true,'message'=>'The requested DCP-managed llama.cpp model is already running.','model'=>$model,'base_url'=>'http://127.0.0.1:'.(int)$state['port'].'/v1','port'=>(int)$state['port']];
@@ -393,8 +413,13 @@ PS;
   // Do not bind a requested model name to an unrelated external llama.cpp service.
   // Leave external services untouched and start the requested model on a separate port.
   $bin=$this->llamaBinary();if($bin==='')throw new RuntimeException('llama-server is not installed or could not be detected.');
-  $port=$this->freePort();$os=PHP_OS_FAMILY;$log=$this->storage.'/logs/llama-server.log';if(!is_dir(dirname($log)))mkdir(dirname($log),0700,true);$cache=$this->llamaCacheDirectory();if(!is_dir($cache)&&!mkdir($cache,0700,true)&&!is_dir($cache))throw new RuntimeException('Could not create the private llama.cpp model cache.');$runtime=dirname($this->llamaStateFile());if(!is_dir($runtime)&&!mkdir($runtime,0700,true)&&!is_dir($runtime))throw new RuntimeException('Could not create the managed runtime state directory.');
-  $args=array_merge($this->llamaModelArguments($model),['-c',(string)$this->llamaContextSize($model),'-ngl','0','--host','127.0.0.1','--port',(string)$port]);
+  $port=$this->freePort();$os=PHP_OS_FAMILY;$log=$this->storage.'/logs/llama-server.log';if(!is_dir(dirname($log)))mkdir(dirname($log),0700,true);file_put_contents($log,'',LOCK_EX);$cache=$this->llamaCacheDirectory();if(!is_dir($cache)&&!mkdir($cache,0700,true)&&!is_dir($cache))throw new RuntimeException('Could not create the private llama.cpp model cache.');$runtime=dirname($this->llamaStateFile());if(!is_dir($runtime)&&!mkdir($runtime,0700,true)&&!is_dir($runtime))throw new RuntimeException('Could not create the managed runtime state directory.');
+  $modelArgs=$customEntry?['-m',$this->customModelDirectory().DIRECTORY_SEPARATOR.(string)$customEntry['file']]:$this->llamaModelArguments($model);
+  if($customEntry&&(!is_file($modelArgs[1])||is_link($modelArgs[1])||!hash_equals((string)$customEntry['sha256'],(string)hash_file('sha256',$modelArgs[1]))))throw new RuntimeException('Imported GGUF failed its stored SHA-256 check.');
+  $chatTemplateArgs=[];
+  $isQwen3=$model==='qwen3:0.6b'||($customEntry&&(stripos((string)($customEntry['name']??''),'qwen3')!==false||hash_equals('ac2d97712095a558e31573f62f466a3f9d93990898b0ec79d7c974c1780d524a',strtolower((string)($customEntry['sha256']??'')))));
+  if($isQwen3)$chatTemplateArgs=['--chat-template-kwargs','{"enable_thinking":false}'];
+  $args=array_merge($modelArgs,$chatTemplateArgs,['-c',(string)($customEntry?2048:$this->llamaContextSize($model)),'-ngl','0','--host','127.0.0.1','--port',(string)$port]);
   $taskName='';
   if($os==='Windows') {
    $taskName='DCP-Managed-Llama-'.$port;
@@ -423,11 +448,11 @@ PS;
    $workDir=str_replace("'","''",dirname($bin));
    $launcherBody=str_replace(['__WRAPPER__','__WORKDIR__','__TASK__'],[$wrapperWin,$workDir,$taskNameEsc],$launcherBody)."\n";
    if(file_put_contents($launcher,$launcherBody)===false)throw new RuntimeException('Could not write the interactive llama.cpp task launcher.');
-   $launched=$this->run('powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File '.escapeshellarg($launcher),8);
+   $launched=$this->runWindowsPowerShell(['-File',$launcher],12);
    if($launched!==$taskName)throw new RuntimeException('Windows could not start the interactive DCP llama.cpp task.');
    $exePs=str_replace("'","''",$bin);
    $pid=0;for($attempt=0;$attempt<120;$attempt++){$pid=$this->windowsLlamaProcessId($port,$bin);if($pid>0)break;usleep(500000);}
-   if($pid<1){$this->run('powershell.exe -NoLogo -NoProfile -NonInteractive -Command "Unregister-ScheduledTask -TaskName '.escapeshellarg($taskName).' -Confirm:$false -ErrorAction SilentlyContinue"',4);throw new RuntimeException('Windows did not expose the interactive DCP llama-server process. Check the llama.cpp runtime log.');}
+   if($pid<1){try{$this->runWindowsPowerShell(['-Command',"Unregister-ScheduledTask -TaskName '".str_replace("'","''",$taskName)."' -Confirm:$false -ErrorAction SilentlyContinue"],4);}catch(Throwable $ignored){}throw new RuntimeException('Windows did not expose the interactive DCP llama-server process. Check the llama.cpp runtime log.');}
   } else {
    $command=escapeshellarg($bin);foreach($args as $arg)$command.=' '.escapeshellarg($arg);
    $pid=(int)$this->run('nohup env LLAMA_CACHE='.escapeshellarg($cache).' '.$command.' > '.escapeshellarg($log).' 2>&1 < /dev/null & echo $!',5);
@@ -451,7 +476,7 @@ PS;
   if($this->binary('ollama')==='')throw new RuntimeException('Install Ollama first.');
   foreach($this->ollama()['models'] as $existing)if(($existing['id']??'')===$model||($existing['id']??'')===$model.':latest')return ['ok'=>true,'already_installed'=>true,'message'=>'This model is already downloaded.','model'=>$model];
   if(!$this->ollama()['online'])throw new RuntimeException('Ollama is installed but not running. Start Ollama before downloading a model.');
-  $log=$this->storage.'/logs/local-ai-pull.log';if(!is_dir(dirname($log)))mkdir(dirname($log),0700,true);$bin=$this->binary('ollama');
+  $log=$this->storage.'/logs/local-ai-pull.log';if(!is_dir(dirname($log)))mkdir(dirname($log),0700,true);file_put_contents($log,'',LOCK_EX);$bin=$this->binary('ollama');
   if(PHP_OS_FAMILY==='Windows') {
    $ps=$this->storage.'/local-ai-pull.ps1';$exe=str_replace("'","''",$bin);$name=str_replace("'","''",$model);$out=str_replace("'","''",$log);
    $body=<<<'PS'

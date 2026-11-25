@@ -70,3 +70,10 @@ This folder is the durable continuity layer for ChatGPT and other authorized eng
 
 
 - **Current handoff (DC68):** `handoffs/DC68-local-cloud-mcp-q015-2026-11-25.md`; immutable checkpoint: `versions/2026-11-25-DC68-local-cloud-mcp-q015.json`. Local/Cloud MCP source implementations are committed; Q015 continues with Cloud owner-node resource invocation, team/device grant parity, Hermes and cross-platform acceptance.
+
+
+## 2026-11-25 — DC69
+- Static VM addresses, verified SSH access, GGUF import workflow, terminal UX, Cloud reconnect and cross-platform acceptance status: `handoffs/DC69-static-vm-network-gguf-cloud-reconnect-2026-11-25.md`.
+
+
+- Current handoff (DC70): PROJECT-MEMORY/handoffs/DC70-gguf-runtime-chat-context-windows-ubuntu-fixes-2026-11-25.md; real Qwen3 llama.cpp/Ollama inference passes, Ubuntu dynamic-port blank-screen fix deployed, chat context tabs implemented. Windows GUI acceptance and GitHub default-branch integration remain open.

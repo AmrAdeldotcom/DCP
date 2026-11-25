@@ -1,4 +1,5 @@
 $ErrorActionPreference = 'Stop'
+$ProgressPreference = 'SilentlyContinue'
 $PlatformRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
 $Dest = Join-Path $PlatformRoot 'dcp-env\engines\ollama\windows-x64'
 try {
