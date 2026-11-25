@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "project": "DCP — Desktop Connector Platform",
   "updatedAt": "2026-11-25T07:08:09+02:00",
-  "session": "DC51",
+  "session": "DC52",
   "repository": "/Volumes/Data/ChatGPT/DCP",
   "branch": "feature/local-ai-runtime-discovery",
-  "headCommit": "6d706d5",
+  "headCommit": "4672b22",
   "latestReleaseTag": "v1.0.0",
   "workingTree": "DC48: DCP-only work on feature/local-ai-runtime-discovery. Persistent Task Inbox + background Chat Jobs + provider-boundary checkpoint. Do not stage unrelated pre-existing untracked handoffs/version files or modify DP_Anything.",
   "device": {
@@ -16,28 +16,28 @@
     "architecture": "x86_64"
   },
   "activeTask": "Q012",
-  "activeTaskStatus": "Stage 6 / Q012: versioned execution-plan checkpoint context is implemented; Windows workspace ACLs now use owner/SYSTEM/Administrators-only NTFS permissions. Full platform CI passes on Ubuntu 24.04 and Windows Server 2025; macOS 15 is queued.",
-  "nextTask": "Finish macOS 15 full-platform CI, then connect the agent execution coordinator/tool loop to versioned plan/step/result/approval persistence; implement reviewed idempotent step-level resume and worker heartbeat/recovery.",
+  "activeTaskStatus": "Stage 6 / Q012: Task 1 complete locally — shared MCP tool registry, policy/schema validation, and isolated MCP stdio E2E. Full platform suite now reaches Linux updater contracts and passes locally. GitHub matrix run 45589253032 pending across Ubuntu, Windows and macOS.",
+  "nextTask": "Task 2: add a backward-compatible provider-neutral structured tool-call contract, then implement Ollama and OpenAI-compatible tool-call parsing with fixtures before connecting the bounded coordinator.",
   "nextTaskFile": "PROJECT-MEMORY/tasks/Q012-shared-chat-task-inbox.md",
   "followingTask": "Q014 live Device Agent acceptance on Windows/Ubuntu/macOS; Q005 installed-client update/rollback/data-preservation acceptance",
   "latestSessionCheckpoint": {
-    "conversation": "DC51",
+    "conversation": "DC52",
     "date": "2026-11-25",
     "branch": "feature/local-ai-runtime-discovery",
-    "branchHead": "6d706d5",
-    "executionPlanCommit": "7a3b8d1",
-    "ciMatrixCommit": "91d3c4d",
-    "windowsAclFixCommit": "6d706d5",
-    "localTests": "full platform suite, worker E2E, delayed-provider HTTP E2E, PHP lint, JS syntax, git diff check pass",
-    "crossPlatformCi": {
-      "run": 45587700487,
-      "ubuntu": "success",
-      "windows": "success",
-      "macos": "queued"
-    },
+    "branchHead": "4672b22",
     "stage": "Stage 6 / Q012",
+    "completed": "shared MCP tool registry, policy/schema validation, MCP stdio E2E, complete platform suite harness",
+    "localTests": "ALL PLATFORM TESTS PASSED; DCP_CHAT_WORKER_BACKGROUND_E2E_PASS; DCP_CHAT_JOB_HTTP_E2E_PASS; PHP lint; JS syntax; git diff check",
+    "crossPlatformCi": {
+      "run": 45589253032,
+      "status": "in_progress",
+      "ubuntu": "in_progress",
+      "windows": "in_progress",
+      "macos": "in_progress"
+    },
     "limitations": [
-      "no live planner/tool loop integration",
+      "provider tool-call contract not implemented",
+      "agent coordinator/tool loop not connected",
       "step resume disabled",
       "manual approval required"
     ]
@@ -489,7 +489,7 @@
     "endToEndUpdateTest": "Still pending on real installed clients: apply a signed update and verify rollback plus SQLite/master.key/user-data preservation on Windows, Ubuntu and macOS."
   },
   "lastCheckpoint": "DC20 three Alpha 10 installs verified; macOS Little Snitch github.com allow pending; release workflow still building 2026-11-24T20:50:00+02:00",
-  "latestHandoff": "PROJECT-MEMORY/handoffs/DC51-windows-acl-cross-platform-ci-2026-11-25.md",
+  "latestHandoff": "PROJECT-MEMORY/handoffs/DC52-shared-mcp-tool-registry-2026-11-25.md",
   "linuxUpdaterDC17": {
     "status": "implemented-locally-not-committed",
     "files": [
@@ -631,7 +631,7 @@
     },
     "releaseStatus": "Linux/Windows packages successful; macOS arm64 PHP successful; macOS x64 PHP and Intel llama in progress; Apple Silicon llama queued; no public release assets yet"
   },
-  "branchHead": "6d706d5",
+  "branchHead": "4672b22",
   "originBranchHead": "ab3d5c6",
   "dc21Checkpoint": {
     "timestamp": "2026-11-24T20:23:42+02:00",
@@ -672,7 +672,7 @@
     ]
   },
   "lastUpdated": "2026-11-25T06:05:07+02:00",
-  "currentCheckpoint": "DC51 — DCP Stage 6 / Q012. DC50 execution-plan snapshot schema v2 and explicit approval persistence are pushed. Windows workspace permissions are enforced with NTFS ACLs (owner, SYSTEM, Administrators only); inherited file ACL is tested; ACL application avoids recursive symlink traversal. Local full suite passes. GitHub full platform + worker + HTTP matrix run 45587700487: Ubuntu PASS, Windows PASS, macOS queued.",
+  "currentCheckpoint": "DC52 — DcpToolRegistry now owns the seven-tool catalog and dispatch used by MCP stdio and future Chat coordinator. Agent callers require explicit capabilities; sensitive reads/state changes require current-plan approval bound to canonical argument SHA-256. MCP stdio contract and isolated host E2E pass. Fixed test runner early-exit so full suite reaches update manifest, Linux transactional updater, rollback, crash recovery and health tests; ALL PLATFORM TESTS PASSED locally. Worker and HTTP E2E pass. GitHub run 45589253032 is pending across Ubuntu/Windows/macOS.",
   "localAIWindows": {
     "status": "real interactive-user Qwen3 0.6B start/chat/stop smoke passed",
     "user": "AMRWIN11\\amradeldotcom",
@@ -773,7 +773,7 @@
   },
   "releaseMutation": "not performed; awaiting all-platform updater implementation and green package tests",
   "q012ChatJobs": {
-    "status": "execution-plan-context-and-windows-acl-fix-pushed; ubuntu/windows full-platform CI pass; macOS queued",
+    "status": "DC52 Task 1 complete locally; full platform/worker/HTTP cross-platform CI pending",
     "features": [
       "persistent chat_jobs SQLite queue",
       "detached PHP CLI worker",
@@ -816,14 +816,16 @@
       "run": 45550155507,
       "result": "Ubuntu pass; macOS pass; Windows worker test pass; Windows HTTP test timed out because Start-Process launch command blocked until its 8-second launcher timeout"
     },
-    "next": "Finish macOS full-platform CI; integrate actual agent planner/tool loop with plan persistence, then implement reviewed idempotent step resume and lease heartbeat/recovery.",
+    "next": "Task 2: introduce a backward-compatible provider-neutral structured tool-call contract; implement Ollama and OpenAI-compatible parsing with malformed/refusal/empty fixtures. Then integrate the bounded coordinator.",
     "ciRun": {
-      "run": 45587700487,
+      "run": 45589253032,
       "status": "in_progress",
-      "ubuntu-24.04": "success",
-      "windows-2025": "success",
-      "macos-15": "queued",
-      "url": "https://github.com/AmrAdeldotcom/DCP/actions/runs/45587700487"
+      "matrix": [
+        "ubuntu-24.04",
+        "windows-2025",
+        "macos-15"
+      ],
+      "url": "https://github.com/AmrAdeldotcom/DCP/actions/runs/45589253032"
     },
     "checkpointSnapshot": {
       "status": "implemented-locally",
@@ -882,8 +884,50 @@
       "inheritance": "workspace child files inherit private ACL; manifest gets explicit private ACL",
       "symlinkSafety": "ACL application is not recursive and does not follow nested links",
       "validation": "local full platform suite pass; Windows full platform CI pass"
+    },
+    "sharedToolRegistry": {
+      "status": "implemented-and-pushed",
+      "commit": "4672b22",
+      "tools": 7,
+      "consumers": [
+        "MCP stdio host",
+        "future in-process Chat coordinator"
+      ],
+      "policies": {
+        "safe-read": [
+          "platform.status",
+          "terminal.safe-read"
+        ],
+        "sensitive-read": [
+          "provider.list",
+          "device.list",
+          "task.list",
+          "mail.read"
+        ],
+        "state-change": [
+          "task.create"
+        ]
+      },
+      "agentAuthorization": [
+        "explicit capability",
+        "plan-version-bound approval for sensitive/state-changing tools",
+        "canonical argument SHA-256 match"
+      ],
+      "validation": [
+        "allow-list",
+        "JSON schema required/type/enum/additionalProperties",
+        "bounded actions and file bytes",
+        "relative workspace paths only",
+        "target device identifier validation"
+      ],
+      "mcpCompatibility": "isolated stdio E2E passes; task creation remains approval_required; no action payload execution"
+    },
+    "testHarnessFix": {
+      "commit": "bdde922",
+      "status": "fixed",
+      "behavior": "local-ai-ui-contract.php returns when included so run.php reaches update-manifest, Linux transaction/rollback/crash recovery and updater-health contracts"
     }
   },
   "latestImplementationCommit": "0a94542",
-  "latestPushedCommit": "6d706d5"
+  "latestPushedCommit": "4672b22"
 }

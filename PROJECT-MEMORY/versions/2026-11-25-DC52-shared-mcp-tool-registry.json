@@ -1,0 +1,50 @@
+{
+  "checkpoint": "DC52",
+  "date": "2026-11-25",
+  "branch": "feature/local-ai-runtime-discovery",
+  "branchHead": "4672b22",
+  "stage": "Stage 6 / Q012",
+  "commits": {
+    "fullPlatformTestRunner": "bdde922",
+    "sharedMcpToolRegistry": "4672b22"
+  },
+  "implemented": [
+    "shared seven-tool MCP registry and dispatch",
+    "explicit tool policy metadata",
+    "agent capability checks",
+    "plan-version and exact-argument approval binding",
+    "JSON schema and path/content validation",
+    "isolated MCP stdio E2E",
+    "full platform test runner reaches Linux updater tests"
+  ],
+  "localTests": {
+    "platformSuite": "ALL PLATFORM TESTS PASSED",
+    "workerE2E": "DCP_CHAT_WORKER_BACKGROUND_E2E_PASS",
+    "httpE2E": "DCP_CHAT_JOB_HTTP_E2E_PASS",
+    "mcpStdio": "pass",
+    "phpLint": "pass",
+    "jsSyntax": "pass",
+    "diffCheck": "pass"
+  },
+  "ci": {
+    "run": 45589253032,
+    "status": "in_progress",
+    "matrix": [
+      "ubuntu-24.04",
+      "windows-2025",
+      "macos-15"
+    ]
+  },
+  "limitations": [
+    "no provider structured tool-call parsing",
+    "no agent coordinator/tool loop integration",
+    "step-level resume disabled",
+    "manual approval required"
+  ],
+  "next": [
+    "provider-neutral structured tool-call contract",
+    "Ollama and OpenAI-compatible parsing",
+    "bounded agent coordinator",
+    "approval/review UI and safe recovery"
+  ]
+}

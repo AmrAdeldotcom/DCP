@@ -479,3 +479,5 @@
 - DC50: checkpoint schema v2 now captures versioned execution plans, dependency step graphs, opaque tool-result references and pending human approvals; dependency gates and cycle validation added. Local full suite and worker/HTTP E2E pass; cross-platform CI pending.
 
 - DC51: enforce private NTFS ACLs for per-device workspaces (current user, SYSTEM, Administrators only), preserve inherited private file ACLs without recursive symlink traversal, and make workspace tests OS-aware. Local full suite passes; GitHub full-platform CI 45587700487 passes Ubuntu and Windows; macOS queued.
+
+- DC52: extract the seven-tool MCP catalog/dispatch into shared `DcpToolRegistry`; add explicit capability/approval policies, JSON-schema/path/content validation, and MCP stdio E2E. Fix the platform test harness so it reaches Linux updater transaction/rollback/crash-recovery/health contracts. Local full suite + worker + HTTP E2E pass; cross-platform CI run 45589253032 pending.

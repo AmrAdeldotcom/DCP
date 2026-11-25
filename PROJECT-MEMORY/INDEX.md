@@ -49,4 +49,4 @@ This folder is the durable continuity layer for ChatGPT and other authorized eng
 
 - Latest checkpoint: PROJECT-MEMORY/handoffs/DC48-chat-background-jobs-safe-checkpoint-e2e-2026-11-25.md — DCP Chat background jobs and provider-boundary checkpoint; local E2E pass, cross-platform CI pending.
 
-- Latest checkpoint: PROJECT-MEMORY/handoffs/DC51-windows-acl-cross-platform-ci-2026-11-25.md — Stage 6 / Q012 execution-plan checkpoint context, private Windows workspace ACLs, and full-platform CI passing Ubuntu + Windows; macOS queued. Live agent coordinator and step resume remain open.
+- Latest checkpoint: PROJECT-MEMORY/handoffs/DC52-shared-mcp-tool-registry-2026-11-25.md — Stage 6 / Q012 shared MCP tool registry, capability/approval policy, full test-runner correction, and MCP stdio E2E. Local full platform + worker + HTTP tests pass; cross-platform CI run 45589253032 pending. Provider tool-call contract and agent coordinator remain open.

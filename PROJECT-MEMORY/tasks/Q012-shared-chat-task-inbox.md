@@ -30,6 +30,17 @@ Source spec: `platform/docs/proposals/DCP-Chat-Live-Task-Inbox-Interrupt-Queue.m
 - A snapshot without a recorded execution plan explicitly reports `step_graph_available=false` and `resumable=false`. Even with a plan graph, `resumable=false` and `resume_requires_review=true`: the actual multi-step coordinator/worker resume loop is not implemented yet.
 - This is a persistence and safety foundation, not a live agent planner. Current chat worker still performs one provider call; no tool loop was enabled and no queued instruction is automatically merged or executed.
 
+### DC52 — shared MCP tool registry and agent policy boundary
+
+- Extracted all seven existing DCP MCP tools into `DcpToolRegistry`, used by both the stdio MCP host and future in-process Chat coordinator. The MCP server no longer maintains a duplicate tool catalog or dispatch switch.
+- Added explicit internal policy classes/capabilities: safe-read (`platform.status`, `terminal.safe-read`), sensitive-read (`provider.list`, `device.list`, `task.list`, `mail.read`) and state-change (`task.create`). Agent callers must have the matching enabled capability; sensitive reads and state changes require approval for the current plan version and exact canonical argument SHA-256.
+- Public MCP JSON schemas do not expose internal policy metadata. Schema validation rejects unknown tools/properties, malformed types/enums, missing fields, excess actions, blank task metadata, invalid target IDs, absolute/traversal paths, write actions without content and file payloads over 1 MB.
+- The existing MCP stdio host keeps its public seven-tool contract and dispatches through the shared registry. MCP dispatch requires an explicitly configured local integration context. Task creation remains `approval_required`; the MCP tool never executes its action payload.
+- Added registry contract tests for allow-list, schema validation, capabilities, approval freshness, exact argument hash, and no automatic execution; added an isolated MCP JSON-RPC stdio E2E for initialize, tools/list, safe terminal, approval-required task creation and unknown-tool errors.
+- Fixed `local-ai-ui-contract.php` so it returns control when included by `platform/tests/run.php`; the full platform suite now continues through update-manifest, Linux transactional updater, rollback, crash recovery and updater-health contracts rather than exiting early.
+- Local `php platform/tests/run.php` now reaches `ALL PLATFORM TESTS PASSED`. Worker E2E and delayed-provider HTTP E2E also pass locally. GitHub run `45589253032` is running the full suite + worker + HTTP matrix on Ubuntu 24.04, Windows Server 2025 and macOS 15.
+- Provider tool-call parsing and the actual agent coordinator are not implemented yet. `ProviderAdapter::chat()` remains unchanged; the next task is a backward-compatible provider-neutral structured tool-call contract.
+
 ## Tests / evidence
 
 - `platform/tests/task-inbox.php`: persistence, session association, unassigned-message visibility, priority, sent/cancelled state transitions, empty/oversize rejection, unknown-session rejection, priority bounds and duplicate transitions.
@@ -61,7 +72,7 @@ Source spec: `platform/docs/proposals/DCP-Chat-Live-Task-Inbox-Interrupt-Queue.m
 
 ## Next implementation plan
 
-Detailed implementation breakdown: `tasks/plan.md`.
+Detailed implementation breakdown: `tasks/plan.md`. Task 1 (shared MCP tool registry and policy/schema validation) is complete locally; cross-platform CI run `45589253032` is pending.
 
 Ordered work: (1) shared MCP tool registry + explicit policy/schema validation, (2) provider-neutral structured tool-call contract, (3) bounded coordinator integrated with schema-v2 plan/step/result/approval persistence, (4) approval/review/resume APIs and UI, (5) worker heartbeat and crash-safe idempotent resume. No queued instruction or mutating tool may execute without explicit user review/approval.
 

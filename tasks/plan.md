@@ -2,7 +2,7 @@
 
 Source spec: `platform/docs/proposals/DCP-Chat-Live-Task-Inbox-Interrupt-Queue.md`
 Operational tracker: `WORK-QUEUE.md` (Q012 remains the task authority)
-Current checkpoint: DC51 / Stage 6
+Current checkpoint: DC52 / Stage 6
 
 ## Overview
 
@@ -25,8 +25,8 @@ Connect DCP Chat's existing background jobs and schema-v2 execution-plan checkpo
 ## Task list
 
 ### Phase 1 — Shared tool contract
-- [ ] Task 1: Extract the MCP tool catalog and dispatch contract into a reusable service. Keep stdio MCP behavior unchanged. Add explicit policy classes and schema validation.
-- [ ] Checkpoint 1: Existing MCP host contract tests and new registry tests pass; no tool can be called outside its allow-list or scope.
+- [x] Task 1: Extract the MCP tool catalog and dispatch contract into a reusable service. Keep stdio MCP behavior unchanged. Add explicit policy classes and schema validation.
+- [x] Local Checkpoint 1: Existing MCP stdio contract, shared-registry policy/schema tests, and isolated MCP host E2E pass. Cross-platform CI remains pending.
 
 ### Phase 2 — Provider tool-call contract
 - [ ] Task 2: Add provider-neutral structured tool-call results without breaking ordinary chat responses.
