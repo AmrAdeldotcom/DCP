@@ -39,7 +39,7 @@ final class DeviceWorkspaceService {
   if(PHP_OS_FAMILY!=='Windows'){if(!chmod($path,0600))throw new RuntimeException('Unable to apply private workspace file permissions.');return;}$this->applyWindowsAcl($path,false);
  }
  private function applyWindowsAcl(string $path,bool $directory):void{
-  if($this->windowsOwnerSid===null)throw new RuntimeException('Windows workspace owner SID is unavailable.');$rights=$directory?'(OI)(CI)F':'F';$args=['icacls.exe',$path,'/inheritance:r','/remove:g','*S-1-1-0','*S-1-5-11','*S-1-5-32-545','/grant:r','*'.$this->windowsOwnerSid.':'.$rights,'*S-1-5-18:'.$rights,'*S-1-5-32-544:'.$rights];if($directory){$args[]='/T';$args[]='/C';}
+  if($this->windowsOwnerSid===null)throw new RuntimeException('Windows workspace owner SID is unavailable.');$rights=$directory?'(OI)(CI)F':'F';$args=['icacls.exe',$path,'/inheritance:r','/remove:g','*S-1-1-0','*S-1-5-11','*S-1-5-32-545','/grant:r','*'.$this->windowsOwnerSid.':'.$rights,'*S-1-5-18:'.$rights,'*S-1-5-32-544:'.$rights];
   $pipes=[];$proc=@proc_open($args,[0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']],$pipes);if(!is_resource($proc))throw new RuntimeException('Unable to start icacls.exe for private workspace permissions.');fclose($pipes[0]);$out=stream_get_contents($pipes[1]);$err=stream_get_contents($pipes[2]);fclose($pipes[1]);fclose($pipes[2]);$exit=proc_close($proc);if($exit!==0)throw new RuntimeException('Unable to secure Windows workspace ACL: '.trim((string)$err.' '.(string)$out));
  }
  private function assertDeviceId(string $id):void{if(!preg_match('/^[A-Za-z0-9_-]{1,80}$/',$id))throw new InvalidArgumentException('Invalid device identifier for workspace allocation.');}
