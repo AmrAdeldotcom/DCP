@@ -1,7 +1,7 @@
 {
-  "version": "1.0.0-alpha.10",
-  "releaseTag": "v1.0.0-alpha.10",
-  "channel": "alpha",
+  "version": "1.0.0",
+  "releaseTag": "v1.0.0",
+  "channel": "stable",
   "build": "10",
   "packageRevision": 1
 }

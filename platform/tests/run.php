@@ -19,6 +19,7 @@ function ok(bool $v,string $m):void{if(!$v)throw new RuntimeException('FAIL: '.$
 ob_start();
 require __DIR__.'/security-contract.php';
 $versionManifest=json_decode((string)file_get_contents(dirname(__DIR__).'/version.json'),true);
+ok(($versionManifest['version']??null)==='1.0.0'&&($versionManifest['releaseTag']??null)==='v1.0.0'&&($versionManifest['channel']??null)==='stable','version manifest identifies DCP 1.0.0 as the first stable production baseline');
 $appConfig=require dirname(__DIR__).'/config/app.php';
 ok(is_array($versionManifest)&&$appConfig['version']===$versionManifest['version'],'application version is sourced from platform/version.json');
 ok($appConfig['release_tag']===$versionManifest['releaseTag']&&$appConfig['build']===(string)$versionManifest['build'],'release tag and build metadata are synchronized');

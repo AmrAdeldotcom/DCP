@@ -36,6 +36,8 @@ assert(assembly && assembly.dig('env', 'DCP_RELEASE_SIGNING_PRIVATE_KEY_B64') ==
 assert(assembly['run'].include?('assemble-signed-release.sh'), 'release assembly invokes the tested four-platform manifest builder')
 publisher = steps.find { |step| step['uses'].to_s.start_with?('softprops/action-gh-release@') }
 assert(publisher && publisher.dig('with', 'files').include?('release-assets/*'), 'one final step publishes all full, delta and signed manifest assets together')
+assert(publisher.dig('with', 'prerelease').to_s.include?('contains(github.ref_name'), 'semantic prerelease tags remain prereleases while v1.0.0 is published as stable')
+assert(publisher.dig('with', 'make_latest').to_s.include?('!contains(github.ref_name'), 'stable releases become GitHub latest while alpha/beta builds do not replace latest')
 
 {
   'release-linux.yml' => 'dcp-linux-x64-package-release',

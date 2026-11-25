@@ -115,6 +115,6 @@ jobs:
           overwrite_files: true
           fail_on_unmatched_files: true
           prerelease: ${{ contains(github.ref_name, '-alpha.') || contains(github.ref_name, '-beta.') }}
-          make_latest: false
+          make_latest: ${{ !contains(github.ref_name, '-alpha.') && !contains(github.ref_name, '-beta.') }}
           files: |
             release-assets/*
