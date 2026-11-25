@@ -1,0 +1,70 @@
+{
+  "checkpoint": "DC48",
+  "timestamp": "2026-11-25T06:53:33+02:00",
+  "repository": "AmrAdeldotcom/DCP",
+  "branch": "feature/local-ai-runtime-discovery",
+  "baseCommit": "d1892ae",
+  "scope": "DCP only; DP_Anything deferred",
+  "q012": {
+    "status": "local-e2e-pass-cross-platform-ci-pending",
+    "features": [
+      "persistent chat_jobs SQLite queue",
+      "detached PHP CLI worker",
+      "Windows PowerShell Start-Process launcher",
+      "job status and active-session recovery APIs",
+      "provider-boundary checkpoint request",
+      "Task Inbox remains queued/manual review only",
+      "30-minute fail-closed worker lease"
+    ],
+    "tests": {
+      "platformSuite": "ALL PLATFORM TESTS PASSED",
+      "workerE2E": "DCP_CHAT_WORKER_BACKGROUND_E2E_PASS",
+      "httpE2E": "DCP_CHAT_JOB_HTTP_E2E_PASS",
+      "chromeDom": "DCP_DC48_CHROME_DOM_PASS",
+      "phpLint": "pass",
+      "jsSyntax": "pass",
+      "workflowYaml": "pass"
+    },
+    "limitations": [
+      "checkpoint is at provider HTTP-call boundary, not inside a multi-step tool loop",
+      "no automatic queue merge or execution",
+      "no durable resumable agent context snapshot",
+      "lease timeout fails closed; no worker heartbeat/retry",
+      "Windows/Linux/macOS CI results pending"
+    ],
+    "workflow": ".github/workflows/test-chat-worker.yml"
+  },
+  "files": [
+    "platform/app/Core/Database.php",
+    "platform/app/Services/ChatJobService.php",
+    "platform/bin/chat-worker.php",
+    "platform/app/Controllers/ApiController.php",
+    "platform/app/Controllers/PageController.php",
+    "platform/public/assets/app.js",
+    "platform/public/assets/app.css",
+    "platform/tests/chat-jobs.php",
+    "platform/tests/chat-worker-e2e.php",
+    "platform/tests/chat-job-http-e2e.py",
+    "platform/tests/mock-chat-delay-router.php",
+    ".github/workflows/test-chat-worker.yml"
+  ],
+  "tests": {
+    "platformSuite": "ALL PLATFORM TESTS PASSED",
+    "workerE2E": "DCP_CHAT_WORKER_BACKGROUND_E2E_PASS",
+    "httpE2E": "DCP_CHAT_JOB_HTTP_E2E_PASS",
+    "chromeDom": "DCP_DC48_CHROME_DOM_PASS",
+    "phpLint": "pass",
+    "jsSyntax": "pass",
+    "workflowYaml": "pass",
+    "gitDiffCheck": "pass"
+  },
+  "ci": "pending after push; Ubuntu/Windows/macOS matrix",
+  "next": [
+    "cross-platform CI validation",
+    "durable checkpoint context snapshots",
+    "queue review/context merger/replanning and explicit approvals",
+    "worker lease heartbeat/idempotency/restart recovery",
+    "live Windows/Ubuntu/macOS Device Agent acceptance",
+    "Q005 real installed-client update/rollback/data preservation"
+  ]
+}

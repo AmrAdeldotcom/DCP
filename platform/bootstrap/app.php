@@ -47,6 +47,7 @@ require dirname(__DIR__).'/app/Services/DeviceWorkspaceService.php';
 require dirname(__DIR__).'/app/Services/TaskEnvelopeService.php';
 require dirname(__DIR__).'/app/Services/ReportService.php';
 require dirname(__DIR__).'/app/Services/ChatService.php';
+require dirname(__DIR__).'/app/Services/ChatJobService.php';
 require dirname(__DIR__).'/app/Services/TaskInboxService.php';
 require dirname(__DIR__).'/app/Services/LocalAIService.php';
 require dirname(__DIR__).'/app/Services/GitUpdateService.php';

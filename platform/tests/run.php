@@ -102,6 +102,7 @@ require __DIR__ . '/device-agent-workspace.php';
 require __DIR__ . '/device-agent-signed-api.php';
 require __DIR__ . '/device-capability-matrix-ui.php';
 require __DIR__ . '/task-inbox.php';
+require __DIR__ . '/chat-jobs.php';
 require __DIR__ . '/task-inbox-ui-contract.php';
 require __DIR__ . '/local-ai-ui-contract.php';
 require __DIR__ . '/update-manifest.php';

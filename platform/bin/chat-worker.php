@@ -1,0 +1,6 @@
+<?php
+declare(strict_types=1);
+if(PHP_SAPI!=='cli')exit(404);$id=(string)($argv[1]??'');if(!preg_match('/^job_[a-f0-9]{24}$/',$id))exit(2);
+$config=require dirname(__DIR__).'/config/app.php';date_default_timezone_set($config['timezone']);umask(0077);
+require dirname(__DIR__).'/app/Core/Database.php';require dirname(__DIR__).'/app/Core/Crypto.php';require dirname(__DIR__).'/app/Core/PluginManager.php';require dirname(__DIR__).'/app/Core/ProviderAdapter.php';require dirname(__DIR__).'/app/Services/ProviderService.php';require dirname(__DIR__).'/app/Services/ChatService.php';require dirname(__DIR__).'/app/Services/ChatJobService.php';
+try{$db=Database::connect($config);Database::migrate($db);$jobs=new ChatJobService($db,$config);$job=$jobs->claim($id);if(!$job)exit(0);$plugins=new PluginManager(dirname(__DIR__).'/plugins');$crypto=new Crypto($config['key_file']);$providers=new ProviderService($db,$crypto,$plugins);$chat=new ChatService($providers,$plugins);$reply=$chat->send((string)$job['provider_id'],(string)$job['model'],(string)$job['message'],$job['history']);$jobs->complete($id,$reply);exit(0);}catch(Throwable $e){try{if(isset($jobs))$jobs->fail($id,$e->getMessage());}catch(Throwable $ignored){}fwrite(STDERR,$e->getMessage()."\n");exit(1);}

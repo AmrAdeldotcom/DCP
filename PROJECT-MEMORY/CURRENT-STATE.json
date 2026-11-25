@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
   "project": "DCP — Desktop Connector Platform",
-  "updatedAt": "2026-11-25T05:22:41+0200",
-  "session": "DC47",
+  "updatedAt": "2026-11-25T06:53:33+02:00",
+  "session": "DC48",
   "repository": "/Volumes/Data/ChatGPT/DCP",
   "branch": "feature/local-ai-runtime-discovery",
-  "headCommit": "d3eed0c",
+  "headCommit": "d1892ae",
   "latestReleaseTag": "v1.0.0",
-  "workingTree": "DC38: local branch feature/local-ai-runtime-discovery at de0ffdb; preserve existing modified memory/roadmap/queue files and numerous untracked handoffs/version checkpoints; no reset/stash/checkout or commit performed. Q010 browser keyboard and clipboard UI acceptance passed. Q005 signed Alpha 10 remains unpublished; native macOS Intel GitHub source fetch failed on DNS. DC39: added uncommitted bounded retry helper and Intel macOS workflow/test integration; preserve all existing dirty/untracked files. DC40: local release regression pass green; no commit/push; all existing dirty/untracked files preserved. Branch reconciliation: feature/alpha10-package-revision is at db054a2; active feature/local-ai-runtime-discovery at de0ffdb descends from Alpha 10 candidate tag ba3b8f5. DC39 retry edits are uncommitted only on the active branch and must be transferred deliberately before any release-branch push. DC41: source fix committed and pushed as dd0595f; documentation updates uncommitted. Alpha 10 release exists with 19 assets but is still prerelease. Historical Actions runs are separate from Releases/tags. DC42: main fast-forwarded to cb3087e; stable tag v1.0.0 pushed at exact main HEAD. Release workflow 45538884432 is running; Linux and Windows native packages passed, macOS native builds are queued behind package tests. Legacy cleanup workflow is configured to remove Alpha/Beta releases/tags and completed failed Actions runs only after stable release publication and required assets are verified.",
+  "workingTree": "DC48: DCP-only work on feature/local-ai-runtime-discovery. Persistent Task Inbox + background Chat Jobs + provider-boundary checkpoint. Do not stage unrelated pre-existing untracked handoffs/version files or modify DP_Anything.",
   "device": {
     "name": "Amrs-Mac-Pro",
     "id": "a23231bf-eabc-441c-a6e2-560e3ae7f957",
@@ -15,27 +15,27 @@
     "os": "macOS 14.7.1",
     "architecture": "x86_64"
   },
-  "activeTask": "Q014",
-  "activeTaskStatus": "signed Device Agent transport integrated and end-to-end tested locally; real Windows/Ubuntu/macOS acceptance remains open",
-  "nextTask": "Continue Q012 safe checkpoint coordinator design and tests; in parallel complete real Q014 Device Agent acceptance and Q005 installed-client update/rollback/data-preservation checks. Stable v1.0.0 release and legacy cleanup are complete.",
-  "nextTaskFile": "WORK-QUEUE.md",
-  "followingTask": "Q012 safe checkpoint, context integration and crash recovery; Q014 real OS acceptance",
+  "activeTask": "Q012",
+  "activeTaskStatus": "Task Inbox + background Chat Jobs + provider-boundary checkpoint implemented and locally E2E tested; context merge, resumable multi-step checkpoints, worker recovery and cross-platform CI remain open",
+  "nextTask": "Verify the new background Chat Worker E2E workflow on Ubuntu, Windows and macOS. Then implement durable checkpoint context snapshots and explicit Task Inbox review/context integration. Do not start DP_Anything.",
+  "nextTaskFile": "PROJECT-MEMORY/tasks/Q012-shared-chat-task-inbox.md",
+  "followingTask": "Q014 live Device Agent acceptance on Windows/Ubuntu/macOS; Q005 installed-client update/rollback/data-preservation acceptance",
   "latestSessionCheckpoint": {
-    "conversation": "DC42",
+    "conversation": "DC48",
     "date": "2026-11-25",
-    "timestamp": "2026-11-25T05:22:41+0200",
-    "defaultBranch": "main",
-    "mainHead": "cb3087e27c344af774ecf60aca40c98904859a85",
-    "stableTag": "v1.0.0 pushed and points exactly to main HEAD",
-    "stableReleaseWorkflow": {
-      "run_id": 45538884432,
-      "url": "https://github.com/AmrAdeldotcom/DCP/actions/runs/45538884432",
-      "status": "queued/in progress; Linux and Windows jobs success; macOS jobs queued"
+    "timestamp": "2026-11-25T06:53:33+02:00",
+    "project": "DCP only; DP_Anything deferred",
+    "branch": "feature/local-ai-runtime-discovery",
+    "headCommit": "d1892ae",
+    "q012": "Task Inbox + independent background Chat Jobs + provider-boundary checkpoint implemented; locally E2E tested",
+    "tests": {
+      "platformSuite": "ALL PLATFORM TESTS PASSED",
+      "worker": "DCP_CHAT_WORKER_BACKGROUND_E2E_PASS",
+      "http": "DCP_CHAT_JOB_HTTP_E2E_PASS",
+      "chrome": "DCP_DC48_CHROME_DOM_PASS"
     },
-    "alpha10Base": "v1.0.0-alpha.10 published with 19 assets; explicitly selected as the stable Delta base",
-    "localValidation": "full platform tests; macOS updater 53 assertions; Linux updater health/transaction; Windows updater; signed release assembly with ephemeral test key; stable Alpha10→1.0.0 Delta assembly/signature test; PHP lint 61 files; JS syntax; workflow YAML and source retry tests all pass",
-    "cleanup": "cleanup-legacy-github workflow in main waits for successful stable release, verifies required packages/manifests/signatures/checksums, then deletes old alpha/beta releases, alpha tags and completed failed Actions runs",
-    "remaining": "macOS Intel and Apple Silicon native builds, stable signed release publication, cleanup verification, live target-device update/rollback tests"
+    "ci": "New Ubuntu/Windows/macOS matrix workflow .github/workflows/test-chat-worker.yml added; pending GitHub Actions result",
+    "remaining": "durable checkpoint context and context merger/replanning, worker heartbeat/recovery/idempotency, live cross-platform acceptance; Q014 and Q005 gates remain open"
   },
   "knownConstraints": [
     "Work only in /Volumes/Data/ChatGPT/DCP.",
@@ -484,7 +484,7 @@
     "endToEndUpdateTest": "Still pending on real installed clients: apply a signed update and verify rollback plus SQLite/master.key/user-data preservation on Windows, Ubuntu and macOS."
   },
   "lastCheckpoint": "DC20 three Alpha 10 installs verified; macOS Little Snitch github.com allow pending; release workflow still building 2026-11-24T20:50:00+02:00",
-  "latestHandoff": "PROJECT-MEMORY/handoffs/DC47-stable-release-cleanup-and-stage6-2026-11-25.md",
+  "latestHandoff": "PROJECT-MEMORY/handoffs/DC48-chat-background-jobs-safe-checkpoint-e2e-2026-11-25.md",
   "linuxUpdaterDC17": {
     "status": "implemented-locally-not-committed",
     "files": [
@@ -667,7 +667,7 @@
     ]
   },
   "lastUpdated": "2026-11-25T06:05:07+02:00",
-  "currentCheckpoint": "DC47 — stable v1.0.0 published and cleanup verified; Stage 6 signed Device Agent transport locally end-to-end tested; live target acceptance remains open",
+  "currentCheckpoint": "DC48 — DCP Chat uses independent PHP background workers; safe checkpoint requests wait for provider-call completion; Task Inbox remains manual-review only; local full suite, worker E2E, HTTP E2E and Chrome DOM tests pass.",
   "localAIWindows": {
     "status": "real interactive-user Qwen3 0.6B start/chat/stop smoke passed",
     "user": "AMRWIN11\\amradeldotcom",
@@ -757,5 +757,43 @@
       "real macOS update/rollback/data preservation"
     ],
     "closeGate": "Do not close Q005 until all installed-client update, rollback and SQLite/master.key/user-data preservation checks pass"
+  },
+  "validation": {
+    "phpPlatformTests": "ALL PLATFORM TESTS PASSED",
+    "phpGitUpdateServiceLint": "passed",
+    "linuxShellSyntax": "passed",
+    "versionJson": "valid",
+    "currentStateJson": "valid",
+    "gitDiffCheck": "passed"
+  },
+  "releaseMutation": "not performed; awaiting all-platform updater implementation and green package tests",
+  "q012ChatJobs": {
+    "status": "local-e2e-pass-cross-platform-ci-pending",
+    "features": [
+      "persistent chat_jobs SQLite queue",
+      "detached PHP CLI worker",
+      "Windows PowerShell Start-Process launcher",
+      "job status and active-session recovery APIs",
+      "provider-boundary checkpoint request",
+      "Task Inbox remains queued/manual review only",
+      "30-minute fail-closed worker lease"
+    ],
+    "tests": {
+      "platformSuite": "ALL PLATFORM TESTS PASSED",
+      "workerE2E": "DCP_CHAT_WORKER_BACKGROUND_E2E_PASS",
+      "httpE2E": "DCP_CHAT_JOB_HTTP_E2E_PASS",
+      "chromeDom": "DCP_DC48_CHROME_DOM_PASS",
+      "phpLint": "pass",
+      "jsSyntax": "pass",
+      "workflowYaml": "pass"
+    },
+    "limitations": [
+      "checkpoint is at provider HTTP-call boundary, not inside a multi-step tool loop",
+      "no automatic queue merge or execution",
+      "no durable resumable agent context snapshot",
+      "lease timeout fails closed; no worker heartbeat/retry",
+      "Windows/Linux/macOS CI results pending"
+    ],
+    "workflow": ".github/workflows/test-chat-worker.yml"
   }
 }

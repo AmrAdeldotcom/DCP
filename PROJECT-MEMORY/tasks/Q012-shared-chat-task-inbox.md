@@ -1,44 +1,59 @@
 # Q012 — Shared chat, task inbox and agent collaboration
 
 Date: 2026-11-25
-Status: active — first Task Inbox queue slice implemented locally; full Q012 remains open
+Status: active — persistent Task Inbox, background Chat Jobs and provider-boundary safe-checkpoint request implemented and end-to-end tested locally; full Q012 remains open
 Roadmap: Stage 6 — Device Collaboration and Agents
 Source spec: `platform/docs/proposals/DCP-Chat-Live-Task-Inbox-Interrupt-Queue.md`
 
-## Delivered slice: persistent Task Inbox Queue MVP
+## Delivered slices: persistent Task Inbox + background Chat Jobs + provider-boundary checkpoint
 
 - Added additive SQLite `task_inbox` table with stable IDs, optional chat-session association, status, priority and timestamps; indexed active queue lookups.
 - Added `TaskInboxService` with enqueue, bounded list, reprioritize, cancel and mark-sent transitions. Messages are limited to 20,000 characters; empty messages and unknown session references are rejected.
-- Added CSRF-protected API routes for enqueue, reprioritize, cancel and mark-sent; GET list is bounded to 50 by default and capped at 100. Queue actions are written to `audit_log`.
-- Added Chat UI panel that can accept messages while the provider request is busy, persists them locally, lets the user move them to the top/bottom, insert into the composer, remove them, and marks them sent only after the chat API succeeds.
+- Added CSRF-protected Task Inbox API routes for enqueue, reprioritize, cancel and mark-sent; GET list is bounded to 50 by default and capped at 100. Queue actions are written to `audit_log`.
+- Added Chat UI panel that accepts messages while a provider request is busy, persists them locally, lets the user move them to the top/bottom, insert them into the composer, remove them, and marks them sent only after the associated chat job completes.
 - Unassigned messages queued while the first chat request is starting remain visible after the session ID is created.
-- The inbox is deliberately not an autonomous execution queue yet. It never runs a queued instruction automatically and does not claim that the currently running provider call can be interrupted.
+- Added additive SQLite `chat_jobs` table and `ChatJobService`: user message + job are committed before execution; jobs carry provider/model/history, durable status, reply/error, worker PID, 30-minute lease and checkpoint-request state.
+- Chat now starts an independent PHP CLI worker (POSIX detached process; Windows hidden PowerShell `Start-Process`). The worker opens the same installation-local SQLite database, loads the saved provider configuration and persists the assistant response independently of the HTTP request lifetime.
+- Added job status and active-job recovery API endpoints. Reopening a chat resumes polling the active job instead of losing its in-progress UI state.
+- Added `Interrupt at Checkpoint`: queued jobs can be paused before provider execution; running jobs finish the current provider call, persist the complete response, then transition to `checkpoint_ready`. It does not kill an in-flight request or interrupt a tool/file/database write mid-operation.
+- Task Inbox instructions remain untrusted, visible and queued. They are never executed automatically or silently merged into a provider request. The user must review/insert/send them explicitly.
+- Worker startup failure falls back to the synchronous ChatService path; expired worker leases fail closed and expose an actionable error rather than leaving the UI busy indefinitely.
 
 ## Tests / evidence
 
 - `platform/tests/task-inbox.php`: persistence, session association, unassigned-message visibility, priority, sent/cancelled state transitions, empty/oversize rejection, unknown-session rejection, priority bounds and duplicate transitions.
-- `platform/tests/task-inbox-ui-contract.php`: Chat markup, API routes, UI wiring, insert-to-composer and independent busy-state behavior.
+- `platform/tests/task-inbox-ui-contract.php`: Chat markup, API routes, UI wiring, insert-to-composer, active-job restoration and checkpoint controls.
+- `platform/tests/chat-jobs.php`: atomic queue claim, provider-boundary checkpoint, queued-before-claim pause, persisted response, inbox sent-state, failed job, lease expiry and invalid inbox reference.
+- `platform/tests/chat-worker-e2e.php`: real detached CLI worker starts, loads an isolated DCP installation/provider config, calls a local mock provider and persists one user + one assistant message.
+- `platform/tests/chat-job-http-e2e.py`: authenticated HTTP API E2E with a delayed mock provider; proves a Task Inbox message can be added while the worker runs, checkpoint waits for provider completion, response/history persist, and queued instructions are not auto-executed.
+- `.github/workflows/test-chat-worker.yml`: cross-platform Ubuntu/Windows/macOS matrix for both worker process and HTTP checkpoint E2E; CI result is pending after push.
 - Both test files are loaded by `platform/tests/run.php`.
 - `php platform/tests/run.php`: ALL PLATFORM TESTS PASSED.
 - PHP lint across `platform/app`, `platform/bootstrap`, and `platform/tests`: passed.
 - `node --check platform/public/assets/app.js`: passed.
 - Isolated PHP built-in-server HTTP smoke (`DCP_Q012_HTTP_TASK_INBOX_PASS`): CSRF rejection, enqueue, list, priority update, mark-sent and cancel all passed using a disposable DCP user-data root.
 - Isolated Chrome DOM smoke: `DCP_DC44_CHROME_DOM_PASS`; the real browser rendered the Task Inbox controls and capability matrix.
+- `python3 platform/tests/chat-job-http-e2e.py`: `DCP_CHAT_JOB_HTTP_E2E_PASS`.
+- `DCP_RUN_CHAT_WORKER_E2E=1 php platform/tests/chat-worker-e2e.php`: `DCP_CHAT_WORKER_BACKGROUND_E2E_PASS`.
+- Isolated Chrome DOM smoke: `DCP_DC48_CHROME_DOM_PASS`; checkpoint button/status and Task Inbox rendered.
 - `git diff --check`: passed.
 
 ## Remaining Q012 / Stage 6 work
 
-1. Add an execution coordinator with safe checkpoints; do not abort an in-flight tool/database write.
-2. Add context merge/replanning and explicit approval for conflicting or sensitive instructions.
-3. Add durable task execution checkpoints, idempotency keys and restart recovery; distinguish queued, reviewing, ready, executing, completed, blocked, rejected and cancelled.
-4. Define per-device workspace and capability matrix, signed task envelope, replay protection, scoped remote execution and audit.
-5. Add shared chat participants and explicit `@dc` / `@dsh` dispatch only after authenticated agent lifecycle adapters and transport are verified.
-6. Browser collaboration and hierarchical memory remain later Stage 6 slices.
+1. Add a durable execution context snapshot: current plan version, last confirmed step, tool result references, pending approvals and context hash.
+2. Add queue review + context merger/replanning. A checkpoint must present the new instructions and their impact; conflicting/sensitive changes require explicit user approval before continuation.
+3. Add worker lease renewal/heartbeat, crash recovery and safe retry with idempotency keys. Current 30-minute lease is a fail-closed timeout, not resumable execution.
+4. Add task lifecycle/event timeline (`reviewing`, `ready_to_integrate`, `integrated`, `executing`, `completed`, `blocked`, `rejected`, `cancelled`) and link each inbox message to a task.
+5. Add `Run as Separate Task` with bounded concurrency and independent session context.
+6. Add authenticated remote participants and `@dc` / `@dsh` dispatch only after transport and per-device acceptance are verified.
+7. Browser collaboration and hierarchical memory remain later Stage 6 slices.
+
+**Important limitation:** the current checkpoint boundary is the end of one provider HTTP call. It is not yet a checkpoint inside a multi-step agent/tool execution loop, and it does not automatically merge or execute queued messages.
 
 ## Safety boundaries
 
 - Queue messages are untrusted user instructions and are never executed by this slice.
-- Existing chat provider execution behavior remains unchanged.
-- No remote task transport, pairing scope or Cloud deployment was changed.
+- Chat provider calls now execute in an independent worker; provider adapter semantics remain unchanged.
+- No remote task transport, pairing scope or Cloud deployment was changed by Q012.
 - No secrets, credentials, keys, SQLite production data or user files were accessed or modified.
-- Changes are local on `feature/local-ai-runtime-discovery`; no commit, push, merge, release or deployment was made.
+- Changes are local on `feature/local-ai-runtime-discovery`; the cross-platform worker CI matrix is added but its GitHub result is pending. No release or deployment was made.

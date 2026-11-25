@@ -1,0 +1,81 @@
+name: Test DCP background chat worker
+
+on:
+  push:
+    branches: ['**']
+    paths:
+      - 'platform/app/Core/Database.php'
+      - 'platform/app/Controllers/ApiController.php'
+      - 'platform/app/Controllers/PageController.php'
+      - 'platform/app/Services/TaskInboxService.php'
+      - 'platform/bootstrap/app.php'
+      - 'platform/public/assets/app.js'
+      - 'platform/public/assets/app.css'
+      - 'platform/tests/chat-jobs.php'
+      - 'platform/tests/chat-job-http-e2e.py'
+      - 'platform/tests/mock-chat-delay-router.php'
+      - 'platform/app/Services/ChatJobService.php'
+      - 'platform/app/Services/ChatService.php'
+      - 'platform/app/Services/ProviderService.php'
+      - 'platform/app/Core/PluginManager.php'
+      - 'platform/app/Core/ProviderAdapter.php'
+      - 'platform/bin/chat-worker.php'
+      - 'platform/config/app.php'
+      - 'platform/plugins/providers/openai-compatible/**'
+      - 'platform/tests/chat-worker-e2e.php'
+      - 'platform/tests/mock-provider-router.php'
+      - '.github/workflows/test-chat-worker.yml'
+  pull_request:
+    paths:
+      - 'platform/app/Core/Database.php'
+      - 'platform/app/Controllers/ApiController.php'
+      - 'platform/app/Controllers/PageController.php'
+      - 'platform/app/Services/TaskInboxService.php'
+      - 'platform/bootstrap/app.php'
+      - 'platform/public/assets/app.js'
+      - 'platform/public/assets/app.css'
+      - 'platform/tests/chat-jobs.php'
+      - 'platform/tests/chat-job-http-e2e.py'
+      - 'platform/tests/mock-chat-delay-router.php'
+      - 'platform/app/Services/ChatJobService.php'
+      - 'platform/app/Services/ChatService.php'
+      - 'platform/app/Services/ProviderService.php'
+      - 'platform/app/Core/PluginManager.php'
+      - 'platform/app/Core/ProviderAdapter.php'
+      - 'platform/bin/chat-worker.php'
+      - 'platform/config/app.php'
+      - 'platform/plugins/providers/openai-compatible/**'
+      - 'platform/tests/chat-worker-e2e.php'
+      - 'platform/tests/mock-provider-router.php'
+      - '.github/workflows/test-chat-worker.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  background-worker-e2e:
+    name: Background worker E2E (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2025, macos-15]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: curl, mbstring, pdo_sqlite, sodium
+      - name: Validate worker PHP files
+        run: |
+          php -l platform/app/Services/ChatJobService.php
+          php -l platform/bin/chat-worker.php
+          php -l platform/tests/chat-worker-e2e.php
+      - name: Run real background worker integration test
+        env:
+          DCP_RUN_CHAT_WORKER_E2E: '1'
+        run: php platform/tests/chat-worker-e2e.php
+      - name: Run Chat API, checkpoint and Task Inbox HTTP end-to-end test
+        run: python platform/tests/chat-job-http-e2e.py

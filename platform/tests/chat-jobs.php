@@ -1,0 +1,18 @@
+<?php
+declare(strict_types=1);
+require_once dirname(__DIR__).'/app/Services/ChatJobService.php';
+$chatJobs=new ChatJobService($db,$c);
+$chatSession='chat-job-session-'.bin2hex(random_bytes(5));$chatNow=date(DATE_ATOM);
+$db->prepare('INSERT INTO chat_sessions(id,title,provider_id,created_at,updated_at) VALUES(?,?,?,?,?)')->execute([$chatSession,'Chat Job test','mock',$chatNow,$chatNow]);
+$inboxItem=$inbox->enqueue('Run this after the current answer',$chatSession);
+$job=$chatJobs->enqueue($chatSession,$p['id'],'mock-model','Current user message',[], $inboxItem['id']);
+ok(($job['status']??'')==='queued'&&($job['session_id']??'')===$chatSession,'Chat job and user message are persisted before provider execution');
+$claim=$chatJobs->claim($job['id']);ok(is_array($claim)&&($claim['status']??'')==='running','Chat worker atomically claims a queued job');
+$checkpoint=$chatJobs->requestCheckpoint($job['id']);ok(($checkpoint['status']??'')==='checkpoint_requested'&&($checkpoint['interrupt_requested']??false),'Chat checkpoint request records intent without cancelling the in-flight provider call');
+$completed=$chatJobs->complete($job['id'],'Mock assistant reply');ok(($completed['status']??'')==='checkpoint_ready'&&($completed['reply']??'')==='Mock assistant reply','Chat worker completes the current response at the requested safe checkpoint');
+$inboxSent=$db->prepare('SELECT status FROM task_inbox WHERE id=?');$inboxSent->execute([$inboxItem['id']]);ok($inboxSent->fetchColumn()==='sent','Task Inbox item is marked sent only after its background chat job completes');
+$assistantMessage=$db->prepare("SELECT content FROM chat_messages WHERE session_id=? AND role='assistant' ORDER BY id DESC LIMIT 1");$assistantMessage->execute([$chatSession]);ok($assistantMessage->fetchColumn()==='Mock assistant reply','Chat worker stores the assistant response in the conversation history');
+$queuedPause=$chatJobs->enqueue($chatSession,$p['id'],'mock-model','Pause before execution',[]);$paused=$chatJobs->requestCheckpoint($queuedPause['id']);ok(($paused['status']??'')==='checkpoint_ready'&&$chatJobs->claim($queuedPause['id'])===null,'Checkpoint requested before worker claim prevents provider execution');
+$failed=$chatJobs->enqueue($chatSession,$p['id'],'mock-model','This will fail',[]);$chatJobs->claim($failed['id']);$chatJobs->fail($failed['id'],'Mock worker failure');ok(($chatJobs->get($failed['id'])['status']??'')==='failed','Chat worker failure is persisted for the UI to recover');
+$expired=$chatJobs->enqueue($chatSession,$p['id'],'mock-model','Stale worker',[]);$chatJobs->claim($expired['id']);$db->prepare('UPDATE chat_jobs SET lease_until=? WHERE id=?')->execute(['2000-01-01T00:00:00+00:00',$expired['id']]);$expiredState=$chatJobs->get($expired['id']);ok(($expiredState['status']??'')==='failed'&&str_contains((string)$expiredState['error'],'lease expired'),'Chat job with an expired worker lease fails closed instead of remaining busy forever');
+$badInboxRejected=false;try{$chatJobs->enqueue($chatSession,$p['id'],'mock-model','Wrong queue link',[],'missing-inbox-item');}catch(InvalidArgumentException $e){$badInboxRejected=true;}ok($badInboxRejected,'Chat job cannot consume an unknown or unrelated Task Inbox item');

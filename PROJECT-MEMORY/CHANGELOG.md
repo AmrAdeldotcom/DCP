@@ -455,3 +455,11 @@
 - Fixed the legacy cleanup Actions pagination mapper and added manual/push repair triggers plus a stable-publication cutoff; cleanup run `45544044653` succeeded. Legacy Alpha/Beta release records/tags are gone; no completed failures were found among the latest 100 Actions runs.
 - Q005 remains open only for actual Windows/Ubuntu/macOS installed-client update, rollback and data-preservation acceptance.
 - Stage 6 continues on `feature/local-ai-runtime-discovery`: Q012 Task Inbox and Q014 signed Device Agent protocol are implemented/tested locally; real OS acceptance and safe checkpoint integration remain.
+
+
+## 2026-11-25 — DC48: Background Chat Jobs and Safe Checkpoint
+- Added independent PHP CLI Chat Worker, durable job state, status/recovery APIs, and provider-boundary checkpoint request.
+- Task Inbox accepts messages while a provider request is running; queued messages remain manual-review only and are never auto-executed.
+- Full platform suite, isolated worker E2E, authenticated HTTP checkpoint E2E and Chrome DOM smoke passed on macOS.
+- Added Ubuntu/Windows/macOS GitHub Actions matrix; cross-platform result pending.
+- DP_Anything explicitly deferred; continue DCP only.
