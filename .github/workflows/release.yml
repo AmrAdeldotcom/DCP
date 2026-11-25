@@ -81,7 +81,10 @@ jobs:
           BASE_TAG="$DCP_UPDATE_BASE_TAG"
           if [[ "$GITHUB_REF_NAME" == "v1.0.0-alpha.10" ]]; then
             BASE_TAG=""
-            echo "The first approved release is assembled as four complete Full packages."
+            echo "The Alpha 10 baseline is assembled as four complete Full packages."
+          elif [[ "$GITHUB_REF_NAME" == "v1.0.0" ]]; then
+            BASE_TAG="v1.0.0-alpha.10"
+            echo "The first stable release uses the approved Alpha 10 packages as its Delta base."
           elif [[ -z "$BASE_TAG" ]]; then
             BASE_TAG="$(gh release list --limit 100 --json tagName,isDraft,publishedAt | jq -r --arg current "$GITHUB_REF_NAME" '[.[] | select(.isDraft == false and .tagName != $current)] | sort_by(.publishedAt) | reverse | .[0].tagName // empty')"
           fi

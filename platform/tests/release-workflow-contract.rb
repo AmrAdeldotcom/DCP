@@ -27,6 +27,7 @@ merge_guard = steps.find { |step| step['name'].to_s.include?('Require release ta
 assert(merge_guard && merge_guard['run'].include?('MAIN_SHA=') && merge_guard['run'].include?('GITHUB_SHA') && merge_guard['run'].include?('origin/$DEFAULT_BRANCH'), 'release signing requires the tag commit to equal the current default-branch HEAD')
 base_step = steps.find { |step| step['name'].to_s.include?('preceding release packages') }
 assert(base_step && base_step['run'].include?('v1.0.0-alpha.10') && base_step['run'].include?('BASE_TAG=""'), 'first approved release uses complete Full packages without a legacy base')
+assert(base_step['run'].include?('GITHUB_REF_NAME" == "v1.0.0"') && base_step['run'].include?('BASE_TAG="v1.0.0-alpha.10"'), 'first stable v1.0.0 release uses Alpha 10 as its exact Delta base')
 assembly_test = steps.find { |step| step['name'].to_s.include?('ephemeral test key') }
 assert(assembly_test && assembly_test['run'].include?('platform/tests/release-assembly.sh'), 'release workflow runs a four-platform assembly test before using the production key')
 download = steps.find { |step| step['uses'].to_s.start_with?('actions/download-artifact@') }
