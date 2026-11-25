@@ -6,8 +6,7 @@ $js = file_get_contents(__DIR__ . '/../public/assets/app.js');
 $api = file_get_contents(__DIR__ . '/../app/Controllers/ApiController.php');
 $service = file_get_contents(__DIR__ . '/../app/Services/LocalAIService.php');
 if (!is_string($page) || !is_string($js) || !is_string($api) || !is_string($service)) {
-    fwrite(STDERR, "FAIL: Local AI UI contract sources could not be read.\n");
-    exit(1);
+    $message="FAIL: Local AI UI contract sources could not be read.\n";if(realpath($_SERVER['SCRIPT_FILENAME']??'')===__FILE__){fwrite(STDERR,$message);exit(1);}throw new RuntimeException(trim($message));
 }
 $checks = [
     'Local AI page exposes model cards and engine status controls' => str_contains($page, 'id="page-local-ai"') && str_contains($page, 'id="local-ai-models"') && str_contains($page, 'id="llama-engine-status"'),
@@ -28,4 +27,4 @@ foreach ($checks as $label => $passed) {
     if (!$passed) $failed++;
 }
 echo $failed === 0 ? "ALL LOCAL AI UI CONTRACT CHECKS PASSED\n" : "$failed LOCAL AI UI CONTRACT CHECK(S) FAILED\n";
-exit($failed === 0 ? 0 : 1);
+if(realpath($_SERVER['SCRIPT_FILENAME']??'')===__FILE__)exit($failed===0?0:1);if($failed!==0)throw new RuntimeException($failed.' Local AI UI contract check(s) failed.');
