@@ -1,7 +1,10 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/CustomModelManager.php';
+
 final class LocalAIService {
+ use CustomModelManager;
  private string $root;
  private string $storage;
  private array $catalog=[

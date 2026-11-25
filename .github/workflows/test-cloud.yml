@@ -5,6 +5,11 @@ on:
     paths:
       - 'platform/cloud/**'
       - 'platform/app/Services/CloudService.php'
+      - 'platform/app/Services/LocalAIService.php'
+      - 'platform/app/Services/CustomModelManager.php'
+      - 'platform/app/Controllers/PageController.php'
+      - 'platform/public/assets/app.js'
+      - 'platform/tests/model-manager-contract.php'
       - 'platform/app/Controllers/ApiController.php'
       - 'platform/tests/run.php'
       - '.github/workflows/test-cloud.yml'
@@ -14,6 +19,11 @@ on:
     paths:
       - 'platform/cloud/**'
       - 'platform/app/Services/CloudService.php'
+      - 'platform/app/Services/LocalAIService.php'
+      - 'platform/app/Services/CustomModelManager.php'
+      - 'platform/app/Controllers/PageController.php'
+      - 'platform/public/assets/app.js'
+      - 'platform/tests/model-manager-contract.php'
       - 'platform/app/Controllers/ApiController.php'
       - 'platform/tests/run.php'
       - '.github/workflows/**'
@@ -39,10 +49,14 @@ jobs:
           php -l platform/tests/cloud-ui-contract.php
           php -l platform/tests/mail-ui-contract.php
           php -l platform/tests/system-tools-contract.php
+          php -l platform/app/Services/LocalAIService.php
+          php -l platform/app/Services/CustomModelManager.php
+          php -l platform/tests/model-manager-contract.php
           node --check platform/public/assets/app.js
           php platform/tests/cloud-ui-contract.php
           php platform/tests/mail-ui-contract.php
           php platform/tests/system-tools-contract.php
+          php platform/tests/model-manager-contract.php
           test ! -e platform/cloud/site.php
           php -l platform/app/Services/CloudService.php
           php -l platform/app/Controllers/ApiController.php
