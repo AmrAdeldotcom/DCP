@@ -1,0 +1,85 @@
+name: Clean legacy DCP releases and failed CI history
+
+on:
+  workflow_run:
+    workflows: ['Build and publish DCP signed cross-platform release']
+    types: [completed]
+
+permissions:
+  actions: write
+  contents: write
+
+jobs:
+  cleanup-after-stable-release:
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'v1.0.0' }}
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Verify stable release, then remove legacy releases, tags and failed runs
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const stableTag = 'v1.0.0';
+            const stable = (await github.rest.repos.getReleaseByTag({ owner, repo, tag: stableTag })).data;
+            if (stable.draft || stable.prerelease) throw new Error('Refusing cleanup: v1.0.0 is not a published stable release.');
+
+            const required = [
+              'DCP-Windows-x64.zip',
+              'DCP-Linux-x64.tar.gz',
+              'DCP-macOS-Intel.zip',
+              'DCP-macOS-AppleSilicon.zip',
+              'DCP-Windows-x64.zip.sha256',
+              'DCP-Linux-x64.tar.gz.sha256',
+              'DCP-macOS-Intel.zip.sha256',
+              'DCP-macOS-AppleSilicon.zip.sha256',
+              'DCP-Windows-update-v3.json',
+              'DCP-Windows-update-v3.json.sig',
+              'DCP-Linux-update-v3.json',
+              'DCP-Linux-update-v3.json.sig',
+              'DCP-macOS-Intel-update-v3.json',
+              'DCP-macOS-Intel-update-v3.json.sig',
+              'DCP-macOS-AppleSilicon-update-v3.json',
+              'DCP-macOS-AppleSilicon-update-v3.json.sig'
+            ];
+            const present = new Set(stable.assets.map(asset => asset.name));
+            const missing = required.filter(name => !present.has(name));
+            if (missing.length) throw new Error(`Refusing cleanup: stable release is missing required assets: ${missing.join(', ')}`);
+
+            const releases = await github.paginate(github.rest.repos.listReleases, { owner, repo, per_page: 100 });
+            let deletedReleases = 0;
+            for (const release of releases) {
+              if (release.id === stable.id || !/^v\d+\.\d+\.\d+-(alpha|beta)\./.test(release.tag_name)) continue;
+              await github.rest.repos.deleteRelease({ owner, repo, release_id: release.id });
+              deletedReleases++;
+            }
+
+            const refs = await github.paginate(github.rest.git.listMatchingRefs, { owner, repo, ref: 'tags/v1.0.0-alpha.' });
+            let deletedTags = 0;
+            for (const ref of refs) {
+              await github.rest.git.deleteRef({ owner, repo, ref: ref.ref.replace(/^refs\//, '') });
+              deletedTags++;
+            }
+
+            const runs = await github.paginate(
+              github.rest.actions.listWorkflowRunsForRepo,
+              { owner, repo, per_page: 100 },
+              response => response.data.workflow_runs
+            );
+            const failures = runs.filter(run => run.status === 'completed' && run.conclusion === 'failure');
+            let deletedRuns = 0;
+            for (const run of failures) {
+              await github.rest.actions.deleteWorkflowRun({ owner, repo, run_id: run.id });
+              deletedRuns++;
+            }
+
+            core.summary
+              .addHeading('DCP stable release cleanup completed')
+              .addTable([
+                [{ data: 'Item', header: true }, { data: 'Removed', header: true }],
+                ['Legacy Alpha/Beta releases', String(deletedReleases)],
+                ['Legacy Alpha tags', String(deletedTags)],
+                ['Completed failed Actions runs', String(deletedRuns)],
+                ['Preserved stable release', stableTag]
+              ])
+              .addLink('Stable release', stable.html_url)
+              .write();

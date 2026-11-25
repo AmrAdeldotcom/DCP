@@ -55,4 +55,14 @@ assert(workflow_triggers(mac).key?('workflow_call'), 'release-macos.yml is reusa
 mac_uploads = mac.fetch('jobs').fetch('macos-native-package').fetch('steps').select { |step| step['uses'].to_s.start_with?('actions/upload-artifact@') }
 assert(mac_uploads.any? { |step| step.dig('with', 'name').to_s.include?('dcp-macos-') && step.dig('with', 'path').to_s.include?('.sha256') }, 'both native macOS architectures upload package and checksum')
 assert(mac.fetch('jobs').values.flat_map { |job| Array(job['steps']) }.none? { |step| step['uses'].to_s.start_with?('softprops/action-gh-release@') }, 'macOS builder does not publish a partial release')
+cleanup = load_workflow('cleanup-legacy-github.yml')
+cleanup_trigger = workflow_triggers(cleanup)
+assert(cleanup_trigger.dig('workflow_run', 'workflows') == ['Build and publish DCP signed cross-platform release'], 'legacy cleanup runs only after the unified signed release workflow')
+cleanup_job = cleanup.fetch('jobs').fetch('cleanup-after-stable-release')
+assert(cleanup_job['if'].to_s.include?("head_branch == 'v1.0.0'") && cleanup_job['if'].to_s.include?("conclusion == 'success'"), 'legacy cleanup is gated on successful stable v1.0.0 publication')
+assert(cleanup.dig('permissions', 'contents') == 'write' && cleanup.dig('permissions', 'actions') == 'write', 'cleanup receives only the repository and Actions write permissions it needs')
+cleanup_script = cleanup_job.fetch('steps').first.dig('with', 'script')
+assert(cleanup_script.include?('getReleaseByTag') && cleanup_script.include?('prerelease'), 'cleanup verifies the stable release is published and not a prerelease')
+assert(cleanup_script.include?('deleteRelease') && cleanup_script.include?('deleteRef') && cleanup_script.include?('deleteWorkflowRun'), 'cleanup removes only superseded prereleases, Alpha tags and completed failed CI runs')
+assert(cleanup_script.include?('DCP-macOS-Intel-update-v3.json.sig') && cleanup_script.include?('DCP-Windows-update-v3.json') && cleanup_script.include?('DCP-macOS-AppleSilicon.zip.sha256'), 'cleanup refuses to run until all four signed platform manifests exist')
 puts 'ALL RELEASE WORKFLOW CONTRACT TESTS PASSED'
