@@ -31,7 +31,7 @@ return [
     'release_tag' => $releaseTag,
     'build' => $appBuild,
     'bind' => '127.0.0.1',
-    'port' => 0,
+    'port' => 60776,
     'database' => rtrim($userDataRoot, '/\\') . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'dcp.sqlite',
     'storage' => $storage,
     'key_file' => $storage . DIRECTORY_SEPARATOR . 'keys' . DIRECTORY_SEPARATOR . 'master.key',

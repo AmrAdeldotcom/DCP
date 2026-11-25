@@ -4,7 +4,7 @@ All desktop shells load the same PHP platform from `platform/`. The wrapper owns
 
 ## Shared runtime contract
 - Bind address: `127.0.0.1` only.
-- Port: `18765` (configurable in `platform/config/app.php`).
+- Port: `60776` (DCP-owned fixed loopback port; see `platform/config/ports.json`).
 - Document root: `platform/public`.
 - Router: `platform/public/router.php`.
 - Database: `platform/data/dcp.sqlite`.
@@ -28,6 +28,6 @@ For distributable builds, bundle a dedicated PHP runtime per OS in `runtime/php/
 
 ## External navigation and network policy
 
-All desktop wrappers keep the DCP interface on its local loopback origin (`http://127.0.0.1:18765`). Navigation to any non-loopback URL is cancelled inside the embedded WebView and handed to the operating system's default browser. This applies to normal links and links requesting a new window.
+All desktop wrappers keep the DCP interface on its local loopback origin (`http://127.0.0.1:60776`). Navigation to any non-loopback URL is cancelled inside the embedded WebView and handed to the operating system's default browser. This applies to normal links and links requesting a new window.
 
 This policy does **not** block outbound requests made by DCP's PHP backend to configured AI providers or other explicitly configured integrations. Those service requests remain part of the single DCP application workflow. Avoid broad Little Snitch allow rules; allow only the required app/service destinations.

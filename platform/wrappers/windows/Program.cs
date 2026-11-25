@@ -24,9 +24,10 @@ internal sealed class MainWindow : Form
     private readonly WebView2 view = new() { Dock = DockStyle.Fill };
     private readonly string root = AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar);
     private Process? php;
+    private string? resolvedUserDataRoot;
     private readonly HttpClient updaterClient = new() { Timeout = TimeSpan.FromMinutes(20) };
     private CancellationTokenSource? updaterCancellation;
-    private string LogPath => Path.Combine(root, "DCP-UserData", "Windows", "storage", "logs", "desktop-wrapper.log");
+    private string LogPath => Path.Combine(resolvedUserDataRoot ?? Path.Combine(root, "DCP-UserData", "Windows"), "storage", "logs", "desktop-wrapper.log");
 
     public MainWindow()
     {
@@ -42,9 +43,24 @@ internal sealed class MainWindow : Form
 
     private async void StartDcp(object? sender, EventArgs e)
     {
-        Directory.CreateDirectory(Path.GetDirectoryName(LogPath)!);
-        File.WriteAllText(LogPath, string.Empty); // One fresh desktop-wrapper log per app launch.
+        string userData;
+        try
+        {
+            userData = ResolveUserDataDirectory();
+            Directory.CreateDirectory(Path.GetDirectoryName(LogPath)!);
+            File.WriteAllText(LogPath, string.Empty); // One fresh desktop-wrapper log per app launch.
+        }
+        catch (Exception ex)
+        {
+            ShowStartupError("DCP cannot prepare its private user-data directory. Details: " + ex.Message);
+            return;
+        }
         Port = FindAvailablePort();
+        if (Port == 0)
+        {
+            ShowStartupError("DCP local port 60776 is already in use. Close the process using this DCP-reserved port and restart DCP.");
+            return;
+        }
         AppendLog($"DCP startup: launching an isolated local PHP service on 127.0.0.1:{Port}. Remote update check is deferred to background.");
 
         var platform = Path.Combine(root, "platform");
@@ -64,7 +80,6 @@ internal sealed class MainWindow : Form
             return;
         }
 
-        var userData = Path.Combine(root, "DCP-UserData", "Windows");
         Directory.CreateDirectory(Path.Combine(userData, "data"));
         Directory.CreateDirectory(Path.Combine(userData, "storage"));
         try
@@ -275,11 +290,53 @@ internal sealed class MainWindow : Form
 
     private static int FindAvailablePort()
     {
-        using var listener = new TcpListener(IPAddress.Loopback, 0);
-        listener.Start();
-        var port = ((IPEndPoint)listener.LocalEndpoint).Port;
-        listener.Stop();
-        return port;
+        const int dcpPort = 60776;
+        try
+        {
+            using var listener = new TcpListener(IPAddress.Loopback, dcpPort);
+            listener.Start();
+            return dcpPort;
+        }
+        catch (SocketException) { return 0; }
+    }
+
+    private string ResolveUserDataDirectory()
+    {
+        var portable = Path.Combine(root, "DCP-UserData", "Windows");
+        try
+        {
+            Directory.CreateDirectory(Path.Combine(portable, "storage", "logs"));
+            var probe = Path.Combine(portable, "storage", ".dcp-write-probe-" + Guid.NewGuid().ToString("N"));
+            File.WriteAllText(probe, "ok");
+            File.Delete(probe);
+            resolvedUserDataRoot = portable;
+            return portable;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            var fallback = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DiGiPL", "DCP", "DCP-UserData", "Windows");
+            Directory.CreateDirectory(fallback);
+            if (Directory.Exists(portable)) CopyMissingUserData(portable, fallback);
+            resolvedUserDataRoot = fallback;
+            return fallback;
+        }
+    }
+
+    private static void CopyMissingUserData(string source, string destination)
+    {
+        Directory.CreateDirectory(destination);
+        foreach (var directory in Directory.GetDirectories(source, "*", SearchOption.AllDirectories))
+        {
+            var relative = Path.GetRelativePath(source, directory);
+            Directory.CreateDirectory(Path.Combine(destination, relative));
+        }
+        foreach (var file in Directory.GetFiles(source, "*", SearchOption.AllDirectories))
+        {
+            var relative = Path.GetRelativePath(source, file);
+            var target = Path.Combine(destination, relative);
+            Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+            if (!File.Exists(target)) File.Copy(file, target, false);
+        }
     }
 
     private string? FindCompatiblePhp(string platform)
@@ -385,7 +442,7 @@ internal sealed class MainWindow : Form
     {
         updaterCancellation?.Cancel();
         updaterClient.Dispose();
-        try { File.Delete(Path.Combine(root, "DCP-UserData", "Windows", "storage", "runtime-port.txt")); } catch { }
+        try { if (resolvedUserDataRoot is not null) File.Delete(Path.Combine(resolvedUserDataRoot, "storage", "runtime-port.txt")); } catch { }
         try
         {
             if (php is { HasExited: false })

@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "session": "DC71",
+  "date": "2026-11-26",
+  "branch": "feature/local-ai-runtime-discovery",
+  "headCommit": "pending-DC71",
+  "releasePublished": false,
+  "ports": [
+    {
+      "service": "dcp-local-ui-api",
+      "logical_code": 210776,
+      "tcp": 60776,
+      "status": "active"
+    },
+    {
+      "service": "dcp-mcp",
+      "logical_code": 310707,
+      "tcp": 60707,
+      "status": "reserved"
+    },
+    {
+      "service": "dp-core",
+      "logical_code": 270603,
+      "tcp": 60603,
+      "status": "reserved"
+    },
+    {
+      "service": "desktop-commander-adapter",
+      "logical_code": 780908,
+      "tcp": 60908,
+      "status": "reserved"
+    },
+    {
+      "service": "dsh-agent",
+      "logical_code": 770808,
+      "tcp": 60808,
+      "status": "reserved"
+    },
+    {
+      "service": "dcp-device-bridge",
+      "logical_code": 901214,
+      "tcp": 60214,
+      "status": "reserved"
+    },
+    {
+      "service": "dcp-ai-gateway",
+      "logical_code": 121216,
+      "tcp": 60216,
+      "status": "reserved"
+    }
+  ],
+  "verified": {
+    "platformTests": "ALL PLATFORM TESTS PASSED",
+    "localAiUiContracts": "ALL LOCAL AI UI CONTRACT CHECKS PASSED",
+    "phpLint": "PASS",
+    "jsSyntax": "PASS",
+    "gitDiffCheck": "PASS",
+    "ubuntuFixedPort": "PASS 127.0.0.1:60776 /api/status",
+    "macWrapperBuild": "PASS",
+    "windowsPublish": "PASS; interactive PHP listener not yet verified"
+  },
+  "open": [
+    "Windows fixed-port PHP startup and current UI exception",
+    "Mac fixed-port GUI/API runtime acceptance",
+    "Visual chat dock acceptance across three OSes",
+    "Q015 signed remote tasks/resources and owner grants",
+    "DC/DSH independent installer and registration UX"
+  ],
+  "model": {
+    "file": "Qwen3-0.6B-Q4_K_M.gguf",
+    "sha256": "ac2d97712095a558e31573f62f466a3f9d93990898b0ec79d7c974c1780d524a"
+  },
+  "vm": {
+    "ubuntu": "192.168.8.88",
+    "windows": "192.168.8.99"
+  }
+}

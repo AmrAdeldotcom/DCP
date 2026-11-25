@@ -32,6 +32,10 @@
     self.platformURL=[root URLByAppendingPathComponent:@"platform" isDirectory:YES];
     self.userDataURL=[root URLByAppendingPathComponent:@"DCP-UserData/macOS" isDirectory:YES];
     self.port=[self availablePort];
+    if(self.port<=0){
+        [self.webView loadHTMLString:@"<html><body style='font:16px -apple-system;padding:40px;background:#f3f6fa;color:#123'><h2>DCP local port 60776 is already in use</h2><p>Close the process using this DCP-reserved port, then restart DCP. DCP will not choose a random port.</p></body></html>" baseURL:nil];
+        return;
+    }
     WKWebViewConfiguration *config=[[WKWebViewConfiguration alloc] init];
     self.webView=[[WKWebView alloc] initWithFrame:NSMakeRect(0,0,1280,820) configuration:config];
     self.webView.navigationDelegate=self;
@@ -78,18 +82,15 @@
     return nil;
 }
 - (NSInteger)availablePort {
+    const NSInteger dcpPort=60776;
     int fd=socket(AF_INET,SOCK_STREAM,0);
-    if(fd<0) return 18765;
+    if(fd<0) return 0;
     struct sockaddr_in address; memset(&address,0,sizeof(address));
     address.sin_len=sizeof(address); address.sin_family=AF_INET;
-    address.sin_addr.s_addr=htonl(INADDR_LOOPBACK); address.sin_port=0;
-    NSInteger port=18765;
-    if(bind(fd,(struct sockaddr *)&address,sizeof(address))==0){
-        socklen_t length=sizeof(address);
-        if(getsockname(fd,(struct sockaddr *)&address,&length)==0) port=ntohs(address.sin_port);
-    }
+    address.sin_addr.s_addr=htonl(INADDR_LOOPBACK); address.sin_port=htons((uint16_t)dcpPort);
+    BOOL available=bind(fd,(struct sockaddr *)&address,sizeof(address))==0;
     close(fd);
-    return port;
+    return available?dcpPort:0;
 }
 - (BOOL)isCompatiblePHP:(NSString *)path {
     NSTask *task=[[NSTask alloc] init];

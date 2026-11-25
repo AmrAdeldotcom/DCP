@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "ports": [
+    {
+      "service": "dcp-local-ui-api",
+      "logical_code": 210776,
+      "tcp": 60776,
+      "status": "active",
+      "bind": "127.0.0.1"
+    },
+    {
+      "service": "dcp-mcp",
+      "logical_code": 310707,
+      "tcp": 60707,
+      "status": "reserved",
+      "bind": "127.0.0.1"
+    },
+    {
+      "service": "dp-core",
+      "logical_code": 270603,
+      "tcp": 60603,
+      "status": "reserved",
+      "bind": "127.0.0.1"
+    },
+    {
+      "service": "desktop-commander-adapter",
+      "logical_code": 780908,
+      "tcp": 60908,
+      "status": "reserved",
+      "bind": "127.0.0.1"
+    },
+    {
+      "service": "dsh-agent",
+      "logical_code": 770808,
+      "tcp": 60808,
+      "status": "reserved",
+      "bind": "127.0.0.1"
+    },
+    {
+      "service": "dcp-device-bridge",
+      "logical_code": 901214,
+      "tcp": 60214,
+      "status": "reserved",
+      "bind": "127.0.0.1"
+    },
+    {
+      "service": "dcp-ai-gateway",
+      "logical_code": 121216,
+      "tcp": 60216,
+      "status": "reserved",
+      "bind": "127.0.0.1"
+    }
+  ]
+}

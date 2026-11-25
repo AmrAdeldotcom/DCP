@@ -204,7 +204,10 @@ try {
             Write-Host 'Launching the updated DCP application for a startup check...'
             $Started = Start-Process -FilePath $App -WorkingDirectory $InstallRoot -PassThru
             $StartedProcessId = $Started.Id
-            $PortFile = Join-Path $InstallRoot 'DCP-UserData\Windows\storage\runtime-port.txt'
+            $PortFile = Join-Path $env:LOCALAPPDATA 'DiGiPL\DCP\DCP-UserData\Windows\storage\runtime-port.txt'
+            if (-not (Test-Path -LiteralPath $PortFile)) {
+                $PortFile = Join-Path $InstallRoot 'DCP-UserData\Windows\storage\runtime-port.txt'
+            }
             Remove-Item -LiteralPath $PortFile -Force -ErrorAction SilentlyContinue
             $Healthy = $false
             for ($attempt = 0; $attempt -lt 40; $attempt++) {

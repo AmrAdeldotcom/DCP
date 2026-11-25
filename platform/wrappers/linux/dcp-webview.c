@@ -13,16 +13,13 @@
 #include <string.h>
 static GPid php_pid=0;
 static guint dcp_port=0;
-static guint available_port(void){
- int fd=socket(AF_INET,SOCK_STREAM,0);if(fd<0)return 0;
+#define DCP_LOCAL_PORT 60776
+static gboolean dcp_port_available(void){
+ int fd=socket(AF_INET,SOCK_STREAM,0);if(fd<0)return FALSE;
  struct sockaddr_in address;memset(&address,0,sizeof(address));address.sin_family=AF_INET;
- address.sin_addr.s_addr=htonl(INADDR_LOOPBACK);address.sin_port=0;
- guint port=0;
- if(bind(fd,(struct sockaddr*)&address,sizeof(address))==0){
-  socklen_t length=sizeof(address);
-  if(getsockname(fd,(struct sockaddr*)&address,&length)==0)port=(guint)ntohs(address.sin_port);
- }
- close(fd);return port;
+ address.sin_addr.s_addr=htonl(INADDR_LOOPBACK);address.sin_port=htons(DCP_LOCAL_PORT);
+ gboolean ok=bind(fd,(struct sockaddr*)&address,sizeof(address))==0;
+ close(fd);return ok;
 }
 static gboolean ready(gpointer data){
  WebKitWebView *view=WEBKIT_WEB_VIEW(data);GError *error=NULL;
@@ -41,7 +38,7 @@ static gboolean navigation_policy(WebKitWebView *view,WebKitPolicyDecision *deci
 static void shutdown_app(GtkWidget *w,gpointer d){if(php_pid>0){kill(php_pid,SIGTERM);waitpid(php_pid,NULL,WNOHANG);}gtk_main_quit();}
 int main(int argc,char **argv){
  gtk_init(&argc,&argv);const char *root=g_getenv("DCP_ROOT");gchar *exe_dir=NULL;if(!root){char exe[PATH_MAX];ssize_t n=readlink("/proc/self/exe",exe,sizeof(exe)-1);if(n>0){exe[n]=0;exe_dir=g_path_get_dirname(exe);root=exe_dir;}else root=".";}
- dcp_port=available_port();if(dcp_port==0){g_printerr("DCP could not reserve a private loopback port.\\n");return 1;}
+ dcp_port=DCP_LOCAL_PORT;if(!dcp_port_available()){g_printerr("DCP local port %u is already in use. Close its owner; DCP will not switch to a random port.\\n",dcp_port);return 1;}
  gchar *platform=g_build_filename(root,"platform",NULL);gchar *pub=g_build_filename(platform,"public",NULL);gchar *router=g_build_filename(pub,"router.php",NULL);gchar *php=g_build_filename(root,"runtime","php","bin","php",NULL);
  if(!g_file_test(php,G_FILE_TEST_IS_EXECUTABLE)){g_free(php);php=g_find_program_in_path("php");}
  if(!php){g_printerr("DCP requires PHP CLI. Run Run-DCP.sh to install runtime dependencies.\n");return 1;}

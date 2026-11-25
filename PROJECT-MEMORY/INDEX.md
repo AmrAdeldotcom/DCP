@@ -77,3 +77,6 @@ This folder is the durable continuity layer for ChatGPT and other authorized eng
 
 
 - Current handoff (DC70): PROJECT-MEMORY/handoffs/DC70-gguf-runtime-chat-context-windows-ubuntu-fixes-2026-11-25.md; real Qwen3 llama.cpp/Ollama inference passes, Ubuntu dynamic-port blank-screen fix deployed, chat context tabs implemented. Windows GUI acceptance and GitHub default-branch integration remain open.
+
+
+- Current handoff (DC71): PROJECT-MEMORY/handoffs/DC71-fixed-ports-chat-layout-windows-acl-2026-11-26.md; fixed DCP port registry, bottom chat context dock, Send/hamburger handlers and device-orchestration architecture docs. Windows runtime acceptance remains open.

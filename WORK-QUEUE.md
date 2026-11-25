@@ -717,3 +717,30 @@ This file is the durable resume point. Update status, evidence and next action a
 - [ ] Cloud MCP deployment/migration remains gated by protected DCP_CLOUD_SIGNING_SEED and Q007 APP_KEY approval.
 
 Preserve: static VM IPs Ubuntu 192.168.8.88, Windows 192.168.8.99; stable /Volumes/Data/DiGiPL/DCP v1.0.0 untouched; never stage PROJECT-MEMORY/NETWORK-RESUME-REQUEST.json.
+
+
+## DC71 active queue — fixed ports, chat dock, Windows startup and device orchestration
+
+### Completed
+- [x] Add DCP-owned fixed port registry and use 60776 for DCP desktop UI/API on all three wrappers; other six ports reserved for named services.
+- [x] Replace random port selection with fixed-port conflict detection in Windows/macOS/Linux wrappers.
+- [x] Rebuild Linux wrapper; Ubuntu DCP API responds on 127.0.0.1:60776.
+- [x] Rebuild complete Windows .NET publish output and deploy apphost + DLL + runtime files together.
+- [x] Grant actual Windows interactive user access to DCP user data; add portable-first/LocalAppData fallback in Windows wrapper.
+- [x] Redesign chat markup for 25/75 history/workspace and bottom AI/Tasks/device context dock with device scrolling and No Device Online.
+- [x] Wire Send click and Enter; wire persistent hamburger collapse.
+- [x] Add @ context suggestions and initial device unread-dot UI state.
+- [x] Document chat/device/task architecture, grant model, DC/DSH installation model and port registry.
+- [x] Full platform tests and local AI UI contract tests pass.
+
+### Still open
+- [ ] Windows latest DCP process still did not start PHP on 60776; inspect current exception and runtime logs before accepting.
+- [ ] Launch Mac DCP.app and verify 60776/API.
+- [ ] Visually verify chat dock and Send/hamburger on Mac/Ubuntu/Windows.
+- [ ] Implement backend @ routing and signed remote task dispatch to DP-Core/DC/DSH.
+- [ ] Implement device resource grants: permanent allow, ask every time, deny; approval notifications, quota/concurrency, revocation and audit.
+- [ ] Implement remote context unread event routing.
+- [ ] Add independent DC/DSH install detection, official installer handoff and browser sign-in registration.
+- [ ] Continue Q015 Cloud owner-node invocation and real two-device acceptance.
+
+Preserve static VM IPs: Ubuntu 192.168.8.88, Windows 192.168.8.99. Stable /Volumes/Data/DiGiPL/DCP v1.0.0 remains untouched. Do not stage PROJECT-MEMORY/NETWORK-RESUME-REQUEST.json.

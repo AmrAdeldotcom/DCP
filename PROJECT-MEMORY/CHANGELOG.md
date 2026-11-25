@@ -578,3 +578,11 @@
 - Repaired Intel Mac DCP-managed llama-server RPATH locally with @loader_path; real Qwen3 llama.cpp inference returned DCP_QWEN3_OK. Same GGUF converted to Ollama dcp-qwen3-0.6b-q4-k-m:latest; Ollama inference returned DCP_OK.
 - Cloud health, anonymous identity and heartbeat verified; account remains Guest/unlinked. Stable DiGiPL v1.0.0 install and user data untouched.
 - Full platform suite, PHP lint, JS syntax and git diff checks passed. Windows interactive GUI acceptance and signed-release integration remain pending.
+
+## 2026-11-26 — DC71: fixed local ports, chat dock and Windows permission handling
+- Added DCP port registry: active DCP UI/API 60776 and reserved service ports 60707, 60603, 60908, 60808, 60214 and 60216. All local bindings are loopback-only.
+- Windows/macOS/Linux wrappers now use fixed port 60776 with conflict checks instead of random ports. Ubuntu rebuilt and serves /api/status on 60776.
+- Rebuilt Windows .NET wrapper and deployed the complete publish output (EXE + DLL + runtime metadata), not just DCP.exe. Added portable-first user data with per-user LocalAppData fallback and updater path support; actual Windows PHP listener acceptance remains pending.
+- Reworked Chat into a 25/75 history/workspace layout with AI, Tasks and online-device context dock at the bottom, horizontal device tabs, @ suggestions, Send click/Enter wiring and persistent hamburger collapse.
+- Added architecture documentation for DP-Core/DC/DSH task routing, device resource grants, owner approvals, signed Cloud execution, external agent installation and port policy.
+- Full platform tests and local AI UI contract checks pass; Mac wrapper build and Linux fixed-port API check pass.
