@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "project": "DCP — Desktop Connector Platform",
-  "updatedAt": "2026-11-25T07:05:46+02:00",
+  "updatedAt": "2026-11-25T07:08:09+02:00",
   "session": "DC49",
   "repository": "/Volumes/Data/ChatGPT/DCP",
   "branch": "feature/local-ai-runtime-discovery",
@@ -16,8 +16,8 @@
     "architecture": "x86_64"
   },
   "activeTask": "Q012",
-  "activeTaskStatus": "Task Inbox + background workers + cross-platform CI green; durable checkpoint snapshots with SHA-256 context hash and queued-instruction capture implemented locally; DC49 cross-platform CI pending",
-  "nextTask": "Run DC49 checkpoint snapshot changes through Ubuntu/Windows/macOS CI. Then extend snapshot with agent plan/tool-result/resumable step graph and build human review/context merger with explicit approval.",
+  "activeTaskStatus": "Task Inbox, background Chat Jobs and durable provider-boundary checkpoint snapshots pass local tests and cross-platform Ubuntu/Windows/macOS E2E; agent-plan/tool-result context merge and worker recovery remain open",
+  "nextTask": "Extend checkpoint snapshot with agent plan version, tool-result references, last confirmed step and resumable step graph; then build human review/context merger with explicit approval. Keep queued instructions manual.",
   "nextTaskFile": "PROJECT-MEMORY/tasks/Q012-shared-chat-task-inbox.md",
   "followingTask": "Q014 live Device Agent acceptance on Windows/Ubuntu/macOS; Q005 installed-client update/rollback/data-preservation acceptance",
   "latestSessionCheckpoint": {
@@ -29,7 +29,15 @@
     "checkpointSnapshot": "durable SQLite checkpoint snapshot + SHA-256 hash; human-review only; queue not auto-executed",
     "localTests": "platform suite, worker E2E, HTTP checkpoint snapshot E2E all pass",
     "crossPlatform": "previous background worker baseline 45550728368 green on Ubuntu/Windows/macOS; DC49 snapshot delta CI pending",
-    "next": "run CI; extend snapshot with plan/tool result graph; build human review/context merger and explicit approvals"
+    "next": "run CI; extend snapshot with plan/tool result graph; build human review/context merger and explicit approvals",
+    "crossPlatformCi": {
+      "run": 45551354459,
+      "status": "success",
+      "ubuntu-24.04": "success",
+      "windows-2025": "success",
+      "macos-15": "success"
+    },
+    "ciUrl": "https://github.com/AmrAdeldotcom/DCP/actions/runs/45551354459"
   },
   "knownConstraints": [
     "Work only in /Volumes/Data/ChatGPT/DCP.",
@@ -661,7 +669,7 @@
     ]
   },
   "lastUpdated": "2026-11-25T06:05:07+02:00",
-  "currentCheckpoint": "DC49 — durable provider-boundary checkpoint snapshot persisted atomically; includes conversation, pending Task Inbox items and SHA-256 context hash; UI displays snapshot summary; all local tests pass; new cross-platform CI pending.",
+  "currentCheckpoint": "DC49 — durable checkpoint snapshot, SHA-256 context hash and manual-review flags implemented; local full suite + worker/HTTP E2E + Chrome DOM pass; GitHub run 45551354459 green on Ubuntu/Windows/macOS.",
   "localAIWindows": {
     "status": "real interactive-user Qwen3 0.6B start/chat/stop smoke passed",
     "user": "AMRWIN11\\amradeldotcom",
@@ -762,7 +770,7 @@
   },
   "releaseMutation": "not performed; awaiting all-platform updater implementation and green package tests",
   "q012ChatJobs": {
-    "status": "cross-platform-ci-pass",
+    "status": "durable-checkpoint-snapshot-cross-platform-ci-pass",
     "features": [
       "persistent chat_jobs SQLite queue",
       "detached PHP CLI worker",
@@ -826,7 +834,14 @@
         "automatic_execution=false"
       ],
       "queuedBeforeClaim": "paused_before_provider snapshot with no fabricated assistant reply",
-      "ci": "pending after push",
+      "ci": {
+        "run": 45551354459,
+        "status": "success",
+        "ubuntu-24.04": "success",
+        "windows-2025": "success",
+        "macos-15": "success",
+        "url": "https://github.com/AmrAdeldotcom/DCP/actions/runs/45551354459"
+      },
       "implementationCommit": "0a94542"
     }
   },

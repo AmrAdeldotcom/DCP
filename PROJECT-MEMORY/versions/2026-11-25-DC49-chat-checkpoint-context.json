@@ -29,7 +29,19 @@
     "windows-2025": "success",
     "macos-15": "success"
   },
-  "currentCi": "pending after push",
+  "currentCi": {
+    "run": 45551354459,
+    "status": "success",
+    "ubuntu-24.04": "success",
+    "windows-2025": "success",
+    "macos-15": "success",
+    "checks": [
+      "PHP lint",
+      "detached worker E2E",
+      "authenticated Chat API + delayed provider + checkpoint + durable snapshot + SHA-256 verification"
+    ],
+    "url": "https://github.com/AmrAdeldotcom/DCP/actions/runs/45551354459"
+  },
   "limitations": [
     "checkpoint is provider-call boundary, not mid-tool-loop",
     "snapshot does not yet include plan/tool-result graph",

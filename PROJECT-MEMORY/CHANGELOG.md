@@ -473,3 +473,5 @@
 - Added atomic SQLite checkpoint snapshots containing provider result, recent conversation, pending Task Inbox messages and SHA-256 context hash.
 - Added checkpoint retrieval API and Chat UI summary. Queued instructions remain manual-review only; no auto-merge or execution.
 - Unit and authenticated HTTP E2E verify snapshot contents and hash. New cross-platform CI run pending.
+
+- DC49 cross-platform GitHub Actions run `45551354459` passed on Ubuntu 24.04, Windows Server 2025 and macOS 15, including real worker launch and authenticated checkpoint snapshot/Hash E2E.

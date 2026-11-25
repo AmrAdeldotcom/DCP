@@ -19,7 +19,7 @@ Scope: DCP only; DP_Anything remains deferred.
 - `DCP_RUN_CHAT_WORKER_E2E=1 php platform/tests/chat-worker-e2e.php` → `DCP_CHAT_WORKER_BACKGROUND_E2E_PASS`.
 - `python3 platform/tests/chat-job-http-e2e.py` → `DCP_CHAT_JOB_HTTP_E2E_PASS`, including HTTP checkpoint snapshot retrieval and SHA-256 hash verification.
 - PHP lint, Node syntax and `git diff --check` pass.
-- Previous cross-platform worker + HTTP E2E baseline `45550728368` passed Ubuntu 24.04, Windows Server 2025 and macOS 15. This DC49 snapshot delta has a new matrix run pending after push.
+- Final DC49 cross-platform run `45551354459` completed SUCCESS on Ubuntu 24.04, Windows Server 2025 and macOS 15. All three jobs passed PHP lint, real detached worker E2E and authenticated delayed-provider HTTP E2E including checkpoint snapshot retrieval and SHA-256 verification.
 
 ## Remaining
 1. Extend snapshot with plan version, last confirmed agent step, tool result references, pending approvals and resumable step graph.

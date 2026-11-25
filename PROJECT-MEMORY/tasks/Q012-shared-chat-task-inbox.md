@@ -26,7 +26,7 @@ Source spec: `platform/docs/proposals/DCP-Chat-Live-Task-Inbox-Interrupt-Queue.m
 - `platform/tests/chat-jobs.php`: atomic queue claim, provider-boundary checkpoint, durable snapshot/hash, pending-instruction capture, queued-before-claim snapshot, persisted response, inbox sent-state, failed job, lease expiry and invalid inbox reference.
 - `platform/tests/chat-worker-e2e.php`: real detached CLI worker starts, loads an isolated DCP installation/provider config, calls a local mock provider and persists one user + one assistant message.
 - `platform/tests/chat-job-http-e2e.py`: authenticated HTTP API E2E with a delayed mock provider; proves a Task Inbox message can be added while the worker runs, checkpoint waits for provider completion, the snapshot/hash API returns the conversation and pending queue, response/history persist, and queued instructions are not auto-executed.
-- `.github/workflows/test-chat-worker.yml`: cross-platform Ubuntu/Windows/macOS matrix for both worker process and HTTP checkpoint E2E; run `45550728368` passed all 3 OS jobs.
+- `.github/workflows/test-chat-worker.yml`: cross-platform Ubuntu/Windows/macOS matrix for both worker process and HTTP checkpoint E2E; run `45551354459` passed all 3 OS jobs after adding the durable checkpoint snapshot/hash checks.
 - Both test files are loaded by `platform/tests/run.php`.
 - `php platform/tests/run.php`: ALL PLATFORM TESTS PASSED.
 - PHP lint across `platform/app`, `platform/bootstrap`, and `platform/tests`: passed.
@@ -56,4 +56,4 @@ Source spec: `platform/docs/proposals/DCP-Chat-Live-Task-Inbox-Interrupt-Queue.m
 - Chat provider calls now execute in an independent worker; provider adapter semantics remain unchanged.
 - No remote task transport, pairing scope or Cloud deployment was changed by Q012.
 - No secrets, credentials, keys, SQLite production data or user files were accessed or modified.
-- Changes are pushed on `feature/local-ai-runtime-discovery`; cross-platform worker CI run `45550728368` passed Ubuntu 24.04, Windows Server 2025 and macOS 15. No release or deployment was made.
+- Changes are pushed on `feature/local-ai-runtime-discovery`; cross-platform worker + durable checkpoint snapshot CI run `45551354459` passed Ubuntu 24.04, Windows Server 2025 and macOS 15. No release or deployment was made.

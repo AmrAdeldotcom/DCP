@@ -49,4 +49,4 @@ This folder is the durable continuity layer for ChatGPT and other authorized eng
 
 - Latest checkpoint: PROJECT-MEMORY/handoffs/DC48-chat-background-jobs-safe-checkpoint-e2e-2026-11-25.md — DCP Chat background jobs and provider-boundary checkpoint; local E2E pass, cross-platform CI pending.
 
-- Latest checkpoint: PROJECT-MEMORY/handoffs/DC49-durable-chat-checkpoint-context-2026-11-25.md — durable checkpoint snapshot and SHA-256 context hash; local tests pass, new cross-platform CI pending.
+- Latest checkpoint: PROJECT-MEMORY/handoffs/DC49-durable-chat-checkpoint-context-2026-11-25.md — durable checkpoint snapshot and SHA-256 context hash; local tests and Ubuntu/Windows/macOS CI run 45551354459 pass.
