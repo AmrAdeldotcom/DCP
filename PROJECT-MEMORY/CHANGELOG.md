@@ -477,3 +477,5 @@
 - DC49 cross-platform GitHub Actions run `45551354459` passed on Ubuntu 24.04, Windows Server 2025 and macOS 15, including real worker launch and authenticated checkpoint snapshot/Hash E2E.
 
 - DC50: checkpoint schema v2 now captures versioned execution plans, dependency step graphs, opaque tool-result references and pending human approvals; dependency gates and cycle validation added. Local full suite and worker/HTTP E2E pass; cross-platform CI pending.
+
+- DC51: enforce private NTFS ACLs for per-device workspaces (current user, SYSTEM, Administrators only), preserve inherited private file ACLs without recursive symlink traversal, and make workspace tests OS-aware. Local full suite passes; GitHub full-platform CI 45587700487 passes Ubuntu and Windows; macOS queued.

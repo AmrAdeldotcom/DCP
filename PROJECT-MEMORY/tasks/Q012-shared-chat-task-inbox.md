@@ -51,6 +51,14 @@ Source spec: `platform/docs/proposals/DCP-Chat-Live-Task-Inbox-Interrupt-Queue.m
 - Isolated Chrome DOM smoke: `DCP_DC48_CHROME_DOM_PASS`; checkpoint button/status and Task Inbox rendered.
 - `git diff --check`: passed.
 
+### DC51 — Windows workspace ACL and cross-platform full-suite validation
+
+- Windows workspace directories now use NTFS DACLs restricted to the current process user SID, SYSTEM and Administrators. Broad Everyone, Authenticated Users and Users grants are removed.
+- Workspace identity manifests receive an explicit restricted ACL; child files inherit the private workspace DACL.
+- ACL updates are deliberately non-recursive so a nested symbolic link cannot cause ACL changes to an external target.
+- Workspace permission tests are OS-aware: Unix checks 0700 directories / 0600 files; Windows checks the effective named ACL principals. Device Agent output path comparison normalizes Windows separators.
+- Local full platform suite passes. GitHub full platform + background worker + HTTP E2E matrix run `45587700487`: Ubuntu 24.04 PASS, Windows Server 2025 PASS, macOS 15 queued at last check.
+
 ## Remaining Q012 / Stage 6 work
 
 1. Connect the actual agent execution coordinator/tool loop to the new plan/step/result/approval persistence APIs; implement safe step-level resume with idempotency and recovery.

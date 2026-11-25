@@ -1,0 +1,71 @@
+{
+  "checkpoint": "DC51",
+  "date": "2026-11-25",
+  "branch": "feature/local-ai-runtime-discovery",
+  "branchHead": "6d706d5",
+  "stage": "Stage 6 / Q012",
+  "commits": {
+    "executionPlanContext": "7a3b8d1",
+    "fullPlatformMatrix": "91d3c4d",
+    "initialWindowsAcl": "5e749ef",
+    "workspaceCiCoverage": "aac5ffb",
+    "aclInheritanceAndPathNormalization": "6d706d5"
+  },
+  "tests": {
+    "localPlatformSuite": "pass",
+    "workerE2E": "DCP_CHAT_WORKER_BACKGROUND_E2E_PASS",
+    "httpE2E": "DCP_CHAT_JOB_HTTP_E2E_PASS",
+    "phpLint": "pass",
+    "jsSyntax": "pass",
+    "diffCheck": "pass"
+  },
+  "ci": {
+    "run": 45587700487,
+    "ubuntu": "success",
+    "windows": "success",
+    "macos": "queued",
+    "windowsBuild": {
+      "run": 45587700142,
+      "status": "success"
+    },
+    "signedUpdateContract": {
+      "run": 45587700200,
+      "status": "success"
+    },
+    "linuxWebView": {
+      "run": 45587700650,
+      "status": "in_progress"
+    },
+    "linuxDistro": {
+      "run": 45587700677,
+      "status": "in_progress"
+    }
+  },
+  "windowsAcl": {
+    "owner": "current process user SID",
+    "additionalPrincipals": [
+      "SYSTEM",
+      "Administrators"
+    ],
+    "removedPrincipals": [
+      "Everyone",
+      "Authenticated Users",
+      "Users"
+    ],
+    "manifest": "explicit ACL",
+    "childFiles": "inherit workspace ACL",
+    "recursiveAclTraversal": false
+  },
+  "limitations": [
+    "agent planner/tool loop not integrated",
+    "step-level resume disabled",
+    "manual approval required",
+    "lease heartbeat/recovery open"
+  ],
+  "next": [
+    "finish macOS and Linux CI",
+    "connect agent execution coordinator",
+    "reviewed idempotent resume",
+    "worker heartbeat/crash recovery"
+  ]
+}
