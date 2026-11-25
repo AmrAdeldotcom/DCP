@@ -561,3 +561,5 @@
 - `php platform/tests/run.php`: ALL PLATFORM TESTS PASSED. All platform PHP files lint, app.js syntax, git diff check, local MCP STDIO/HTTP E2E, Cloud MCP service/contracts and resource/remote-terminal tests pass.
 - Three commits are local and branch is ahead 3. No push, release, Cloud production upload/migration, or stable install modification. Cloud health 200 does not confirm new Cloud MCP deployment. Protected Cloud signing seed and existing Q007 APP_KEY approval remain production gates.
 - Next: Cloud owner-node resource invocation/proxy, local team/device grant parity, Hermes, two-device Windows/Ubuntu acceptance, native PTY/ConPTY and daemon crash recovery.
+
+- DC68 follow-on (`cdd65d6`): verified interoperability between the real local `TaskEnvelopeService` device signer and the Cloud Ed25519 result verifier; altered results are rejected. Resource provider exception details are now redacted from local logs. Full platform suite passes.

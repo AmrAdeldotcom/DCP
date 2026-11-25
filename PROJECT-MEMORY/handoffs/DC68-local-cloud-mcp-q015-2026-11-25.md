@@ -2,7 +2,7 @@
 
 Date: 2026-11-25
 Branch: `feature/local-ai-runtime-discovery`
-HEAD: `c9620e5`
+HEAD: `cdd65d6`
 Source: `/Volumes/Data/ChatGPT/DCP-Source`
 
 ## User direction
@@ -14,8 +14,10 @@ Source: `/Volumes/Data/ChatGPT/DCP-Source`
 - `8967bc0 feat(dcp): complete core MCP and resource mesh foundations`
 - `c2998ec feat(cloud): add scoped read-only DCP MCP control plane`
 - `c9620e5 feat(resources): invoke owner-local AI resources and return signed remote results`
+- `33ecfbf docs(project): checkpoint DC68 MCP closure and Q015 progress`
+- `cdd65d6 test(security): verify DCP device signatures against Cloud`
 
-All three commits are local. Branch is three commits ahead of origin. No push, release or production deployment was performed.
+All five commits are local. Branch is five commits ahead of origin. No push, release or production deployment was performed.
 
 ## Local MCP — source implementation complete
 - Local STDIO host keeps alive, advertises the DCP logo and supports multiple JSON-RPC requests.
@@ -52,7 +54,7 @@ All three commits are local. Branch is three commits ahead of origin. No push, r
 - Local MCP STDIO keepalive/logo and loopback Streamable HTTP E2E pass.
 - Cloud MCP SQLite service/contract tests pass for token scope filtering, account isolation, device/pairing/resource/team/grant discovery, expiry, grant ownership and secret isolation.
 - Resource invocation tests pass for Ollama, opaque external provider references, missing secret refs and failed-provider ledger closure.
-- Signed remote terminal dispatch/result, replay protection, invalid signature rejection and source/target UI contracts pass.
+- Signed remote terminal dispatch/result, replay protection, invalid signature rejection and source/target UI contracts pass. A real `TaskEnvelopeService` device signature is verified by the Cloud Ed25519 verifier using the same canonical JSON; tampered device results are rejected. Provider error diagnostics are redacted from logs.
 
 ## Production/deployment boundary
 - `https://dcp.amradel.com/api/v1/health` returned `ok/database/schema` 200. This is the currently deployed health route and does **not** prove the new Cloud MCP source or `api_tokens.scopes_json` migration is live.

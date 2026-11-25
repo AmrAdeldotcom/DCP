@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
   "project": "DCP — Desktop Connector Platform",
-  "updatedAt": "2026-11-25T21:50:00+02:00",
+  "updatedAt": "2026-11-25T22:05:00+02:00",
   "session": "DC68",
   "repository": "/Volumes/Data/ChatGPT/DCP-Source",
   "branch": "feature/local-ai-runtime-discovery",
-  "headCommit": "c9620e5",
+  "headCommit": "cdd65d6",
   "latestReleaseTag": "v1.0.0",
-  "workingTree": "DC68: local and Cloud MCP control-plane implementations completed and committed; local MCP now exposes 35 provider-neutral tools, Cloud MCP exposes five scoped read-only tools. Added owner-local Ollama/OpenAI-compatible resource invocation and source-side signed remote-terminal result display. Full platform suite, PHP lint, JS syntax and diff checks pass. Three local commits are ahead of origin; no push or production Cloud deployment. The pre-existing NETWORK-RESUME-REQUEST.json remains untracked and was not staged.",
+  "workingTree": "DC68: local and Cloud MCP control-plane implementations completed and committed; local MCP now exposes 35 provider-neutral tools, Cloud MCP exposes five scoped read-only tools. Added owner-local Ollama/OpenAI-compatible resource invocation and source-side signed remote-terminal result display. Full platform suite, PHP lint, JS syntax and diff checks pass. Five local commits are ahead of origin; no push or production Cloud deployment. The pre-existing NETWORK-RESUME-REQUEST.json remains untracked and was not staged.",
   "device": {
     "name": "Amrs-Mac-Pro",
     "id": "a23231bf-eabc-441c-a6e2-560e3ae7f957",
@@ -24,7 +24,7 @@
     "conversation": "DC68",
     "date": "2026-11-25",
     "branch": "feature/local-ai-runtime-discovery",
-    "branchHead": "c9620e5",
+    "branchHead": "cdd65d6",
     "stage": "DCP MCP local + Cloud control plane closed in source; Q015 resource invocation and signed remote terminal delivery advanced",
     "completed": [
       "Committed the DCP Core foundations in 8967bc0 and scoped Cloud MCP in c2998ec.",
@@ -32,13 +32,16 @@
       "Cloud MCP: five scoped read-only tools for devices, pairings, resources, teams and grants; API tokens store explicit scopes, MCP tokens cannot use ordinary Cloud REST APIs, and resource discovery follows active user/team/device grants without exposing secret_ref.",
       "Owner-local resource invocation supports Ollama and configured OpenAI-compatible providers using opaque provider:<id> references resolved only by the encrypted local ProviderService vault; invocation ledger closes success/failure and agent calls require plan-bound approval.",
       "Q015 signed Cloud terminal dispatch/result path, target approval/execution separation, one-time local execution ledger, device result signatures, output redaction and source-side result retrieval UI are implemented and locally contract-tested.",
-      "Committed the latest Q015 resource invocation and source result UI changes in c9620e5."
+      "Committed the latest Q015 resource invocation and source result UI changes in c9620e5.",
+      "Added a cross-protocol test proving actual TaskEnvelopeService device signatures verify with the Cloud Ed25519 result verifier; provider exception messages are now redacted from local logs."
     ],
     "localTests": "php platform/tests/run.php — ALL PLATFORM TESTS PASSED. PHP lint across platform PHP files, node --check platform/public/assets/app.js, git diff --check, local MCP STDIO/HTTP E2E, Cloud MCP SQLite service/contract tests, resource invocation tests and remote terminal UI/dispatch contracts all pass.",
     "commits": [
       "8967bc0",
       "c2998ec",
-      "c9620e5"
+      "c9620e5",
+      "33ecfbf",
+      "cdd65d6"
     ],
     "limitations": [
       "Commits are local only: branch is three commits ahead of origin; no push or release.",
