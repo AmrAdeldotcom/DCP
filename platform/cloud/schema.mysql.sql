@@ -86,6 +86,7 @@ CREATE TABLE device_pairings (
  owner_device CHAR(36) NOT NULL,
  peer_device CHAR(36) NOT NULL,
  scopes TEXT NOT NULL,
+ presence_paused_at DATETIME NULL,
  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
  revoked_at DATETIME NULL,
  FOREIGN KEY(owner_device) REFERENCES devices(id) ON DELETE CASCADE,

@@ -2,7 +2,9 @@
 declare(strict_types=1);
 
 $source = file_get_contents(__DIR__ . '/../cloud/index.php');
-if (!is_string($source)) {
+$migration = file_get_contents(__DIR__ . '/../cloud/schema.migrate.sql');
+$schema = file_get_contents(__DIR__ . '/../cloud/schema.mysql.sql');
+if (!is_string($source) || !is_string($migration) || !is_string($schema)) {
     fwrite(STDERR, "FAIL: could not read DCP Cloud router.\n");
     exit(1);
 }
@@ -34,6 +36,15 @@ $checks = [
     'pairing request lists hide revoked requesters' => str_contains($source, "AND x.revoked_at IS NULL ORDER BY r.created_at"),
     'paired-device lists hide revoked peers' => str_contains($source, "AND p.revoked_at IS NULL AND x.revoked_at IS NULL ORDER BY x.label"),
     'signal polling rejects revoked endpoints and expired requests' => str_contains($source, "JOIN devices a ON a.id=r.source_device AND a.revoked_at IS NULL JOIN devices z ON z.id=r.target_device AND z.revoked_at IS NULL WHERE r.id=? AND r.expires_at>NOW() AND r.status='pending'"),
+    'new cloud schema stores pairing presence pause state' => str_contains($schema, 'presence_paused_at DATETIME NULL'),
+    'existing cloud schema migration adds presence pause state idempotently' => str_contains($migration, 'information_schema.COLUMNS') && str_contains($migration, 'ADD COLUMN presence_paused_at DATETIME NULL'),
+    'cloud health verifies the presence pause column before reporting healthy schema' => str_contains($source, 'SELECT presence_paused_at FROM device_pairings LIMIT 0'),
+    'paired-device listing reports granted, paused and effective presence separately' => str_contains($source, "\$row['presence_granted']") && str_contains($source, "\$row['presence_paused']") && str_contains($source, "\$row['presence_enabled']"),
+    'paused or unapproved presence hides online state and last-seen time' => str_contains($source, "if(!\$row['presence_enabled']){\$row['last_seen_at']=null;\$row['online']=null;}"),
+    'pause/resume endpoint validates a boolean and requires an active paired presence grant' => str_contains($source, 'paused_boolean_required') && str_contains($source, 'presence_permission_not_granted') && str_contains($source, 'AND revoked_at IS NULL LIMIT 1'),
+    'pause/resume updates only presence_paused_at and preserves signaling scopes' => str_contains($source, 'UPDATE device_pairings SET presence_paused_at=? WHERE id=? AND revoked_at IS NULL'),
+    'presence scope authorization rejects a paused pairing while other scopes remain intact' => str_contains($source, "return \$scope!=='presence'||\$row['presence_paused_at']===null;"),
+    'pair presence pause endpoint is rate limited' => str_contains($source, "rate_limit('pair-presence',120,3600)"),
 ];
 $failed = 0;
 foreach ($checks as $label => $ok) {

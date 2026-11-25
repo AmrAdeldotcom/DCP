@@ -11,7 +11,7 @@
 The current installation already has users, API tokens and devices. Preserve them.
 
 1. Open phpMyAdmin for the existing DCP Cloud database.
-2. Import **schema.migrate.sql** once. It makes device ownership nullable for anonymous devices and creates the one-time pairing-code, pairing-request and device-permission tables. Existing account/device rows and token hashes are preserved.
+2. Import **schema.migrate.sql** once. It makes device ownership nullable for anonymous devices, creates the one-time pairing-code and pairing-request tables, and adds the device-presence pause timestamp to existing pairings. It is safe to re-run; existing account/device rows, pairing scopes, revocation state and token hashes are preserved.
 3. In Hostinger File Manager, open the actual document root for `dcp.amradel.com`.
 4. Upload the updated `index.php`, `token.php` and `.htaccess` from this folder. Keep `index.php` and `token.php` mode 600 and `.htaccess` mode 644 so LiteSpeed can read the rewrite rules; the helper `token.php` is explicitly denied to direct HTTP requests.
 5. Do not replace `.env`, and do not re-import `schema.mysql.sql` into the existing database.
@@ -50,6 +50,7 @@ If the response is HTTP 503, check the Hostinger PHP error log and confirm that 
 - To pair devices, the owner creates a one-time pairing code. It expires after 10 minutes and can be used once.
 - The second device enters the code and sends a pairing request. The first device must approve or reject it.
 - The owner chooses the supported permissions at approval time: device presence and signaling.
+- Either paired endpoint may pause/resume the shared presence view only when presence was granted. Pausing hides online/last-seen state but does not revoke the pairing or change signaling permission; Revoke remains the separate full-access removal action.
 - Email is optional for device pairing. Users can optionally create or sign into a DCP Cloud account inside the desktop app to link the device identity to a persistent account.
 - Signing out unlinks the account but preserves the device identity and existing pairings.
 

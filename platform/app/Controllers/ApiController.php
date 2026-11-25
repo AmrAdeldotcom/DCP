@@ -38,6 +38,7 @@ final class ApiController {
    if($method==='POST'&&$path==='/api/cloud/pairing-request'){$this->json($this->cloud->requestPairing((string)($d['code']??'')));}
    if($method==='POST'&&$path==='/api/cloud/pairing-decision'){$this->json($this->cloud->decidePairing((string)($d['request_id']??''),(bool)($d['accept']??false),is_array($d['scopes']??null)?$d['scopes']:[]));}
    if($method==='POST'&&$path==='/api/cloud/pairing-revoke'){$this->json($this->cloud->revokePairing((string)($d['device_id']??'')));}
+   if($method==='POST'&&$path==='/api/cloud/pairing-presence'){$paused=$d['paused']??null;if(!is_bool($paused))throw new InvalidArgumentException('Presence pause state must be boolean.');$this->json($this->cloud->setPairingPresence((string)($d['device_id']??''),$paused));}
    if($method==='POST'&&$path==='/api/cloud/connect'){$this->json($this->cloud->requestConnection((string)($d['target_device']??'')));}
    if($method==='POST'&&$path==='/api/cloud/signal'){$this->json($this->cloud->sendSignal((string)($d['request_id']??''),(string)($d['envelope']??'')));}
    if($method==='POST'&&$path==='/api/notifications/read'){$id=(string)($d['id']??'');if(!empty($d['all']))$this->db->exec("UPDATE notifications SET read_at=COALESCE(read_at,datetime('now')) WHERE read_at IS NULL");elseif($id!==''){$q=$this->db->prepare('UPDATE notifications SET read_at=COALESCE(read_at,?) WHERE id=?');$q->execute([date(DATE_ATOM),$id]);}$this->json(['ok'=>true]);}

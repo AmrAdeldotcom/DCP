@@ -104,6 +104,11 @@ final class CloudService {
         $device=$this->ensureDevice();if(!preg_match('/^[a-f0-9-]{36}$/i',$deviceId))throw new InvalidArgumentException('Invalid paired device.');
         return $this->request('POST','/paired-devices/'.$deviceId.'/revoke',[],$device['device_token']);
     }
+    public function setPairingPresence(string $deviceId,bool $paused):array {
+        $device=$this->ensureDevice();
+        if(!preg_match('/^[a-f0-9-]{36}$/i',$deviceId))throw new InvalidArgumentException('Invalid paired device.');
+        return $this->request('POST','/paired-devices/'.$deviceId.'/presence',['paused'=>$paused],$device['device_token']);
+    }
     public function requestConnection(string $targetDevice):array {
         $device=$this->secret('cloud.device_token_enc');if($device==='')throw new RuntimeException('DCP Cloud device is not registered yet.');
         if($targetDevice===''||$targetDevice===$this->value('cloud.device_id'))throw new InvalidArgumentException('Choose another paired device.');
