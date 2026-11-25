@@ -1,15 +1,20 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ $# -lt 3 || $# -gt 4 ]]; then
-  echo "Usage: clone-pinned-source.sh REPOSITORY REF DESTINATION [MAX_ATTEMPTS]" >&2
+if [[ $# -lt 3 || $# -gt 5 ]]; then
+  echo "Usage: clone-pinned-source.sh REPOSITORY REF DESTINATION [MAX_ATTEMPTS] [blob:none]" >&2
   exit 2
 fi
 REPOSITORY="$1"
 REF="$2"
 DESTINATION="$3"
 MAX_ATTEMPTS="${4:-5}"
+FILTER="${5:-}"
 
+if [[ -n "$FILTER" && "$FILTER" != "blob:none" ]]; then
+  echo "Only the blob:none partial-clone filter is supported." >&2
+  exit 2
+fi
 if [[ ! "$REPOSITORY" =~ ^https://github\.com/[^[:space:]]+$ && ! "$REPOSITORY" =~ ^file://[^[:space:]]+$ ]]; then
   echo "Only HTTPS GitHub repositories or file:// test fixtures are allowed." >&2
   exit 2
@@ -28,10 +33,13 @@ if [[ -e "$DESTINATION" ]]; then
 fi
 mkdir -p "$(dirname "$DESTINATION")"
 
+clone_args=(--depth 1 --branch "$REF")
+if [[ "$FILTER" == "blob:none" ]]; then clone_args+=(--filter=blob:none); fi
+
 for ((attempt=1; attempt<=MAX_ATTEMPTS; attempt++)); do
   echo "Fetching $REPOSITORY at $REF (attempt $attempt/$MAX_ATTEMPTS)"
   if git -c http.lowSpeedLimit=1000 -c http.lowSpeedTime=60 \
-      clone --depth 1 --branch "$REF" "$REPOSITORY" "$DESTINATION"; then
+      clone "${clone_args[@]}" "$REPOSITORY" "$DESTINATION"; then
     git -C "$DESTINATION" rev-parse --verify HEAD >/dev/null
     echo "Pinned source checkout ready: $DESTINATION"
     exit 0

@@ -55,6 +55,12 @@ assert(workflow_triggers(mac).key?('workflow_call'), 'release-macos.yml is reusa
 mac_uploads = mac.fetch('jobs').fetch('macos-native-package').fetch('steps').select { |step| step['uses'].to_s.start_with?('actions/upload-artifact@') }
 assert(mac_uploads.any? { |step| step.dig('with', 'name').to_s.include?('dcp-macos-') && step.dig('with', 'path').to_s.include?('.sha256') }, 'both native macOS architectures upload package and checksum')
 assert(mac.fetch('jobs').values.flat_map { |job| Array(job['steps']) }.none? { |step| step['uses'].to_s.start_with?('softprops/action-gh-release@') }, 'macOS builder does not publish a partial release')
+arm64 = load_workflow('build-llama-macos-arm64.yml')
+arm64_text = arm64.fetch('jobs').values.flat_map { |job| Array(job['steps']) }.map { |step| step['run'].to_s }.join("\n")
+assert(arm64_text.include?('clone-pinned-source.sh') && arm64_text.include?('openssl-3.5.4') && arm64_text.include?('b12655'), 'Apple Silicon OpenSSL and llama.cpp source fetches use bounded retry helper')
+php = load_workflow('build-php-runtime-macos.yml')
+php_text = php.fetch('jobs').values.flat_map { |job| Array(job['steps']) }.map { |step| step['run'].to_s }.join("\n")
+assert(php_text.include?('clone-pinned-source.sh') && php_text.include?('for attempt in 1 2 3 4 5'), 'managed PHP source checkout and official PHP download use bounded retries')
 cleanup = load_workflow('cleanup-legacy-github.yml')
 cleanup_trigger = workflow_triggers(cleanup)
 assert(cleanup_trigger.dig('workflow_run', 'workflows') == ['Build and publish DCP signed cross-platform release'], 'legacy cleanup runs only after the unified signed release workflow')

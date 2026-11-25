@@ -65,7 +65,8 @@ jobs:
         run: |
           set -euo pipefail
           SPC_DIR="$RUNNER_TEMP/static-php-cli"
-          git clone --depth=1 --filter=blob:none --branch 2.8.5 https://github.com/crazywhalecc/static-php-cli.git "$SPC_DIR"
+          bash platform/scripts/clone-pinned-source.sh \
+            https://github.com/crazywhalecc/static-php-cli.git 2.8.5 "$SPC_DIR" 5 blob:none
           git -C "$SPC_DIR" checkout --detach "$STATIC_PHP_COMMIT"
           test "$(git -C "$SPC_DIR" rev-parse HEAD)" = "$STATIC_PHP_COMMIT"
           echo "SPC_DIR=$SPC_DIR" >> "$GITHUB_ENV"
@@ -86,7 +87,19 @@ jobs:
         run: |
           set -euo pipefail
           cd "$SPC_DIR"
-          bin/spc download --for-extensions="$EXTENSIONS" --with-php="$PHP_VERSION" --prefer-pre-built
+          downloaded=false
+          for attempt in 1 2 3 4 5; do
+            if bin/spc download --for-extensions="$EXTENSIONS" --with-php="$PHP_VERSION" --prefer-pre-built; then
+              downloaded=true
+              break
+            fi
+            if [[ "$attempt" -lt 5 ]]; then
+              delay=$((attempt * 5))
+              echo "PHP source download failed; retrying in ${delay}s." >&2
+              sleep "$delay"
+            fi
+          done
+          [[ "$downloaded" == true ]] || { echo "PHP source download failed after five attempts." >&2; exit 1; }
           PHP_ARCHIVE="$(find . -type f -name "php-$PHP_VERSION.tar.xz" -print -quit)"
           test -n "$PHP_ARCHIVE"
           printf '%s  %s\n' "$PHP_SOURCE_SHA256" "$PHP_ARCHIVE" | shasum -a 256 -c -

@@ -34,4 +34,9 @@ PATH="$WORK/fake-bin:$PATH" GIT_REAL="$REAL_GIT" GIT_RETRY_COUNTER="$WORK/attemp
   "file://$WORK/source" main "$WORK/clone" 4
 test "$(cat "$WORK/attempts")" = 3
 test "$(cat "$WORK/clone/fixture.txt")" = "pinned fixture"
+if bash "$ROOT/platform/scripts/clone-pinned-source.sh" "file://$WORK/source" main "$WORK/invalid-filter" 2 invalid-filter >/dev/null 2>&1; then
+  echo "FAIL: unsupported partial-clone filter was accepted" >&2
+  exit 1
+fi
 echo "PASS: transient source fetch failures are retried and the requested ref is checked out"
+echo "PASS: unsupported partial-clone filters are rejected"

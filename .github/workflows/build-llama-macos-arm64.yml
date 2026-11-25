@@ -28,7 +28,8 @@ jobs:
           set -euo pipefail
           OPENSSL_SOURCE="$RUNNER_TEMP/openssl-3.5.4"
           OPENSSL_ROOT_DIR="$RUNNER_TEMP/openssl-arm64"
-          git clone --depth 1 --branch openssl-3.5.4 https://github.com/openssl/openssl.git "$OPENSSL_SOURCE"
+          bash platform/scripts/clone-pinned-source.sh \
+            https://github.com/openssl/openssl.git openssl-3.5.4 "$OPENSSL_SOURCE" 5
           test "$(git -C "$OPENSSL_SOURCE" rev-parse HEAD)" = "c1eeb9406b6142148f267594197d853403d10208"
           cd "$OPENSSL_SOURCE"
           MACOSX_DEPLOYMENT_TARGET=12.0 ./Configure darwin64-arm64-cc no-shared no-tests --prefix="$OPENSSL_ROOT_DIR" --openssldir=/etc/ssl
@@ -46,7 +47,8 @@ jobs:
         run: |
           set -euo pipefail
           SOURCE="$RUNNER_TEMP/llama.cpp-b12655"
-          git clone --depth 1 --branch b12655 https://github.com/ggml-org/llama.cpp.git "$SOURCE"
+          bash platform/scripts/clone-pinned-source.sh \
+            https://github.com/ggml-org/llama.cpp.git b12655 "$SOURCE" 5
           DCP_MACOS_ARCH=arm64 DCP_LLAMA_SOURCE="$SOURCE" DCP_BUILD_JOBS=3 bash platform/dcp-env/engines/llama.cpp/build-macos-generic.sh
 
       - name: Verify ARM64 engine architecture and deployment target
