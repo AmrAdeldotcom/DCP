@@ -16,10 +16,26 @@ on:
       - 'platform/tests/mock-chat-delay-router.php'
       - 'platform/app/Services/ChatJobService.php'
       - 'platform/app/Services/DcpToolRegistry.php'
+      - 'platform/app/Core/ToolCallingProviderAdapter.php'
+      - 'platform/app/Core/ProviderToolCallResult.php'
+      - 'platform/app/Services/ChatService.php'
+      - 'platform/bin/chat-worker.php'
+      - 'platform/plugins/providers/ollama/driver.php'
+      - 'platform/plugins/providers/openai-compatible/driver.php'
+      - 'platform/tests/provider-tool-calls.php'
+      - 'platform/tests/mock-provider-tool-router.php'
       - 'platform/plugins/tools/mcp-host/server.php'
       - 'platform/tests/mcp-tool-registry.php'
       - 'platform/tests/mcp-host-e2e.php'
       - 'platform/app/Services/DcpToolRegistry.php'
+      - 'platform/app/Core/ToolCallingProviderAdapter.php'
+      - 'platform/app/Core/ProviderToolCallResult.php'
+      - 'platform/app/Services/ChatService.php'
+      - 'platform/bin/chat-worker.php'
+      - 'platform/plugins/providers/ollama/driver.php'
+      - 'platform/plugins/providers/openai-compatible/driver.php'
+      - 'platform/tests/provider-tool-calls.php'
+      - 'platform/tests/mock-provider-tool-router.php'
       - 'platform/plugins/tools/mcp-host/server.php'
       - 'platform/tests/mcp-tool-registry.php'
       - 'platform/tests/mcp-host-e2e.php'
@@ -55,10 +71,26 @@ on:
       - 'platform/tests/mock-chat-delay-router.php'
       - 'platform/app/Services/ChatJobService.php'
       - 'platform/app/Services/DcpToolRegistry.php'
+      - 'platform/app/Core/ToolCallingProviderAdapter.php'
+      - 'platform/app/Core/ProviderToolCallResult.php'
+      - 'platform/app/Services/ChatService.php'
+      - 'platform/bin/chat-worker.php'
+      - 'platform/plugins/providers/ollama/driver.php'
+      - 'platform/plugins/providers/openai-compatible/driver.php'
+      - 'platform/tests/provider-tool-calls.php'
+      - 'platform/tests/mock-provider-tool-router.php'
       - 'platform/plugins/tools/mcp-host/server.php'
       - 'platform/tests/mcp-tool-registry.php'
       - 'platform/tests/mcp-host-e2e.php'
       - 'platform/app/Services/DcpToolRegistry.php'
+      - 'platform/app/Core/ToolCallingProviderAdapter.php'
+      - 'platform/app/Core/ProviderToolCallResult.php'
+      - 'platform/app/Services/ChatService.php'
+      - 'platform/bin/chat-worker.php'
+      - 'platform/plugins/providers/ollama/driver.php'
+      - 'platform/plugins/providers/openai-compatible/driver.php'
+      - 'platform/tests/provider-tool-calls.php'
+      - 'platform/tests/mock-provider-tool-router.php'
       - 'platform/plugins/tools/mcp-host/server.php'
       - 'platform/tests/mcp-tool-registry.php'
       - 'platform/tests/mcp-host-e2e.php'
@@ -106,10 +138,26 @@ jobs:
           php -l platform/app/Controllers/ApiController.php
           php -l platform/app/Services/ChatJobService.php
           php -l platform/app/Services/DcpToolRegistry.php
+          php -l platform/app/Core/ToolCallingProviderAdapter.php
+          php -l platform/app/Core/ProviderToolCallResult.php
+          php -l platform/app/Services/ChatService.php
+          php -l platform/bin/chat-worker.php
+          php -l platform/plugins/providers/ollama/driver.php
+          php -l platform/plugins/providers/openai-compatible/driver.php
+          php -l platform/tests/provider-tool-calls.php
+          php -l platform/tests/mock-provider-tool-router.php
           php -l platform/plugins/tools/mcp-host/server.php
           php -l platform/tests/mcp-tool-registry.php
           php -l platform/tests/mcp-host-e2e.php
           php -l platform/app/Services/DcpToolRegistry.php
+          php -l platform/app/Core/ToolCallingProviderAdapter.php
+          php -l platform/app/Core/ProviderToolCallResult.php
+          php -l platform/app/Services/ChatService.php
+          php -l platform/bin/chat-worker.php
+          php -l platform/plugins/providers/ollama/driver.php
+          php -l platform/plugins/providers/openai-compatible/driver.php
+          php -l platform/tests/provider-tool-calls.php
+          php -l platform/tests/mock-provider-tool-router.php
           php -l platform/plugins/tools/mcp-host/server.php
           php -l platform/tests/mcp-tool-registry.php
           php -l platform/tests/mcp-host-e2e.php

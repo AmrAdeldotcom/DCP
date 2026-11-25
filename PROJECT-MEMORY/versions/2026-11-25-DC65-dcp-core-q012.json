@@ -1,0 +1,32 @@
+{
+  "session": "DC65",
+  "date": "2026-11-25",
+  "branch": "feature/local-ai-runtime-discovery",
+  "head": "0522e14",
+  "status": "local implementation; uncommitted and unpushed",
+  "dcp_core_local_mcp_tools": 31,
+  "http_and_provider_tools": 27,
+  "cloud_locales": ["ar", "en", "nl", "es", "pt", "fr", "de", "zh", "ja"],
+  "q012": {
+    "task5": "implemented-locally: plan-bound capability grants, private redacted artifacts, explicit immutable-plan tool execution, one-time lease and audit",
+    "task6": "implemented-locally: review and approval APIs/UI",
+    "task7": "implemented-locally: integrity-checked conversation resume and dependency-aware explicit per-step execution; no automatic multi-step loop"
+  },
+  "tests": {
+    "platform": "ALL PLATFORM TESTS PASSED",
+    "mcp_http": "DCP_MCP_STREAMABLE_HTTP_LOCAL_E2E_PASS",
+    "cloud": "ALL CLOUD CONTRACT CHECKS PASSED",
+    "worker": "DCP_CHAT_WORKER_BACKGROUND_E2E_PASS",
+    "chat_http": "DCP_CHAT_JOB_HTTP_E2E_PASS",
+    "php_lint": "pass",
+    "js_syntax": "pass",
+    "git_diff_check": "pass"
+  },
+  "limits": [
+    "interactive terminal sessions are STDIO-host scoped",
+    "no signed remote task dispatch from Cloud",
+    "cross-platform CI for latest changes pending",
+    "no Cloud production deployment",
+    "no commit/push/release"
+  ]
+}

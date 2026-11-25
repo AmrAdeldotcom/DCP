@@ -1,1 +1,1 @@
-{"id":"dcp-node","name":"DCP Local Node","type":"agent","version":"1.0.0","builtin":true,"capabilities":["terminal.safe","tasks","devices"],"status":"local"}
+{"id":"dcp-node","name":"DCP Local Node","type":"agent","version":"1.0.0","builtin":true,"capabilities":["terminal.execute","tasks","devices"],"status":"local"}

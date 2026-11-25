@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
   "project": "DCP — Desktop Connector Platform",
-  "updatedAt": "2026-11-25T07:08:09+02:00",
-  "session": "DC52",
-  "repository": "/Volumes/Data/ChatGPT/DCP",
+  "updatedAt": "2026-11-25T20:15:00+02:00",
+  "session": "DC67",
+  "repository": "/Volumes/Data/ChatGPT/DCP-Source",
   "branch": "feature/local-ai-runtime-discovery",
-  "headCommit": "4672b22",
+  "headCommit": "0522e14",
   "latestReleaseTag": "v1.0.0",
-  "workingTree": "DC48: DCP-only work on feature/local-ai-runtime-discovery. Persistent Task Inbox + background Chat Jobs + provider-boundary checkpoint. Do not stage unrelated pre-existing untracked handoffs/version files or modify DP_Anything.",
+  "workingTree": "DC67: consolidated the one full-shell terminal interface; added a private loopback session daemon shared across STDIO/HTTP/provider requests; implemented local Resource Registry/Broker and Cloud resource/team/grant APIs; added Cloud target-device terminal request/approve/reject inbox. Full platform suite passes. Q005 closed; Q012 Tasks 6/7 complete. No commit/push/release/deploy.",
   "device": {
     "name": "Amrs-Mac-Pro",
     "id": "a23231bf-eabc-441c-a6e2-560e3ae7f957",
@@ -15,35 +15,38 @@
     "os": "macOS 14.7.1",
     "architecture": "x86_64"
   },
-  "activeTask": "Q012",
-  "activeTaskStatus": "Stage 6 / Q012: Task 1 complete locally — shared MCP tool registry, policy/schema validation, and isolated MCP stdio E2E. Full platform suite now reaches Linux updater contracts and passes locally. GitHub matrix run 45589253032 pending across Ubuntu, Windows and macOS.",
-  "nextTask": "Task 2: add a backward-compatible provider-neutral structured tool-call contract, then implement Ollama and OpenAI-compatible tool-call parsing with fixtures before connecting the bounded coordinator.",
-  "nextTaskFile": "PROJECT-MEMORY/tasks/Q012-shared-chat-task-inbox.md",
-  "followingTask": "Q014 live Device Agent acceptance on Windows/Ubuntu/macOS; Q005 installed-client update/rollback/data-preservation acceptance",
+  "activeTask": "Q015 — DCP Resource Mesh & Universal AI Gateway, plus DCP Core terminal parity and Cloud target approval",
+  "activeTaskStatus": "Local Resource Registry/Broker, SQLite grants/invocation ledger, four MCP tools and REST endpoints implemented. Cloud resource/team/grant schema+migration and authenticated endpoints implemented. Full terminal is one dcp_terminal_execute tool; old restricted tool removed. Persistent terminal session daemon shares sessions across STDIO MCP, HTTP MCP and provider calls. Cloud remote-terminal requests require terminal.request scope; source Terminal selector sends exact-hash approval request, target Devices UI displays and approves/rejects exact command. Approval does not dispatch; signed delivery/results remain disabled. Full platform suite passes on macOS. Windows/Ubuntu validation pending.",
+  "nextTask": "Implement signed Cloud terminal dispatch/result envelopes bound to the target-approved exact hash; finish local team/device grant discovery, owner-local secret resolver and real resource invocation adapters; integrate Hermes; add native PTY/ConPTY and daemon crash recovery; then run Windows/Ubuntu full validation and live Claude reconnect/logo check.",
+  "nextTaskFile": "platform/docs/DCP-RESOURCE-MESH-AND-UNIVERSAL-AI-GATEWAY.md",
+  "followingTask": "Q012 remaining automatic multi-step coordinator/worker heartbeat recovery and Q014 real Device Agent acceptance on Windows/Ubuntu/macOS. Q005 is closed and must not be reopened.",
   "latestSessionCheckpoint": {
-    "conversation": "DC52",
+    "conversation": "DC67",
     "date": "2026-11-25",
     "branch": "feature/local-ai-runtime-discovery",
-    "branchHead": "4672b22",
-    "stage": "Stage 6 / Q012",
-    "completed": "shared MCP tool registry, policy/schema validation, MCP stdio E2E, complete platform suite harness",
-    "localTests": "ALL PLATFORM TESTS PASSED; DCP_CHAT_WORKER_BACKGROUND_E2E_PASS; DCP_CHAT_JOB_HTTP_E2E_PASS; PHP lint; JS syntax; git diff check",
-    "crossPlatformCi": {
-      "run": 45589253032,
-      "status": "in_progress",
-      "ubuntu": "in_progress",
-      "windows": "in_progress",
-      "macos": "in_progress"
-    },
+    "branchHead": "0522e14",
+    "stage": "DCP Core / Cloud Resource Mesh implementation and persistent cross-transport terminal sessions",
+    "completed": "Removed restricted dcp_run_safe_terminal and consolidated full shell under dcp_terminal_execute. Added authenticated local terminal session daemon and enabled all 34 tools across STDIO, HTTP MCP and provider schemas. Added local Resource Registry/Broker with grants/invocation ledger and four MCP tools. Added Cloud resource/team/grant schema, migration and authenticated endpoints. Added Cloud target terminal request inbox and source/target DCP UI with exact command hash, expiry and approve/reject; approval does not dispatch.",
+    "localTests": "php platform/tests/run.php — ALL PLATFORM TESTS PASSED after Resource Registry, Cloud contracts, daemon sharing, HTTP MCP session reconnect, 34-tool provider schema and source/target terminal approval UI contracts. PHP lint, node --check and git diff --check pass.",
     "limitations": [
-      "provider tool-call contract not implemented",
-      "agent coordinator/tool loop not connected",
-      "step resume disabled",
-      "manual approval required"
-    ]
+      "Terminal session daemon uses persistent pipes, not native PTY/ConPTY emulation; daemon crash recovery/reattach is not implemented.",
+      "Windows detached daemon launcher and latest Resource Mesh/Cloud changes have not been tested on Windows or Ubuntu in this turn.",
+      "Source/target DCP UIs now submit and review exact-command approval requests; signed dispatch/results and remote execution remain disabled.",
+      "Resource owner-local secret_ref is stored as an opaque reference; vault resolution and actual provider/API invocation adapters are not yet implemented.",
+      "Local team membership/grant discovery is incomplete; Cloud team grants are implemented.",
+      "Hermes adapter and universal AI gateway orchestration remain open.",
+      "No Claude app restart/reconnect or logo UI check in this turn.",
+      "Stable installed v1.0.0 unchanged; no commit/push/release/Cloud production migration/deploy."
+    ],
+    "workingDirectories": {
+      "source": "/Volumes/Data/ChatGPT/DCP-Source",
+      "releaseInstall": "/Volumes/Data/DiGiPL/DCP",
+      "dpMemory": "/Volumes/Data/DiGiPL/DP_MEMORY",
+      "desktopCommanderReference": "/Volumes/Data/DiGiPL/References/DesktopCommanderMCP"
+    }
   },
   "knownConstraints": [
-    "Work only in /Volumes/Data/ChatGPT/DCP.",
+    "Develop only in /Volumes/Data/ChatGPT/DCP-Source; stable installation is /Volumes/Data/DiGiPL/DCP; DP_MEMORY is separate at /Volumes/Data/DiGiPL/DP_MEMORY.",
     "Preserve the existing Windows installation and its SQLite/master key until replacement launch and data decryption are verified; keep a timestamped rollback backup.",
     "No public tunnel exposure until web entry authentication, private-path denial, rate limits and route isolation are verified.",
     "Never put secrets, credentials, .env files, API keys, tokens, private keys, SQLite databases or runtime state in Git or project Markdown.",
@@ -51,7 +54,7 @@
     "Use the existing external SSH organization at /Volumes/Data/ChatGPT/DCP-Lab-SSH/; never move private keys into the repo.",
     "Do not compile large runtimes locally; /Volumes/Data has about 8.1 GiB free and is 99% used.",
     "No production migration/deployment until backup, schema review, rollback and web-entry security gates are met.",
-    "Never stage the whole dirty worktree; Q005 version, Q006 LocalAI and Q007 cloud changes must be reviewed and committed in isolated units.",
+    "Never stage the whole dirty worktree; review and stage only scoped changes. Q005 is closed.",
     "Never rewrite the published v1.0.0-alpha.9 tag or silently replace its Linux asset; a corrected release needs a new approved tag/version.",
     "Do not merge the release branch into default main automatically: main is behind and the merge includes accumulated product changes beyond the four-file Linux fix."
   ],
@@ -73,7 +76,7 @@
     "linuxPackageFix": "Commit 0e3f411 fixes the Linux package app-directory staging bug; branch CI 45398600124 passed Build, package assertions, PHP HTTP smoke and artifact upload. Corrected Ubuntu fixture passed Run-DCP.sh, root HTTP 200 and /api/status ok=true."
   },
   "hostConstraints": {
-    "freeDisk": "14 GiB available on /Volumes/Data at 2026-11-24 14:49 EET; filesystem 99% used.",
+    "freeDisk": "Recheck before large downloads; all new source/runtime state must remain under /Volumes/Data/DiGiPL or the existing DCP user-data root. No large dependency/runtime installation in DC67.",
     "php": "/usr/local/bin/php 8.5.9, Homebrew PHP present",
     "impact": "Do not compile PHP or install large build dependencies locally; use native GitHub Actions runners."
   },
@@ -118,39 +121,42 @@
     "platform/tests/linux-updater-health.php",
     "platform/tests/update-windows.ps1",
     ".github/workflows/test-linux-distros.yml",
-    "PROJECT-MEMORY/handoffs/DC18-alpha10-linux-windows-update-hardening-2026-11-24.md"
+    "PROJECT-MEMORY/handoffs/DC18-alpha10-linux-windows-update-hardening-2026-11-24.md",
+    "platform/app/Services/DcpResourceRegistryService.php",
+    "platform/app/Services/DcpTerminalSessionClient.php",
+    "platform/bin/terminal-session-daemon.php",
+    "platform/cloud/schema.mysql.sql",
+    "platform/cloud/schema.migrate.sql",
+    "platform/tests/resource-registry.php",
+    "platform/tests/terminal-session-daemon.php",
+    "platform/tests/cloud-resource-contract.php",
+    "PROJECT-MEMORY/handoffs/DC67-dcp-core-cloud-resource-mesh-terminal-sessions-2026-11-25.md"
   ],
   "openIssues": [
     "Q004 blocked only for separate platform/index.php web preview. Hostinger docroot /home/u163155085/domains/amradel.com/public_html/dcp serves dcp.amradel.com; live health 200 and .env/schema direct HTTP denied. Preview remains unexposed until auth/private-path/rate-limit/route-isolation checks pass.",
     "DC08 Mac/Linux installer migrations byte-compare SQLite and master.key; Windows verifies SHA-256. DC08 commit 1b3e016 pushed and Linux CI passed.",
-    "Q006 local chat/llama.cpp lifecycle follows Q005; review PID/path ownership and Linux passwordless-sudo install support.",
     "Q007 Cloud schema migration/API deployment follows Q006. Live schema old: devices.user_id NOT NULL, pairing tables missing. User authorized deployment after backup and migration review; no production change yet.",
     "Windows upgrade migrates legacy DB/key to DCP-UserData/Windows, verifies SHA-256 and retains rollback backup until app startup/decryption succeeds.",
     "macOS/Linux installers migrate and byte-compare into DCP-UserData/macOS and DCP-UserData/Linux.",
     "Ubuntu 24.04 x86_64 SSH/passwordless sudo verified; no app or system packages installed yet.",
-    "Working tree has unrelated dirty cloud/web-entry/LocalAI changes; stage only scoped Q005 files.",
     "Q006 partial: process ownership test passes for foreign /bin/sleep on macOS; engine --version smoke passed on Intel Mac, Ubuntu x64 and Windows x64. No model inference, app-managed engine install, chat start/stop, Apple Silicon engine run or clean package runtime verification yet.",
     "Q007 partial: cloud production API E2E passed before hardening; latest cloud CI passes and live health=200, 64KiB body cap returns 413, private .env is outside webroot. Desktop integration and exhaustive authorization/abuse audit remain open.",
     "Default branch main is behind the v1.0.0-alpha.9 tag. The tag README commands point to raw main; main has no Install-DCP-Online.sh and its Windows installer is older. Tag-pinned scripts were used for Mac/Ubuntu tests; synchronize main only after human review.",
     "Ubuntu alpha9 package and launcher are installed at /home/amr/Applications/DCP, but app launch was stopped after PHP 500. Keep the package/error log for evidence until a corrected release is approved.",
     "Published Alpha9 Linux tarball remains defective: package contains app files at platform root rather than platform/app. Fix commit 0e3f411 is pushed and branch build/HTTP-smoke CI passes, but no corrected release has been published.",
     "The default main branch is behind the Alpha9 tag and lacks the current macOS/Linux one-command shell installer; README commands point to raw main. Human review is required before synchronizing main.",
-    "Q005 partial: Windows Alpha 9 runtime, HTTP, SQLite integrity and key round-trip verified; DB/master.key hashes match backups. No persisted encrypted provider/settings/mail rows existed, so stored-ciphertext decryption is not exercised. Keep backups.",
-    "Q005 partial: published Ubuntu Alpha 9 remains broken (HTTP root/API 500, missing platform/app/Core/Database.php). Fix commit 0e3f411 and CI run 45398600124 pass, but corrected package is not published; obtain approval for a superseding release.",
     "Windows Ollama is offline and Desktop Commander Remote is not connected; DSH is not installed. These integrations are not validated by the app HTTP/UI pass.",
     "Guest VM IPv4 addresses are manually configured, not DHCP reservations; confirm DHCP pool/exclusions before treating them as conflict-proof permanent addresses.",
     "Default main remains behind the Alpha 9 release branch and README installer URLs point to main; synchronize only after human review.",
     "GitHub integration cannot create a draft PR (403); branch push is verified and review/merge remains blocked by connector permission.",
     "GitHub Actions secret DCP_RELEASE_SIGNING_PRIVATE_KEY_B64 is not configured. The private key is held in the Mac login Keychain; GitHub connector is read-only for secrets and gh CLI is absent.",
-    "Do not publish Alpha 10, modify Alpha 9, merge main, or start PHP feature development until all Q005 release gates pass.",
     "Untracked .github/workflows/test-update-manifest.yml remains deliberately unstaged after review because it duplicates manifest tests already integrated elsewhere; do not add without a specific need.",
     "Linux packaged updater core is pushed in 4ddb91e; Ubuntu CI build passed, Kali dependency/smoke run 45442801351 is still in progress. Do not claim Kali compatibility until it finishes.",
     "macOS packaged updater remains incomplete. Untracked update-macos.php prototype is not wired to main.m and lacks crash-safe journal/recovery plus safe process-identity checks; do not stage or ship it until redesigned and tested.",
     "Windows schema-3 signed updater client and full fallback selection are implemented and CI/local contract tests pass, but target Windows Alpha9→Alpha10 update and forced rollback have not been run.",
     "No target Alpha10 install/update has been performed. Before Windows replacement, capture a fresh timestamped rollback backup and SQLite/master.key hashes. Ubuntu Alpha9 remains defective and unchanged.",
     "Signed schema-3 manifest generation/signing is not yet wired into a synchronized unified release workflow. GitHub Actions secret DCP_RELEASE_SIGNING_PRIVATE_KEY_B64 still needs manual setup.",
-    "Native macOS run 45442801352 is still in progress/queued by architecture. Previous run 45435155319 passed both Intel and Apple Silicon on 2f5a5d5; do not substitute that for the current commit result.",
-    "Do not publish Alpha10, modify Alpha9, merge main, or begin PHP feature development until all Q005 release and target rollback/data-preservation gates pass."
+    "Native macOS run 45442801352 is still in progress/queued by architecture. Previous run 45435155319 passed both Intel and Apple Silicon on 2f5a5d5; do not substitute that for the current commit result."
   ],
   "github": {
     "sshAlias": "github-dcp",
@@ -359,13 +365,23 @@
     }
   },
   "releaseInstallers": {
-    "windows": "platform/Install-DCP-Online.ps1 downloads latest release asset DCP-Windows-x64.zip, preserves data/storage, moves old install to timestamped backup, runs prerequisite setup.",
-    "macos_linux": "platform/Install-DCP-Online.sh selects DCP-macOS-Intel.zip or DCP-macOS-AppleSilicon.zip by uname -m; Linux verifies DCP-Linux-x64.tar.gz SHA-256.",
-    "linuxReleaseWorkflow": ".github/workflows/release-linux.yml",
-    "linuxCiWorkflow": ".github/workflows/build-linux.yml",
-    "dataMigration": "All installers preserve DCP-UserData, migrate legacy DB/storage only when the new OS-specific DB/key are absent, then verify source and target bytes (Windows SHA-256, macOS/Linux cmp).",
-    "completeReleaseGate": "NOT PASSED: v1.0.0-alpha.9 has six assets published but Linux package layout is defective. Alpha10 release gate is still open.",
-    "macOSMinimum": "12.0 for Intel and Apple Silicon because pinned prebuilt ICU contains objects built for macOS 12.0; online installer rejects older systems."
+    "macOS": {
+      "status": "installed-and-health-verified",
+      "path": "/Volumes/Data/DiGiPL/DCP",
+      "version": "1.0.0",
+      "releaseTag": "v1.0.0",
+      "bundleIdentifier": "com.amradel.dcp.desktop",
+      "runtime": "PHP 8.5.9 with required extensions; compatible system PHP reused",
+      "health": {
+        "apiStatusHttp": 200,
+        "apiBootstrapHttp": 200,
+        "testDataRoot": "/Volumes/Data/DiGiPL/.dcp-install-health-check",
+        "testDataRemoved": true,
+        "verifiedAgainst": "disposable DCP_USER_DATA_DIR outside install; production install data/key remain uncreated"
+      },
+      "appLaunched": false,
+      "userData": "fresh empty data/storage directories; no SQLite or master.key copied from source"
+    }
   },
   "watchdog": {
     "title": "DCP Alpha 10 Updater & DC0005 Watchdog",
@@ -489,7 +505,7 @@
     "endToEndUpdateTest": "Still pending on real installed clients: apply a signed update and verify rollback plus SQLite/master.key/user-data preservation on Windows, Ubuntu and macOS."
   },
   "lastCheckpoint": "DC20 three Alpha 10 installs verified; macOS Little Snitch github.com allow pending; release workflow still building 2026-11-24T20:50:00+02:00",
-  "latestHandoff": "PROJECT-MEMORY/handoffs/DC52-shared-mcp-tool-registry-2026-11-25.md",
+  "latestHandoff": "PROJECT-MEMORY/handoffs/DC54-dcp-core-mcp-cli-api-desktop-commander-reference-2026-11-25.md",
   "linuxUpdaterDC17": {
     "status": "implemented-locally-not-committed",
     "files": [
@@ -631,7 +647,7 @@
     },
     "releaseStatus": "Linux/Windows packages successful; macOS arm64 PHP successful; macOS x64 PHP and Intel llama in progress; Apple Silicon llama queued; no public release assets yet"
   },
-  "branchHead": "4672b22",
+  "branchHead": "0522e14",
   "originBranchHead": "ab3d5c6",
   "dc21Checkpoint": {
     "timestamp": "2026-11-24T20:23:42+02:00",
@@ -773,7 +789,7 @@
   },
   "releaseMutation": "not performed; awaiting all-platform updater implementation and green package tests",
   "q012ChatJobs": {
-    "status": "DC52 Task 1 complete locally; full platform/worker/HTTP cross-platform CI pending",
+    "status": "Tasks 1–7 implemented locally to current safe boundary: Task5 plan-bound grants/private artifacts/explicit immutable-plan invocation; Task6 review/approval API+UI; Task7 integrity-checked conversation resume and dependency-aware explicit per-step execution. Automatic multi-step loop and worker heartbeat/crash recovery remain open.",
     "features": [
       "persistent chat_jobs SQLite queue",
       "detached PHP CLI worker",
@@ -781,7 +797,16 @@
       "job status and active-session recovery APIs",
       "provider-boundary checkpoint request",
       "Task Inbox remains queued/manual review only",
-      "30-minute fail-closed worker lease"
+      "30-minute fail-closed worker lease",
+      "27-tool shared MCP registry: full shell, interactive sessions, filesystem and DCP Cloud controls",
+      "execution-plan review API and UI with approval/rejection history",
+      "plan-version-scoped approval decision endpoint that never executes tools",
+      "checkpoint integrity-verified conversation-only safe resume; no prior tool call replay",
+      "approval decisions create plan-version/tool/step-bound capability grants",
+      "private 0700/0600 result artifact store with 256 KB bound, SHA-256 and secret redaction",
+      "CSRF-protected immutable-plan tool execution API with one-time lease and audit",
+      "Chat review UI displays exact args and requires explicit per-step Execute click",
+      "dependency-aware safe per-step resume; no automatic multi-step replay"
     ],
     "tests": {
       "platformSuite": "ALL PLATFORM TESTS PASSED",
@@ -793,14 +818,16 @@
       "workflowYaml": "pass",
       "workerPid": "worker records getmypid() during atomic claim",
       "checkpointSnapshot": "unit + HTTP E2E with SHA-256 verification passed locally",
-      "executionPlanContext": "full platform suite passes including plan DAG, dependency gate, approval and snapshot schema-v2 assertions"
+      "executionPlanContext": "full platform suite passes including plan DAG, dependency gate, approval and snapshot schema-v2 assertions",
+      "localMcpHttpE2E": "DCP_MCP_STREAMABLE_HTTP_LOCAL_E2E_PASS",
+      "cloudContract": "ALL CLOUD CONTRACT CHECKS PASSED",
+      "uiContract": "Task 6 review/approval and Task 7 safe resume contract assertions pass"
     },
     "limitations": [
-      "checkpoint captures versioned plan/step graph/tool-result references/pending approvals, but the actual multi-step agent coordinator/tool loop is not connected",
-      "step-level resume is disabled; snapshots explicitly set resumable=false and resume_requires_review=true",
-      "no automatic queue merge or execution; user review remains required",
-      "lease timeout fails closed; no worker heartbeat/retry yet",
-      "latest full-platform CI run 45587700487: Ubuntu and Windows pass; macOS job queued"
+      "No automatic provider-proposed execution; each step requires current plan approval/grant and explicit user Execute action",
+      "Automatic multi-step coordinator loop and worker heartbeat/crash recovery remain open",
+      "Interactive terminal sessions are STDIO-only until durable process/session daemon exists",
+      "Cloud remote MCP remains read-only; signed remote task dispatch is not exposed"
     ],
     "workflow": ".github/workflows/test-chat-worker.yml",
     "commit": "7a3b8d1",
@@ -816,16 +843,11 @@
       "run": 45550155507,
       "result": "Ubuntu pass; macOS pass; Windows worker test pass; Windows HTTP test timed out because Start-Process launch command blocked until its 8-second launcher timeout"
     },
-    "next": "Task 2: introduce a backward-compatible provider-neutral structured tool-call contract; implement Ollama and OpenAI-compatible parsing with malformed/refusal/empty fixtures. Then integrate the bounded coordinator.",
+    "next": "Cross-platform CI for 31-tool Core registry and execution boundary; then persistent terminal session manager/PTY and signed Cloud task dispatch after device acceptance; Q012 worker heartbeat/crash recovery and task lifecycle.",
     "ciRun": {
-      "run": 45589253032,
-      "status": "in_progress",
-      "matrix": [
-        "ubuntu-24.04",
-        "windows-2025",
-        "macos-15"
-      ],
-      "url": "https://github.com/AmrAdeldotcom/DCP/actions/runs/45589253032"
+      "task1Run": 45589846000,
+      "task1Status": "success: ubuntu-24.04, windows-2025, macos-15",
+      "tasks2and3Status": "pending updated workflow matrix"
     },
     "checkpointSnapshot": {
       "status": "implemented-locally",
@@ -896,7 +918,7 @@
       "policies": {
         "safe-read": [
           "platform.status",
-          "terminal.safe-read"
+          "terminal.execute"
         ],
         "sensitive-read": [
           "provider.list",
@@ -926,8 +948,96 @@
       "commit": "bdde922",
       "status": "fixed",
       "behavior": "local-ai-ui-contract.php returns when included so run.php reaches update-manifest, Linux transaction/rollback/crash recovery and updater-health contracts"
+    },
+    "providerToolCalls": {
+      "status": "implemented-locally-uncommitted",
+      "interface": "platform/app/Core/ToolCallingProviderAdapter.php",
+      "result": "platform/app/Core/ProviderToolCallResult.php",
+      "registryExport": "DcpToolRegistry::providerTools()",
+      "service": "ChatService::sendWithTools()",
+      "providers": [
+        "ollama",
+        "openai-compatible"
+      ],
+      "safetyLimits": {
+        "toolDefinitions": 32,
+        "toolCallsPerResponse": 16,
+        "argumentBytes": 65536,
+        "assistantContentBytes": 1048576
+      },
+      "validation": [
+        "malformed JSON rejected",
+        "arguments must be JSON objects",
+        "invalid tool names and IDs rejected",
+        "refusal metadata preserved",
+        "empty response represented explicitly",
+        "Qwen3 thinking disabled"
+      ],
+      "tests": "provider-tool-calls.php; full platform suite, worker E2E and HTTP E2E pass locally",
+      "crossPlatformCi": "pending",
+      "coordinator": {
+        "status": "implemented-locally-uncommitted",
+        "class": "platform/app/Services/ChatExecutionCoordinator.php",
+        "registryValidation": "DcpToolRegistry::validateProposal()",
+        "workerIntegration": "ChatService::supportsToolCalls(); platform/bin/chat-worker.php uses sendWithTools for capable providers and persists proposals",
+        "limits": {
+          "toolCalls": 16,
+          "aggregateArgumentsBytes": 16384,
+          "planMetadataBytes": 32768
+        },
+        "safety": [
+          "unknown tools rejected",
+          "schema and semantic validation before plan persistence",
+          "canonical argument SHA-256",
+          "deterministic idempotency keys",
+          "approval-required steps blocked",
+          "safe-read steps remain planned",
+          "automatic_execution=false",
+          "execution_started=false"
+        ],
+        "tests": "full platform suite PASS; chat worker E2E PASS; cross-platform CI pending"
+      }
     }
   },
-  "latestImplementationCommit": "0a94542",
-  "latestPushedCommit": "4672b22"
+  "latestImplementationCommit": "0522e14",
+  "latestPushedCommit": "0522e14",
+  "folderSeparation": {
+    "source": "DCP-Source",
+    "sourcePath": "/Volumes/Data/ChatGPT/DCP-Source",
+    "sourceBranch": "feature/local-ai-runtime-discovery",
+    "sourceHead": "0522e14",
+    "sourceWorkingTree": "Preserved dirty/uncommitted work; inspect live git status before changes",
+    "releaseInstall": "DCP",
+    "releaseInstallPath": "/Volumes/Data/DiGiPL/DCP",
+    "preinstallStatePath": "/Volumes/Data/DiGiPL/DCP-Preinstall-State",
+    "installMethod": "official Install-DCP-Online.sh with DCP_INSTALL_DIR override; local installer fix is uncommitted",
+    "userData": "fresh isolated SQLite/master.key under DCP; do not copy from DCP-Source"
+  },
+  "architectureDecision": {
+    "date": "2026-11-25",
+    "product": "DCP — Distributed AI & Device Orchestration Platform",
+    "core": "provider-neutral Core owns identity, policy, devices, capabilities, plans, coordinator, approvals, results and recovery",
+    "firstClassInterfaces": [
+      "MCP STDIO",
+      "Remote MCP HTTP",
+      "CLI",
+      "REST API"
+    ],
+    "runtime": "DCP Node + provider-neutral Agent Runtime; DSH Agent supported",
+    "plugins": "Desktop Commander remains optional; DCP Core must work without it",
+    "teamMesh": "multiple team devices, local AI, cloud APIs and tools cooperate through governed task execution",
+    "architectureSpec": "platform/docs/DCP-CORE-MCP-CLI-API-ARCHITECTURE.md",
+    "desktopCommanderReference": "/Volumes/Data/DiGiPL/References/DesktopCommanderMCP",
+    "referenceReview": "platform/docs/research/desktop-commander-reference-review.md"
+  },
+  "desktopCommanderReference": {
+    "path": "/Volumes/Data/DiGiPL/References/DesktopCommanderMCP",
+    "repository": "https://github.com/wonderwhy-er/DesktopCommanderMCP",
+    "head": "9a101b17e44577f0baefa4c7120f087881c5cc56",
+    "version": "0.3.4",
+    "license": "MIT",
+    "pushDisabled": true,
+    "dependenciesInstalled": false,
+    "review": "platform/docs/research/desktop-commander-reference-review.md"
+  }
 }

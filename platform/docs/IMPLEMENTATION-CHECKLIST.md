@@ -88,7 +88,7 @@ Legend: [x] implemented and verified in this session; [~] exists but needs deepe
 ## Verified baseline (2026-11-20)
 - Existing command: `php platform/tests/run.php`
 - Result: ALL PLATFORM TESTS PASSED.
-- Passing checks: encrypted provider API key storage/decryption/masking/edit preservation; OpenAI-compatible mock model discovery/chat; SMTP/IMAP secret encryption; one-time pairing and heartbeat; safe terminal allow-list and blocked unsafe command; bug report generation; all nine locale JSON files parse.
+- Passing checks: encrypted provider API key storage/decryption/masking/edit preservation; OpenAI-compatible mock model discovery/chat; SMTP/IMAP secret encryption; one-time pairing and heartbeat; full terminal command and workspace boundary checks; bug report generation; all nine locale JSON files parse.
 - Not covered by this suite: live DeepSeek credentials, live Ollama chat from the current UI, real Desktop Commander/DSH task execution, two-device transport, desktop OS launchers on Windows/Linux, notification persistence across app restart.
 
 ## Session handoff

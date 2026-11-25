@@ -1,0 +1,57 @@
+{
+  "date": "2026-11-24",
+  "timestamp": "2026-11-24T20:23:42+02:00",
+  "session": "DC21",
+  "branch": "feature/alpha10-package-revision",
+  "head": "f59c086dac22789d6c5b316b5fbd03066cb0c8d0",
+  "originHead": "f59c086dac22789d6c5b316b5fbd03066cb0c8d0",
+  "commits": [
+    "193cfa4",
+    "f59c086"
+  ],
+  "localTests": {
+    "platformSuite": "passed",
+    "macOSUpdaterAssertions": 52,
+    "linuxUpdaterHealth": "passed",
+    "linuxTransaction": "passed",
+    "windowsPowerShellUpdater": "passed",
+    "windowsCSharpContract": "passed",
+    "windowsCrossTargetBuild": "passed with one existing WindowsBase warning",
+    "deltaBuilder": "passed",
+    "linuxExtractor": "passed",
+    "signatureTamper": "passed",
+    "releaseAssembly": "passed",
+    "phpLint": "passed",
+    "bashZshSyntax": "passed",
+    "powershellParse": "passed",
+    "projectJsonYaml": "passed",
+    "gitDiffCheck": "passed",
+    "macOSMainObjCCompile": "passed without rebuilding large runtimes"
+  },
+  "ci": {
+    "linuxBuild": "45458161076 success",
+    "ubuntuKali": "45458160914 success",
+    "windowsBuild": "45458161409 success",
+    "signedManifest": "45458161245 success",
+    "windowsCleanPackage": "45457125199 success on 193cfa4",
+    "macOSNative": "45458161119 queued (Intel/ARM64 PHP and llama jobs)"
+  },
+  "release": {
+    "alpha9ReleaseId": 456688871,
+    "alpha9TagCommit": "8b5bf08d6291897338ca322432ccf1962e0c2ed1",
+    "alpha9Assets": 6,
+    "alpha10Published": false
+  },
+  "devices": {
+    "macOS": "Alpha10 app signature verified; user-data hashes recorded; original listeners unchanged",
+    "Ubuntu": "Alpha9; no DCP listener; no install",
+    "Windows": "AMRWIN11; no DCP process/listener; backup root exists; no install"
+  },
+  "blockers": [
+    "native macOS CI queued",
+    "production Actions signing secret missing",
+    "user explicitly prohibited merge/release",
+    "target update/rollback acceptance requires signed Alpha10 release and fresh backups"
+  ],
+  "q005": "partial"
+}

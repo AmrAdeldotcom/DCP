@@ -29,9 +29,9 @@ Connect DCP Chat's existing background jobs and schema-v2 execution-plan checkpo
 - [x] Local Checkpoint 1: Existing MCP stdio contract, shared-registry policy/schema tests, and isolated MCP host E2E pass. Cross-platform CI remains pending.
 
 ### Phase 2 — Provider tool-call contract
-- [ ] Task 2: Add provider-neutral structured tool-call results without breaking ordinary chat responses.
-- [ ] Task 3: Implement tool-call parsing for Ollama and OpenAI-compatible providers, including malformed/refusal/empty response handling.
-- [ ] Checkpoint 2: Provider fixtures prove identical normalized calls and strict validation across providers.
+- [x] Task 2: Add provider-neutral structured tool-call results without breaking ordinary chat responses. (Local implementation + fixtures pass; cross-platform CI pending.)
+- [x] Task 3: Implement tool-call parsing for Ollama and OpenAI-compatible providers, including malformed/refusal/empty response handling. (Local implementation + fixtures pass; cross-platform CI pending.)
+- [x] Local Checkpoint 2: Provider fixtures prove normalized Ollama/OpenAI-compatible calls and strict malformed/refusal/empty/bounds handling. Cross-platform CI remains pending.
 
 ### Phase 3 — Bounded coordinator
 - [ ] Task 4: Implement a coordinator that creates a versioned plan, records steps, enforces dependency order and dispatches only policy-allowed tools.

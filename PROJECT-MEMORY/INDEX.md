@@ -20,7 +20,7 @@ This folder is the durable continuity layer for ChatGPT and other authorized eng
 - `architecture/`: architecture notes and cross-component contracts.
 - `bugs/`: reproducible bug records and diagnostics.
 - `testing/`: test baselines and verification evidence.
-- `handoffs/`: concise handoff notes for new conversations. Latest checkpoint: `handoffs/DC47-stable-release-cleanup-and-stage6-2026-11-25.md`.
+- `handoffs/`: concise handoff notes for new conversations. Latest checkpoint: `handoffs/DC65-dcp-core-mcp-q012-execution-2026-11-25.md`.
 
 ## Update protocol
 - After each meaningful task: update CURRENT-STATE.json, append CHANGELOG.md, and create a timestamped checkpoint in versions/.
@@ -50,3 +50,20 @@ This folder is the durable continuity layer for ChatGPT and other authorized eng
 - Latest checkpoint: PROJECT-MEMORY/handoffs/DC48-chat-background-jobs-safe-checkpoint-e2e-2026-11-25.md — DCP Chat background jobs and provider-boundary checkpoint; local E2E pass, cross-platform CI pending.
 
 - Latest checkpoint: PROJECT-MEMORY/handoffs/DC52-shared-mcp-tool-registry-2026-11-25.md — Stage 6 / Q012 shared MCP tool registry, capability/approval policy, full test-runner correction, and MCP stdio E2E. Local full platform + worker + HTTP tests pass; cross-platform CI run 45589253032 pending. Provider tool-call contract and agent coordinator remain open.
+
+
+## DC53 Q012 execution plan summary
+- Read `PROJECT-MEMORY/Q012-EXECUTION-PLAN-SUMMARY.md` for the user-facing phase/task table, stored plan/checkpoint/tool references, exact seven-tool catalog, provider contract, test evidence and DEP-Source/DEP isolation.
+
+
+## Latest handoff
+- `handoffs/DC57-q012-idempotent-execution-ledger-2026-11-25.md` — current Q012 Task 5 progress, MCP local/Cloud, temporary memory, tests and next work.
+
+- Latest immutable checkpoint: `versions/2026-11-25-DC65-dcp-core-q012.json`.
+
+
+- Latest handoff: handoffs/DC66-dcp-mcp-keepalive-resource-mesh-2026-11-25.md; latest immutable checkpoint: versions/2026-11-25-DC66-mcp-keepalive-resource-mesh.json.
+- Resource Mesh / Universal AI Gateway architecture: platform/docs/DCP-RESOURCE-MESH-AND-UNIVERSAL-AI-GATEWAY.md.
+
+
+- Latest DC67 handoff: handoffs/DC67-dcp-core-cloud-resource-mesh-terminal-sessions-2026-11-25.md; latest immutable checkpoint: versions/2026-11-25-DC67-dcp-core-cloud-resource-mesh-terminal-sessions.json.

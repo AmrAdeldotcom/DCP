@@ -65,14 +65,16 @@ case "$(uname -s)" in
       *) echo "Unsupported macOS architecture: $(uname -m)" >&2; exit 1 ;;
     esac
     ARCHIVE="$WORK_ROOT/$ASSET"
+    CHECKSUM="$ARCHIVE.sha256"
     EXTRACT="$WORK_ROOT/extracted"
     command -v ditto >/dev/null 2>&1 || { echo "macOS ditto is required." >&2; exit 1; }
+    command -v shasum >/dev/null 2>&1 || { echo "shasum is required to verify the macOS package." >&2; exit 1; }
 
     echo "Finding the latest DCP macOS release..."
     download_github_api "$WORK_ROOT/releases.json"
     DOWNLOAD_URL="$(python3 - "$WORK_ROOT/releases.json" "$ASSET" <<'PY'
 import json, sys
-required = {"DCP-Windows-x64.zip", "DCP-macOS-Intel.zip", "DCP-macOS-AppleSilicon.zip", "DCP-Linux-x64.tar.gz", "DCP-Linux-x64.tar.gz.sha256", "DCP-Windows-update.json"}
+required = {"DCP-Windows-x64.zip", "DCP-macOS-Intel.zip", "DCP-macOS-AppleSilicon.zip", "DCP-Linux-x64.tar.gz", "DCP-Linux-x64.tar.gz.sha256", "DCP-macOS-Intel.zip.sha256", "DCP-macOS-AppleSilicon.zip.sha256", "DCP-Windows-update-v3.json"}
 for release in json.load(open(sys.argv[1], encoding="utf-8")):
     if release.get("draft"):
         continue
@@ -85,6 +87,10 @@ PY
 )"
     mkdir -p "$EXTRACT" "$(dirname "$INSTALL_ROOT")"
     download_file "$DOWNLOAD_URL" "$ARCHIVE"
+    download_file "${DOWNLOAD_URL}.sha256" "$CHECKSUM"
+    EXPECTED="$(awk '{print $1}' "$CHECKSUM" | head -n1)"
+    ACTUAL="$(shasum -a 256 "$ARCHIVE" | awk '{print $1}')"
+    [[ "$EXPECTED" =~ ^[a-fA-F0-9]{64}$ && "$ACTUAL" == "$EXPECTED" ]] || { echo "macOS package SHA-256 verification failed." >&2; exit 1; }
     ditto -x -k "$ARCHIVE" "$EXTRACT"
     PACKAGE="$EXTRACT"
     [[ -d "$PACKAGE/DCP.app" && -d "$PACKAGE/platform" ]] || { echo "Invalid macOS package." >&2; exit 1; }
@@ -118,7 +124,7 @@ PY
     chmod -R u+rwX "$INSTALL_ROOT"
     "$INSTALL_ROOT/platform/scripts/install-runtime-macos.sh"
     INSTALL_COMPLETE=1
-    open "$INSTALL_ROOT/DCP.app"
+    if [[ "${DCP_INSTALL_NO_LAUNCH:-0}" != "1" ]]; then open "$INSTALL_ROOT/DCP.app"; fi
     echo "DCP macOS installed at: $INSTALL_ROOT"
     ;;
 
@@ -136,7 +142,7 @@ PY
     download_github_api "$WORK_ROOT/releases.json"
     python3 - "$WORK_ROOT/releases.json" "$ASSET" "$ASSET.sha256" "$WORK_ROOT/asset-urls.txt" <<'PY'
 import json, sys
-required = {"DCP-Windows-x64.zip", "DCP-macOS-Intel.zip", "DCP-macOS-AppleSilicon.zip", "DCP-Linux-x64.tar.gz", "DCP-Linux-x64.tar.gz.sha256", "DCP-Windows-update.json"}
+required = {"DCP-Windows-x64.zip", "DCP-macOS-Intel.zip", "DCP-macOS-AppleSilicon.zip", "DCP-Linux-x64.tar.gz", "DCP-Linux-x64.tar.gz.sha256", "DCP-macOS-Intel.zip.sha256", "DCP-macOS-AppleSilicon.zip.sha256", "DCP-Windows-update-v3.json"}
 for release in json.load(open(sys.argv[1], encoding="utf-8")):
     if release.get("draft"):
         continue

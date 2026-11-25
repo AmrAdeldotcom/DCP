@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "conversation": "DC04",
+  "date": "2026-11-24",
+  "repository": "/Volumes/Data/ChatGPT/DCP",
+  "branch": "fix/alpha7-localai-cloud-pairing",
+  "headCommit": "8705c38",
+  "activeTask": "Q005",
+  "activeTaskStatus": "partial",
+  "nextTask": "Inspect GitHub Actions macOS clean-package run 45297880160 after completion.",
+  "ci": {
+    "cloudPhp": {
+      "id": 45297880102,
+      "status": "success"
+    },
+    "windowsPackage": {
+      "id": 45297880346,
+      "status": "success"
+    },
+    "windowsBuild": {
+      "id": 45297880381,
+      "status": "success"
+    },
+    "linuxWebView": {
+      "id": 45297880066,
+      "status": "success"
+    },
+    "macosPackage": {
+      "id": 45297880160,
+      "status": "in_progress",
+      "arm64": "success",
+      "intelX64": "compiling",
+      "arm64Artifact": "dcp-php-runtime-macos-arm64 (23324090 bytes)",
+      "jobs": [
+        {
+          "id": 138122769491,
+          "architecture": "macos-x64",
+          "step": "Compile managed PHP"
+        },
+        {
+          "id": 138122769825,
+          "architecture": "macos-arm64",
+          "step": "Compile managed PHP"
+        }
+      ]
+    }
+  },
+  "validation": {
+    "platformTests": "ALL PLATFORM TESTS PASSED",
+    "macosRuntimeInstaller": "6/6 passed",
+    "localAiServicePhpLint": "passed",
+    "javascriptSyntax": "passed",
+    "shellSyntax": "passed",
+    "versionJson": "passed",
+    "workflowYaml": "9/9 parsed",
+    "gitDiffCheck": "passed"
+  },
+  "constraints": [
+    "8.1 GiB free on /Volumes/Data; do not compile locally.",
+    "Do not publish alpha.9 or install from incomplete alpha.8.",
+    "Do not stage or commit the whole dirty worktree.",
+    "Keep Q006 partial and gated behind Q005 acceptance criteria."
+  ],
+  "noSideEffects": "No application source changes, commit, push, release, tag, installation or deployment performed in this session."
+}

@@ -1,41 +1,128 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/DcpFilesystemService.php';
 final class DcpToolRegistry {
- private array $definitions;
+ private array $definitions;private DcpFilesystemService $filesystem;private CloudService $cloud;private DcpResourceRegistryService $resources;
  private array $policies=[
   'dcp_get_status'=>['classification'=>'safe-read','capability'=>'platform.status','approval_required'=>false],
+  'dcp_resource_discover'=>['classification'=>'safe-read','capability'=>'resource.discover','approval_required'=>false],
+  'dcp_resource_register'=>['classification'=>'state-change','capability'=>'resource.manage','approval_required'=>true],
+  'dcp_resource_grant'=>['classification'=>'state-change','capability'=>'resource.share','approval_required'=>true],
+  'dcp_resource_revoke'=>['classification'=>'state-change','capability'=>'resource.share','approval_required'=>true],
   'dcp_list_providers'=>['classification'=>'sensitive-read','capability'=>'provider.list','approval_required'=>true],
   'dcp_list_devices'=>['classification'=>'sensitive-read','capability'=>'device.list','approval_required'=>true],
   'dcp_list_tasks'=>['classification'=>'sensitive-read','capability'=>'task.list','approval_required'=>true],
   'dcp_create_task'=>['classification'=>'state-change','capability'=>'task.create','approval_required'=>true],
-  'dcp_run_safe_terminal'=>['classification'=>'safe-read','capability'=>'terminal.safe-read','approval_required'=>false],
+  'dcp_terminal_execute'=>['classification'=>'state-change','capability'=>'terminal.execute','approval_required'=>true],
   'dcp_read_unread_mail'=>['classification'=>'sensitive-read','capability'=>'mail.read','approval_required'=>true],
+  'dcp_fs_read'=>['classification'=>'safe-read','capability'=>'filesystem.read','approval_required'=>false],
+  'dcp_fs_list'=>['classification'=>'safe-read','capability'=>'filesystem.read','approval_required'=>false],
+  'dcp_fs_search'=>['classification'=>'safe-read','capability'=>'filesystem.read','approval_required'=>false],
+  'dcp_fs_write'=>['classification'=>'state-change','capability'=>'filesystem.write','approval_required'=>true],
+  'dcp_fs_mkdir'=>['classification'=>'state-change','capability'=>'filesystem.write','approval_required'=>true],
+  'dcp_fs_move'=>['classification'=>'state-change','capability'=>'filesystem.write','approval_required'=>true],
+  'dcp_fs_delete'=>['classification'=>'state-change','capability'=>'filesystem.delete','approval_required'=>true],
+  'dcp_terminal_session_start'=>['classification'=>'state-change','capability'=>'terminal.execute','approval_required'=>true],
+  'dcp_terminal_session_read'=>['classification'=>'safe-read','capability'=>'terminal.execute','approval_required'=>false],
+  'dcp_terminal_session_write'=>['classification'=>'state-change','capability'=>'terminal.execute','approval_required'=>true],
+  'dcp_terminal_session_stop'=>['classification'=>'state-change','capability'=>'terminal.execute','approval_required'=>true],
+  'dcp_cloud_status'=>['classification'=>'safe-read','capability'=>'cloud.status','approval_required'=>false],
+  'dcp_cloud_pairing_code'=>['classification'=>'state-change','capability'=>'cloud.pairing.manage','approval_required'=>true],
+  'dcp_cloud_request_pairing'=>['classification'=>'state-change','capability'=>'cloud.pairing.manage','approval_required'=>true],
+  'dcp_cloud_decide_pairing'=>['classification'=>'state-change','capability'=>'cloud.pairing.manage','approval_required'=>true],
+  'dcp_cloud_revoke_pairing'=>['classification'=>'state-change','capability'=>'cloud.pairing.manage','approval_required'=>true],
+  'dcp_cloud_connect'=>['classification'=>'state-change','capability'=>'cloud.connection.manage','approval_required'=>true],
+  'dcp_cloud_send_signal'=>['classification'=>'state-change','capability'=>'cloud.connection.manage','approval_required'=>true],
+  'dcp_cloud_get_signals'=>['classification'=>'sensitive-read','capability'=>'cloud.connection.read','approval_required'=>true],
+  'dcp_fs_stat'=>['classification'=>'safe-read','capability'=>'filesystem.read','approval_required'=>false],
+  'dcp_fs_edit'=>['classification'=>'state-change','capability'=>'filesystem.write','approval_required'=>true],
+  'dcp_process_list'=>['classification'=>'safe-read','capability'=>'process.read','approval_required'=>false],
+  'dcp_process_terminate'=>['classification'=>'state-change','capability'=>'process.terminate','approval_required'=>true],
  ];
  public function __construct(private array $config,private PDO $db,private ProviderService $providers,private DeviceService $devices,private TerminalService $terminal,private PluginManager $plugins,private Crypto $crypto){
+  $this->filesystem=new DcpFilesystemService((string)($config['terminal_root']??getcwd()));$this->cloud=new CloudService($db,$crypto);$this->resources=new DcpResourceRegistryService($db);
   $empty=['type'=>'object','properties'=>(object)[],'additionalProperties'=>false];
   $this->definitions=[
    ['name'=>'dcp_get_status','description'=>'Read DCP local platform and Ollama health.','inputSchema'=>$empty,'annotations'=>['readOnlyHint'=>true]],
+   ['name'=>'dcp_resource_discover','description'=>'Discover resources owned by or explicitly shared with this DCP user. Returns metadata only, never credentials.','inputSchema'=>['type'=>'object','properties'=>['kind'=>['type'=>'string','maxLength'=>40],'provider'=>['type'=>'string','maxLength'=>100],'model'=>['type'=>'string','maxLength'=>160],'device_id'=>['type'=>'string','maxLength'=>100],'operation'=>['type'=>'string','maxLength'=>64]],'additionalProperties'=>false],'annotations'=>['readOnlyHint'=>true]],
+   ['name'=>'dcp_resource_register','description'=>'Register a local model, engine, API endpoint, MCP server, tool, agent or dataset. Credentials must remain in the owner-local vault; only secret_ref may be supplied.','inputSchema'=>['type'=>'object','properties'=>['kind'=>['type'=>'string','enum'=>['local_model','inference_engine','external_api','mcp_server','tool','agent','dataset']],'name'=>['type'=>'string','minLength'=>1,'maxLength'=>160],'device_id'=>['type'=>'string','maxLength'=>100],'provider'=>['type'=>'string','maxLength'=>100],'model'=>['type'=>'string','maxLength'=>160],'endpoint_class'=>['type'=>'string','maxLength'=>40],'operations'=>['type'=>'array','minItems'=>1,'maxItems'=>32,'items'=>['type'=>'string','maxLength'=>64]],'metadata'=>['type'=>'object'],'capacity'=>['type'=>'object'],'data_classification'=>['type'=>'string','enum'=>['public','internal','confidential','restricted']],'locality'=>['type'=>'string','enum'=>['device','region','cloud']],'secret_ref'=>['type'=>'string','maxLength'=>160],'published'=>['type'=>'boolean']],'required'=>['kind','name'],'additionalProperties'=>false],'annotations'=>['readOnlyHint'=>false]],
+   ['name'=>'dcp_resource_grant','description'=>'Share an owned resource with a user, team, client or device using a bounded operation grant and optional expiry/quota.','inputSchema'=>['type'=>'object','properties'=>['resource_id'=>['type'=>'string','minLength'=>1,'maxLength'=>100],'grantee_type'=>['type'=>'string','enum'=>['user','team','client','device']],'grantee_id'=>['type'=>'string','minLength'=>1,'maxLength'=>160],'operations'=>['type'=>'array','minItems'=>1,'maxItems'=>32,'items'=>['type'=>'string','maxLength'=>64]],'expires_at'=>['type'=>'string','maxLength'=>40],'quota_limit'=>['type'=>'integer','minimum'=>0,'maximum'=>1000000],'concurrency_limit'=>['type'=>'integer','minimum'=>1,'maximum'=>128]],'required'=>['resource_id','grantee_type','grantee_id','operations'],'additionalProperties'=>false],'annotations'=>['readOnlyHint'=>false]],
+   ['name'=>'dcp_resource_revoke','description'=>'Revoke an active resource grant.','inputSchema'=>['type'=>'object','properties'=>['grant_id'=>['type'=>'string','minLength'=>1,'maxLength'=>100]],'required'=>['grant_id'],'additionalProperties'=>false],'annotations'=>['readOnlyHint'=>false]],
    ['name'=>'dcp_list_providers','description'=>'List AI providers with masked API key previews only.','inputSchema'=>$empty,'annotations'=>['readOnlyHint'=>true]],
    ['name'=>'dcp_list_devices','description'=>'List paired DCP devices and their status.','inputSchema'=>$empty,'annotations'=>['readOnlyHint'=>true]],
    ['name'=>'dcp_list_tasks','description'=>'List DCP tasks and approval/execution states.','inputSchema'=>$empty,'annotations'=>['readOnlyHint'=>true]],
    ['name'=>'dcp_create_task','description'=>'Create an approval-required task. A user must approve it in the DCP dashboard before execution.','inputSchema'=>['type'=>'object','properties'=>['title'=>['type'=>'string','minLength'=>1,'maxLength'=>200],'description'=>['type'=>'string','minLength'=>1,'maxLength'=>4000],'target_device_id'=>['type'=>'string','minLength'=>1,'maxLength'=>80],'actions'=>['type'=>'array','minItems'=>1,'maxItems'=>20,'items'=>['type'=>'object','properties'=>['type'=>['type'=>'string','enum'=>['create_directory','write_file','read_file','list_directory']],'path'=>['type'=>'string','minLength'=>1,'maxLength'=>1024],'content'=>['type'=>'string','maxLength'=>1048576]],'required'=>['type','path'],'additionalProperties'=>false]]],'required'=>['title','description','actions'],'additionalProperties'=>false],'annotations'=>['readOnlyHint'=>false,'destructiveHint'=>false]],
-   ['name'=>'dcp_run_safe_terminal','description'=>'Run only pwd, ls, date, whoami, php -v, php -m or git status.','inputSchema'=>['type'=>'object','properties'=>['command'=>['type'=>'string','minLength'=>1,'maxLength'=>500]],'required'=>['command'],'additionalProperties'=>false],'annotations'=>['readOnlyHint'=>true]],
+   ['name'=>'dcp_terminal_execute','description'=>'Execute a full shell command on this DCP device as the current operating-system user. Supports shell pipelines, scripts, development commands and bounded foreground execution up to 120 seconds. Does not elevate privileges or bypass operating-system permissions.','inputSchema'=>['type'=>'object','properties'=>['command'=>['type'=>'string','minLength'=>1,'maxLength'=>12000],'cwd'=>['type'=>'string','maxLength'=>2048],'timeout_seconds'=>['type'=>'integer','minimum'=>1,'maximum'=>120],'shell'=>['type'=>'string','enum'=>['default','bash','zsh','sh','cmd','powershell']]],'required'=>['command'],'additionalProperties'=>false],'annotations'=>['readOnlyHint'=>false,'destructiveHint'=>true]],
    ['name'=>'dcp_read_unread_mail','description'=>'Read unread IMAP headers and short previews. Requires configured IMAP settings.','inputSchema'=>$empty,'annotations'=>['readOnlyHint'=>true]],
+   ['name'=>'dcp_fs_read','description'=>'Read a UTF-8 or binary-safe workspace file up to 256 KB. Paths are relative to the DCP workspace.','inputSchema'=>['type'=>'object','properties'=>['path'=>['type'=>'string','minLength'=>1,'maxLength'=>4096]],'required'=>['path'],'additionalProperties'=>false],'annotations'=>['readOnlyHint'=>true]],
+   ['name'=>'dcp_fs_list','description'=>'List files and directories in the DCP workspace.','inputSchema'=>['type'=>'object','properties'=>['path'=>['type'=>'string','maxLength'=>4096]],'additionalProperties'=>false],'annotations'=>['readOnlyHint'=>true]],
+   ['name'=>'dcp_fs_search','description'=>'Recursively search workspace file and directory names.','inputSchema'=>['type'=>'object','properties'=>['query'=>['type'=>'string','minLength'=>1,'maxLength'=>200],'path'=>['type'=>'string','maxLength'=>4096],'limit'=>['type'=>'integer','minimum'=>1,'maximum'=>200]],'required'=>['query'],'additionalProperties'=>false],'annotations'=>['readOnlyHint'=>true]],
+   ['name'=>'dcp_fs_write','description'=>'Create or overwrite a workspace file (up to 1 MB). Requires approval for agent plans.','inputSchema'=>['type'=>'object','properties'=>['path'=>['type'=>'string','minLength'=>1,'maxLength'=>4096],'content'=>['type'=>'string','maxLength'=>1048576],'mode'=>['type'=>'string','enum'=>['overwrite','append']]],'required'=>['path','content'],'additionalProperties'=>false],'annotations'=>['readOnlyHint'=>false,'destructiveHint'=>true]],
+   ['name'=>'dcp_fs_mkdir','description'=>'Create a workspace directory. Requires approval for agent plans.','inputSchema'=>['type'=>'object','properties'=>['path'=>['type'=>'string','minLength'=>1,'maxLength'=>4096]],'required'=>['path'],'additionalProperties'=>false],'annotations'=>['readOnlyHint'=>false,'destructiveHint'=>false]],
+   ['name'=>'dcp_fs_move','description'=>'Move or rename a workspace file or directory. Destination must not exist. Requires approval for agent plans.','inputSchema'=>['type'=>'object','properties'=>['from'=>['type'=>'string','minLength'=>1,'maxLength'=>4096],'to'=>['type'=>'string','minLength'=>1,'maxLength'=>4096]],'required'=>['from','to'],'additionalProperties'=>false],'annotations'=>['readOnlyHint'=>false,'destructiveHint'=>true]],
+   ['name'=>'dcp_fs_delete','description'=>'Delete a workspace file or empty directory. Recursive deletion is not supported. Requires approval for agent plans.','inputSchema'=>['type'=>'object','properties'=>['path'=>['type'=>'string','minLength'=>1,'maxLength'=>4096]],'required'=>['path'],'additionalProperties'=>false],'annotations'=>['readOnlyHint'=>false,'destructiveHint'=>true]],
+   ['name'=>'dcp_terminal_session_start','description'=>'Start a persistent interactive shell session owned by the DCP terminal session daemon and shared across STDIO MCP, HTTP MCP, REST and provider clients.','inputSchema'=>['type'=>'object','properties'=>['command'=>['type'=>'string','minLength'=>1,'maxLength'=>12000],'cwd'=>['type'=>'string','maxLength'=>2048],'shell'=>['type'=>'string','enum'=>['default','bash','zsh','sh','cmd','powershell']]],'required'=>['command'],'additionalProperties'=>false],'annotations'=>['readOnlyHint'=>false,'destructiveHint'=>true]],
+   ['name'=>'dcp_terminal_session_read','description'=>'Read new output from a persistent terminal session.','inputSchema'=>['type'=>'object','properties'=>['session_id'=>['type'=>'string','minLength'=>1,'maxLength'=>80],'max_bytes'=>['type'=>'integer','minimum'=>1,'maximum'=>65536]],'required'=>['session_id'],'additionalProperties'=>false],'annotations'=>['readOnlyHint'=>true]],
+   ['name'=>'dcp_terminal_session_write','description'=>'Send stdin to a persistent terminal session (up to 8 KB).','inputSchema'=>['type'=>'object','properties'=>['session_id'=>['type'=>'string','minLength'=>1,'maxLength'=>80],'input'=>['type'=>'string','maxLength'=>8192]],'required'=>['session_id','input'],'additionalProperties'=>false],'annotations'=>['readOnlyHint'=>false,'destructiveHint'=>true]],
+   ['name'=>'dcp_terminal_session_stop','description'=>'Terminate a persistent terminal session.','inputSchema'=>['type'=>'object','properties'=>['session_id'=>['type'=>'string','minLength'=>1,'maxLength'=>80]],'required'=>['session_id'],'additionalProperties'=>false],'annotations'=>['readOnlyHint'=>false,'destructiveHint'=>true]],
+   ['name'=>'dcp_cloud_status','description'=>'Check DCP Cloud account linkage, device heartbeat, paired devices and pending pairing requests.','inputSchema'=>$empty,'annotations'=>['readOnlyHint'=>true]],
+   ['name'=>'dcp_cloud_pairing_code','description'=>'Create a short-lived one-time pairing code for this DCP Core device.','inputSchema'=>$empty,'annotations'=>['readOnlyHint'=>false]],
+   ['name'=>'dcp_cloud_request_pairing','description'=>'Submit a pairing code received from another DCP device.','inputSchema'=>['type'=>'object','properties'=>['code'=>['type'=>'string','minLength'=>1,'maxLength'=>80]],'required'=>['code'],'additionalProperties'=>false],'annotations'=>['readOnlyHint'=>false]],
+   ['name'=>'dcp_cloud_decide_pairing','description'=>'Approve or reject a pending device pairing. Approvals may grant presence and signaling only.','inputSchema'=>['type'=>'object','properties'=>['request_id'=>['type'=>'string','minLength'=>36,'maxLength'=>36],'accept'=>['type'=>'string','enum'=>['yes','no']],'scopes'=>['type'=>'array','maxItems'=>2,'items'=>['type'=>'string','enum'=>['presence','signaling']]]],'required'=>['request_id','accept'],'additionalProperties'=>false],'annotations'=>['readOnlyHint'=>false,'destructiveHint'=>true]],
+   ['name'=>'dcp_cloud_revoke_pairing','description'=>'Revoke connectivity permissions for a paired device.','inputSchema'=>['type'=>'object','properties'=>['device_id'=>['type'=>'string','minLength'=>36,'maxLength'=>36]],'required'=>['device_id'],'additionalProperties'=>false],'annotations'=>['readOnlyHint'=>false,'destructiveHint'=>true]],
+   ['name'=>'dcp_cloud_connect','description'=>'Request a signaling connection to an already paired device.','inputSchema'=>['type'=>'object','properties'=>['target_device'=>['type'=>'string','minLength'=>36,'maxLength'=>36]],'required'=>['target_device'],'additionalProperties'=>false],'annotations'=>['readOnlyHint'=>false]],
+   ['name'=>'dcp_cloud_send_signal','description'=>'Send an opaque, bounded signaling envelope for a connection request. This does not relay task payloads.','inputSchema'=>['type'=>'object','properties'=>['request_id'=>['type'=>'string','minLength'=>36,'maxLength'=>36],'envelope'=>['type'=>'string','minLength'=>1,'maxLength'=>32768]],'required'=>['request_id','envelope'],'additionalProperties'=>false],'annotations'=>['readOnlyHint'=>false]],
+   ['name'=>'dcp_cloud_get_signals','description'=>'Poll short-lived signaling envelopes for an authorized connection request.','inputSchema'=>['type'=>'object','properties'=>['request_id'=>['type'=>'string','minLength'=>36,'maxLength'=>36],'after'=>['type'=>'integer','minimum'=>0]],'required'=>['request_id'],'additionalProperties'=>false],'annotations'=>['readOnlyHint'=>true]],
+   ['name'=>'dcp_fs_stat','description'=>'Read workspace file or directory metadata and SHA-256 for files.','inputSchema'=>['type'=>'object','properties'=>['path'=>['type'=>'string','minLength'=>1,'maxLength'=>4096]],'required'=>['path'],'additionalProperties'=>false],'annotations'=>['readOnlyHint'=>true]],
+   ['name'=>'dcp_fs_edit','description'=>'Apply an atomic exact text replacement only when the file SHA-256 still matches the hash returned by dcp_fs_read. Exactly one occurrence must match.','inputSchema'=>['type'=>'object','properties'=>['path'=>['type'=>'string','minLength'=>1,'maxLength'=>4096],'expected_sha256'=>['type'=>'string','minLength'=>64,'maxLength'=>64],'find'=>['type'=>'string','minLength'=>1,'maxLength'=>262144],'replace'=>['type'=>'string','maxLength'=>262144]],'required'=>['path','expected_sha256','find','replace'],'additionalProperties'=>false],'annotations'=>['readOnlyHint'=>false,'destructiveHint'=>true]],
+   ['name'=>'dcp_process_list','description'=>'List a bounded set of processes owned by the current operating-system user.','inputSchema'=>['type'=>'object','properties'=>['limit'=>['type'=>'integer','minimum'=>1,'maximum'=>300]],'additionalProperties'=>false],'annotations'=>['readOnlyHint'=>true]],
+   ['name'=>'dcp_process_terminate','description'=>'Send a graceful termination signal to a process owned by the current user. Protected DCP processes cannot be terminated. No force-kill escalation is performed.','inputSchema'=>['type'=>'object','properties'=>['pid'=>['type'=>'integer','minimum'=>2]],'required'=>['pid'],'additionalProperties'=>false],'annotations'=>['readOnlyHint'=>false,'destructiveHint'=>true]],
   ];
  }
  public function definitions():array{return $this->definitions;}
+ public function providerTools():array{return array_map(static fn(array $definition):array=>['type'=>'function','function'=>['name'=>$definition['name'],'description'=>$definition['description'],'parameters'=>$definition['inputSchema']]],$this->definitions);}
  public function policy(string $name):array{if(!isset($this->policies[$name]))throw new InvalidArgumentException('Tool policy not found.');return $this->policies[$name];}
  public function argumentsHash(array $arguments):string{return hash('sha256',json_encode($this->canonicalize($arguments),JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_INVALID_UTF8_SUBSTITUTE|JSON_THROW_ON_ERROR));}
- public function call(string $name,array $arguments,array $context=[]):array{
+ public function validateProposal(string $name,array $arguments):array{
   $definition=null;foreach($this->definitions as $candidate)if($candidate['name']===$name){$definition=$candidate;break;}if($definition===null)throw new InvalidArgumentException('Tool not found.');
-  $this->validateSchema($definition['inputSchema'],$arguments,'arguments');$this->validateActionSemantics($name,$arguments);$policy=$this->policy($name);$this->authorize($policy,$arguments,$context);
+  $this->validateSchema($definition['inputSchema'],$arguments,'arguments');$this->validateActionSemantics($name,$arguments);$policy=$this->policy($name);return ['tool'=>$name,'policy'=>$policy,'arguments_hash'=>$this->argumentsHash($arguments)];
+ }
+ public function call(string $name,array $arguments,array $context=[]):array{
+  $validated=$this->validateProposal($name,$arguments);$policy=$validated['policy'];$this->authorize($policy,$arguments,$context);
   switch($name){
+   case 'dcp_resource_discover':return ['resources'=>$this->resources->discover((string)($context['owner_id']??'local'),$arguments)];
+   case 'dcp_resource_register':return $this->resources->register($arguments,(string)($context['owner_id']??'local'),'user');
+   case 'dcp_resource_grant':return $this->resources->grant($arguments['resource_id'],(string)($context['owner_id']??'local'),$arguments['grantee_type'],$arguments['grantee_id'],$arguments['operations'],$arguments['expires_at']??null,(int)($arguments['quota_limit']??0),(int)($arguments['concurrency_limit']??1));
+   case 'dcp_resource_revoke':return $this->resources->revokeGrant($arguments['grant_id'],(string)($context['owner_id']??'local'));
    case 'dcp_get_status':$ch=curl_init('http://127.0.0.1:11434/api/tags');curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_CONNECTTIMEOUT=>1,CURLOPT_TIMEOUT=>2]);$raw=curl_exec($ch);$online=$raw!==false&&curl_getinfo($ch,CURLINFO_RESPONSE_CODE)===200;curl_close($ch);return ['platform'=>'DCP','version'=>$this->config['version']??'unknown','php'=>PHP_VERSION,'database'=>'SQLite','ollama_online'=>$online,'plugin_count'=>count($this->plugins->all())];
    case 'dcp_list_providers':return ['providers'=>$this->providers->list()];
    case 'dcp_list_devices':return ['devices'=>$this->devices->list()];
    case 'dcp_list_tasks':return ['tasks'=>$this->db->query('SELECT id,title,description,status,target_device_id,created_at,updated_at FROM tasks ORDER BY created_at DESC LIMIT 50')->fetchAll()];
    case 'dcp_create_task':$id='task_'.bin2hex(random_bytes(8));$now=date(DATE_ATOM);$q=$this->db->prepare('INSERT INTO tasks(id,title,description,payload,status,created_at,updated_at,target_device_id) VALUES(?,?,?,?,?,?,?,?)');$q->execute([$id,trim($arguments['title']),trim($arguments['description']),json_encode(['actions'=>$arguments['actions']],JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR),'approval_required',$now,$now,(string)($arguments['target_device_id']??'local')]);return ['id'=>$id,'status'=>'approval_required','message'=>'Task created. A user must approve it in DCP before execution.'];
-   case 'dcp_run_safe_terminal':return $this->terminal->run($arguments['command']);
+   case 'dcp_terminal_execute':return $this->terminal->execute($arguments['command'],$arguments['cwd']??null,(int)($arguments['timeout_seconds']??30),(string)($arguments['shell']??'default'));
+   case 'dcp_fs_read':return $this->filesystem->read($arguments['path']);
+   case 'dcp_fs_list':return $this->filesystem->list($arguments['path']??'.');
+   case 'dcp_fs_search':return $this->filesystem->search($arguments['query'],$arguments['path']??'.',(int)($arguments['limit']??100));
+   case 'dcp_fs_write':return $this->filesystem->write($arguments['path'],$arguments['content'],($arguments['mode']??'overwrite')==='append');
+   case 'dcp_fs_mkdir':return $this->filesystem->mkdir($arguments['path']);
+   case 'dcp_fs_move':return $this->filesystem->move($arguments['from'],$arguments['to']);
+   case 'dcp_fs_delete':return $this->filesystem->delete($arguments['path']);
+   case 'dcp_terminal_session_start':return $this->terminal->startSession($arguments['command'],$arguments['cwd']??null,(string)($arguments['shell']??'default'));
+   case 'dcp_terminal_session_read':return $this->terminal->readSession($arguments['session_id'],(int)($arguments['max_bytes']??16384));
+   case 'dcp_terminal_session_write':return $this->terminal->writeSession($arguments['session_id'],$arguments['input']);
+   case 'dcp_terminal_session_stop':return $this->terminal->stopSession($arguments['session_id']);
+   case 'dcp_cloud_status':return $this->cloud->status();
+   case 'dcp_cloud_pairing_code':return $this->cloud->createPairingCode();
+   case 'dcp_cloud_request_pairing':return $this->cloud->requestPairing($arguments['code']);
+   case 'dcp_cloud_decide_pairing':return $this->cloud->decidePairing($arguments['request_id'],$arguments['accept']==='yes',$arguments['scopes']??[]);
+   case 'dcp_cloud_revoke_pairing':return $this->cloud->revokePairing($arguments['device_id']);
+   case 'dcp_cloud_connect':return $this->cloud->requestConnection($arguments['target_device']);
+   case 'dcp_cloud_send_signal':return $this->cloud->sendSignal($arguments['request_id'],$arguments['envelope']);
+   case 'dcp_cloud_get_signals':return $this->cloud->signals($arguments['request_id'],(int)($arguments['after']??0));
+   case 'dcp_fs_stat':return $this->filesystem->stat($arguments['path']);
+   case 'dcp_fs_edit':return $this->filesystem->edit($arguments['path'],$arguments['expected_sha256'],$arguments['find'],$arguments['replace']);
+   case 'dcp_process_list':return $this->terminal->listProcesses((int)($arguments['limit']??100));
+   case 'dcp_process_terminate':return $this->terminal->terminateProcess((int)$arguments['pid']);
    case 'dcp_read_unread_mail':$plugin=$this->plugins->get('smtp-imap');if(!$plugin)throw new RuntimeException('IMAP plugin is not installed.');$factory=require dirname($plugin['_manifest']).'/driver.php';$mail=$factory->build($this->db,$this->crypto);return $mail->inbox();
    default:throw new InvalidArgumentException('Tool not found.');
   }
@@ -59,6 +146,7 @@ final class DcpToolRegistry {
   if($type==='string'){
    if(!is_string($value))throw new InvalidArgumentException($path.' must be a string.');$length=function_exists('mb_strlen')?mb_strlen($value):strlen($value);if(isset($schema['minLength'])&&$length<$schema['minLength'])throw new InvalidArgumentException($path.' is too short.');if(isset($schema['maxLength'])&&$length>$schema['maxLength'])throw new InvalidArgumentException($path.' is too long.');if(isset($schema['enum'])&&!in_array($value,$schema['enum'],true))throw new InvalidArgumentException($path.' has an unsupported value.');return;
   }
+  if($type==='integer'){if(!is_int($value))throw new InvalidArgumentException($path.' must be an integer.');if(isset($schema['minimum'])&&$value<$schema['minimum'])throw new InvalidArgumentException($path.' is below the minimum.');if(isset($schema['maximum'])&&$value>$schema['maximum'])throw new InvalidArgumentException($path.' exceeds the maximum.');return;}
   throw new InvalidArgumentException('Unsupported tool schema type at '.$path.'.');
  }
  private function canonicalize(mixed $value):mixed{if(!is_array($value))return $value;if(array_is_list($value))return array_map(fn($v)=>$this->canonicalize($v),$value);ksort($value,SORT_STRING);foreach($value as $key=>$item)$value[$key]=$this->canonicalize($item);return $value;}

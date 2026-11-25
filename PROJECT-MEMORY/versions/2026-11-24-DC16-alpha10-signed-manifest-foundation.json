@@ -1,0 +1,38 @@
+{
+  "checkpoint": "DC16-alpha10-signed-manifest-delta-builder",
+  "date": "2026-11-24",
+  "branch": "feature/alpha10-package-revision",
+  "head": "2f5a5d55a6e3c100e5425bdabbf8e8c4c6b9ddfe",
+  "release": {
+    "tag": "v1.0.0-alpha.9",
+    "releaseId": 456688871,
+    "tagCommit": "8b5bf08d6291897338ca322432ccf1962e0c2ed1",
+    "assets": 6,
+    "immutable": true
+  },
+  "manifest": {
+    "schema": 3,
+    "keyId": "dcp-alpha10-rsa3072-20261124",
+    "publicKeySha256": "bd56b87af22d81bdff536dfa332d2cdc4bf27da7f387af84cb4bdd4d201fdd67",
+    "privateKeyStorage": "macOS login Keychain service DCP-Alpha10-Release-Signing-Key",
+    "githubSecretConfigured": false
+  },
+  "localTests": {
+    "phpPlatformSuite": "passed",
+    "manifestVerifier": "passed",
+    "deltaPackageBuilder": "passed",
+    "detachedSignatureTamper": "passed with ephemeral key",
+    "windowsUpdaterTransactions": "passed",
+    "syntaxAndWorkflowValidation": "passed"
+  },
+  "ci": {
+    "45435155294": "success",
+    "45435155119": "success",
+    "45435155128": "success",
+    "45435155129": "success",
+    "45435155253": "success",
+    "45435155319": "in_progress; Intel running, Apple Silicon queued",
+    "45425681044": "success; Intel and Apple Silicon"
+  },
+  "next": "Integrate schema-3 manifest, signature, exact-base delta/full fallback into native clients and release workflows; implement Linux/macOS packaged updater apply/rollback; finish Windows full fallback; configure repository signing secret; run target update/rollback/data preservation tests."
+}

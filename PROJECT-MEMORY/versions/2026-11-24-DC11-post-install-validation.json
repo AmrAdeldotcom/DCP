@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "session": "DC11",
+  "timestamp": "2026-11-24T15:52:19+02:00",
+  "project": "DCP",
+  "branch": "fix/alpha7-localai-cloud-pairing",
+  "headCommit": "0e3f41196e0819e94a8bfa99ecf95378a7a71592",
+  "release": {
+    "tag": "v1.0.0-alpha.9",
+    "commit": "8b5bf08d6291897338ca322432ccf1962e0c2ed1",
+    "releaseId": 456688871,
+    "assets": 6,
+    "status": "published-prerelease; Ubuntu Linux package known defective"
+  },
+  "ci": {
+    "linuxFixRun": 45398600124,
+    "linuxFixConclusion": "success",
+    "linuxFixArtifactId": 14922751159,
+    "windowsBuildRun": 45398600263,
+    "windowsBuildConclusion": "success",
+    "cloudPhpRun": 45398600090,
+    "cloudPhpConclusion": "success"
+  },
+  "windows": {
+    "profile": "AMRWIN11\\amradeldotcom",
+    "installVersion": "1.0.0-alpha.9",
+    "php": "8.5.13",
+    "backupPrimary": "C:\\DCP-Backups\\DCP-pre-alpha9-20261124-152849",
+    "backupAdditional": "C:\\Users\\amradeldotcom\\AppData\\Local\\DCP-Backups\\20261124-1535-EET",
+    "rollback": "C:\\Users\\amradeldotcom\\AppData\\Local\\DCP.backup-20261124-153339",
+    "dbSha256": "a2f6252cb0c6984bc2c7b1a30f65e49f0d9a69f2ac2950d613e7c54ecb93fa45",
+    "masterKeySha256": "b1d13ad07a1dffc595cb63ee49f6ab0bd748c5155a142d753dd273a4ac10e00d",
+    "sqliteIntegrity": "ok",
+    "cryptoRoundTrip": "ok",
+    "storedEncryptedRows": 0,
+    "httpRoot": 200,
+    "apiStatus": 200,
+    "gui": "user screenshot in DC10 confirms Overview; Desktop shortcut exists"
+  },
+  "ubuntu": {
+    "address": "192.168.8.88",
+    "httpRoot": 500,
+    "apiStatus": 500,
+    "missingFile": "platform/app/Core/Database.php",
+    "fixCommit": "0e3f41196e0819e94a8bfa99ecf95378a7a71592",
+    "fixCiRun": 45398600124,
+    "supersedingRelease": "awaiting user approval"
+  },
+  "macIntel": {
+    "smokeFolderPresent": false,
+    "originalPorts": [
+      18991,
+      19123,
+      11434
+    ],
+    "originalServices": "still listening"
+  },
+  "networkMonitor": {
+    "label": "com.digipl.dcp-network-watchdog",
+    "intervalSeconds": 600,
+    "lastExitCode": 0,
+    "internetReachable": true,
+    "gatewayReachable": true,
+    "resumeMarker": "absent",
+    "localLaunchAgentEnabled": true
+  },
+  "nextHumanCheckpoint": "Approve or decline a superseding complete alpha release containing the Linux package fix. Do not rewrite Alpha 9 or merge main automatically.",
+  "hourlyAutomation": {
+    "enabled": false,
+    "pausedAt": "2026-11-24T15:52:19+02:00",
+    "reason": "Human approval required before a superseding complete alpha release."
+  }
+}

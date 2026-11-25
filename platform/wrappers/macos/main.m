@@ -153,6 +153,10 @@
     self.phpTask.arguments=@[@"-S",address,@"-t",publicDir.path,router.path];
     self.phpTask.currentDirectoryURL=self.platformURL;
     NSMutableDictionary *environment=[NSMutableDictionary dictionaryWithDictionary:[[NSProcessInfo processInfo] environment]];
+    // DCP embedded PHP/libcurl can stall on external HTTPS when launched with
+    // the per-process macOS /var/folders TMPDIR. Keep temporary files in the
+    // system /tmp directory for a predictable outbound network environment.
+    environment[@"TMPDIR"]=@"/tmp";
     environment[@"DCP_MODE"]=@"desktop";
     environment[@"DCP_USER_DATA_DIR"]=self.userDataURL.path;
     if(managedPHP){

@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-11-24T17:34:00+02:00",
+  "session": "DC15",
+  "branch": "feature/alpha10-package-revision",
+  "headCommit": "46a0753335e50c4882534bcc8300ce11fe541c14",
+  "releaseTag": "v1.0.0-alpha.9",
+  "releaseStatus": "Alpha 9 immutable; Alpha 10 not released",
+  "commits": [
+    "d1e6f1a",
+    "59257c0",
+    "46a0753"
+  ],
+  "ci": {
+    "45426353224": "in progress Kali retry with tar.gz mode preservation",
+    "45426353230": "Windows build success",
+    "45426353842": "Cloud PHP success",
+    "45425681044": "macOS native clean package in progress"
+  },
+  "localTests": "PHP tests and lint, shell syntax, JSON/YAML parsing, git diff check passed",
+  "next": "Finish Kali and macOS CI, then continue packaged cross-platform updater and delta/full fallback."
+}

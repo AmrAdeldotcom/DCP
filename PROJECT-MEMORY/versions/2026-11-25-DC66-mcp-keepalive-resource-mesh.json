@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "session": "DC66",
+  "date": "2026-11-25",
+  "updatedAt": "2026-11-25T19:43:37+02:00",
+  "project": "DCP — Desktop Connector Platform",
+  "repository": "/Volumes/Data/ChatGPT/DCP-Source",
+  "branch": "feature/local-ai-runtime-discovery",
+  "headCommit": "0522e14",
+  "stage": "Stage 6 / DCP Core MCP keepalive + local identity + Resource Mesh specification",
+  "workingTree": "DC66: DCP local MCP STDIO host now sends periodic server-initiated ping and advertises the DCP logo; keepalive/logo E2E added and full platform suite passes. Resource Mesh and Universal AI Gateway architecture documented. Existing Q012 Tasks 5–7 remain implemented locally. Stable v1.0.0 untouched; no commit/push/release/deploy.",
+  "completed": "Reworked local MCP STDIO host to non-blocking JSON-RPC input with buffered lines and server-initiated ping every 25 seconds; handles server ping responses and client ping. MCP serverInfo now identifies DCP Core and advertises the existing DCP PNG logo. Added deterministic keepalive/logo E2E and integrated into main suite. Added Resource Mesh and Universal AI Gateway architecture for local AI/API resource sharing, teams/devices, owner-local secrets, resource broker, Hermes/provider adapters and signed task gateway.",
+  "tests": "PHP lint for MCP host, keepalive test, MCP host E2E and main test runner PASS; DCP_MCP_KEEPALIVE_LOGO_E2E_PASS; php platform/tests/run.php — ALL PLATFORM TESTS PASSED; MCP STDIO logo E2E and local Streamable HTTP E2E passed. Cross-platform focused test: Ubuntu 24.04 PHP 8.3.6 and Windows 11 bundled PHP 8.5.13 both passed syntax checks and DCP_MCP_KEEPALIVE_LOGO_E2E_PASS; temporary fixtures cleaned.",
+  "limitations": [
+    "Claude app was not restarted or reconnected; UI logo visibility and real idle disconnect behavior require next live reconnect.",
+    "Resource Mesh, team grants, resource broker, Hermes adapter and universal provider ingress are specified but not yet implemented as a complete feature.",
+    "Durable PTY/session manager shared by STDIO and HTTP remains open; current interactive sessions are STDIO-host process scoped.",
+    "Cloud remote MCP remains read-only for account device/pairing; signed general task dispatch and result transfer remain open.",
+    "Windows/Linux validation for DC66 patch not yet run.",
+    "Stable installed v1.0.0 unchanged; no commit/push/release/deploy.",
+    "Windows/Ubuntu ran focused keepalive/logo E2E only, not the full platform suite."
+  ],
+  "nextTask": "Build durable PTY/session manager shared by STDIO and HTTP; then implement canonical local AI/API resource registry and owner-local credential invocation, team/device grants and resource broker; integrate Hermes Agent adapter and signed Cloud task dispatch/result flow; run newest changes on Windows and Ubuntu and verify Claude reconnect/logo.",
+  "stableReleaseUntouched": true,
+  "commitPushReleaseDeploy": false
+}

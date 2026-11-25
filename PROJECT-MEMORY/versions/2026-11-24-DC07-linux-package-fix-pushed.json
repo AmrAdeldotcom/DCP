@@ -1,0 +1,68 @@
+{
+  "timestamp": "2026-11-24T15:00:25+02:00",
+  "session": "DC07",
+  "repository": "/Volumes/Data/ChatGPT/DCP",
+  "branch": "fix/alpha7-localai-cloud-pairing",
+  "headCommit": "0e3f41196e0819e94a8bfa99ecf95378a7a71592",
+  "sourceFix": {
+    "commit": "0e3f41196e0819e94a8bfa99ecf95378a7a71592",
+    "pushVerified": true,
+    "files": [
+      ".github/workflows/build-linux.yml",
+      ".github/workflows/release-linux.yml",
+      "platform/scripts/build-linux.sh",
+      "platform/tests/linux-package-smoke.sh"
+    ]
+  },
+  "ci": {
+    "linuxBuildRun": 45398600124,
+    "linuxBuildConclusion": "success",
+    "linuxJobId": 138460932819,
+    "windowsBuildRun": 45398600263,
+    "windowsBuildConclusion": "success",
+    "cloudPhpRun": 45398600090,
+    "cloudPhpConclusion": "success",
+    "linuxArtifactId": 14922751159,
+    "linuxArtifactName": "DCP-Linux-x64",
+    "linuxArtifactBytes": 585549
+  },
+  "ubuntu": {
+    "publishedAlpha9Status": "installed-but-http-500",
+    "rootCause": "flattened platform/app directory",
+    "correctedFixture": "Run-DCP.sh launched; root 200; /api/status ok=true; PHP 8.3.6; 23 plugins",
+    "fixturePidsStopped": [
+      744649,
+      744674
+    ],
+    "fixtureRemoved": true,
+    "originalBrokenInstallRetained": true
+  },
+  "macIntel": {
+    "status": "passed-and-cleaned",
+    "targetRemoved": "~/Applications/DCP-Alpha9-Smoke",
+    "trackedFilesIdentical": 101,
+    "php": "8.4.28 checksum verified",
+    "llama": "x86_64 version/help passed",
+    "originalServicesUntouched": true
+  },
+  "windows": {
+    "status": "blocked-connectivity",
+    "ssh62": "timeout",
+    "tcp62": false,
+    "tcp54": false,
+    "ping62": "100% loss",
+    "filesChanged": false
+  },
+  "releaseAlpha9": {
+    "tagCommit": "8b5bf08d6291897338ca322432ccf1962e0c2ed1",
+    "assets": 6,
+    "linuxAssetDefective": true,
+    "tagRewritten": false
+  },
+  "mainBranch": {
+    "commit": "25c81e23e0a6810a7c9b70a33d0794b00ed5de0d",
+    "macLinuxInstallerMissing": true,
+    "windowsInstallerOutdated": true
+  },
+  "next": "Human approval for new alpha release/main sync and restore Windows VM access."
+}

@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "project": "DCP — Desktop Connector Platform",
+  "session": "DC67",
+  "date": "2026-11-25",
+  "branch": "feature/local-ai-runtime-discovery",
+  "headCommit": "0522e14",
+  "stage": "DCP Core / Cloud Resource Mesh implementation and persistent cross-transport terminal sessions",
+  "completed": "Removed restricted dcp_run_safe_terminal and consolidated full shell under dcp_terminal_execute. Added authenticated local terminal session daemon and enabled all 34 tools across STDIO, HTTP MCP and provider schemas. Added local Resource Registry/Broker with grants/invocation ledger and four MCP tools. Added Cloud resource/team/grant schema, migration and authenticated endpoints. Added Cloud target terminal request inbox and source/target DCP UI with exact command hash, expiry and approve/reject; approval does not dispatch.",
+  "localTests": "php platform/tests/run.php — ALL PLATFORM TESTS PASSED after source/target terminal approval UI contracts, Resource Registry, Cloud contracts, daemon sharing, HTTP MCP session reconnect and 34-tool provider schema.",
+  "limitations": [
+    "Terminal session daemon uses persistent pipes, not native PTY/ConPTY emulation; daemon crash recovery/reattach is not implemented.",
+    "Windows detached daemon launcher and latest Resource Mesh/Cloud changes have not been tested on Windows or Ubuntu in this turn.",
+    "Source/target DCP UIs now submit and review exact-command approval requests; signed dispatch/results and remote execution remain disabled.",
+    "Resource owner-local secret_ref is stored as an opaque reference; vault resolution and actual provider/API invocation adapters are not yet implemented.",
+    "Local team membership/grant discovery is incomplete; Cloud team grants are implemented.",
+    "Hermes adapter and universal AI gateway orchestration remain open.",
+    "No Claude app restart/reconnect or logo UI check in this turn.",
+    "Stable installed v1.0.0 unchanged; no commit/push/release/Cloud production migration/deploy."
+  ],
+  "workingDirectories": {
+    "source": "/Volumes/Data/ChatGPT/DCP-Source",
+    "releaseInstall": "/Volumes/Data/DiGiPL/DCP",
+    "dpMemory": "/Volumes/Data/DiGiPL/DP_MEMORY",
+    "desktopCommanderReference": "/Volumes/Data/DiGiPL/References/DesktopCommanderMCP"
+  },
+  "queue": {
+    "Q005": "closed per user confirmation",
+    "Q012": "Tasks 6 and 7 complete; Task 5 implementation locally tested",
+    "Q015": "active; Resource Registry and Cloud metadata/grants partially implemented"
+  },
+  "noPublication": true
+}

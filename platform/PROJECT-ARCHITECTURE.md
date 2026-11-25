@@ -33,7 +33,7 @@ DCP is a local-first desktop platform that connects AI providers, agent runtimes
 - plugins/providers: Ollama, generic OpenAI-compatible, DeepSeek adapters.
 - plugins/agents: DCP Node, Desktop Commander, DeepSeek Harness adapters.
 - plugins/mail: SMTP/IMAP adapter manifest.
-- plugins/tools: safe terminal tool manifest.
+- plugins/tools: full terminal tool manifest.
 - public: PHP router, UI, CSS, JS, local Bootstrap and brand assets.
 - storage/keys: encryption key.
 - storage/logs: local logs.
@@ -62,7 +62,7 @@ Credentials are supplied to the driver only for the request and are never return
 
 ## Agent adapter contract
 An agent plugin includes plugin.json with type=agent and a driver.php returning AgentAdapter.
-- AgentAdapter::status(): array returns id, name, installed, running, connected, detail, capabilities. MailAdapter and ToolAdapter factory plugins build the SMTP/IMAP and safe-terminal services. TaskExecutor plugins perform only approved, allow-listed workspace actions. The DCP Local Node and remote PHP device-agent runner support create_directory, write_file, read_file and list_directory inside an isolated workspace.
+- AgentAdapter::status(): array returns id, name, installed, running, connected, detail, capabilities. MailAdapter and ToolAdapter factory plugins build the SMTP/IMAP and full-terminal services. TaskExecutor plugins perform only approved, allow-listed workspace actions. The DCP Local Node and remote PHP device-agent runner support create_directory, write_file, read_file and list_directory inside an isolated workspace.
 - Future methods should include authenticate, start, stop, submitTask, getTask, cancelTask, heartbeat, and getCapabilities.
 - An agent may report running while connected=false. This means the application process exists but DCP has no authenticated task session.
 

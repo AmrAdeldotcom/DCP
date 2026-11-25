@@ -1,7 +1,15 @@
 <?php
 declare(strict_types=1);
 
-final class CloudService {
+interface CloudTerminalCloudClient {
+    public function deviceIdentity():array;
+    public function registerTerminalDeviceSigningKey(string $publicKey):array;
+    public function dispatchRemoteTerminalRequest(string $requestId):array;
+    public function verifyTerminalDispatch(array $envelope,string $signature):bool;
+    public function submitRemoteTerminalResult(string $requestId,array $signedResult,string $signature):array;
+}
+
+final class CloudService implements CloudTerminalCloudClient {
     private const BASE_URL = 'https://dcp.amradel.com/api/v1';
     private string $baseUrl;
     public function __construct(private PDO $db, private Crypto $crypto, ?string $baseUrl = null) {
@@ -102,9 +110,56 @@ final class CloudService {
     }
     public function decidePairing(string $requestId,bool $accept,array $scopes):array {
         $device=$this->ensureDevice();if(!preg_match('/^[a-f0-9-]{36}$/i',$requestId))throw new InvalidArgumentException('Invalid pairing request.');
-        $allowed=['presence','signaling'];$scopes=array_values(array_unique(array_filter($scopes,fn($s)=>in_array($s,$allowed,true))));
+        $allowed=['presence','signaling','terminal.request'];$scopes=array_values(array_unique(array_filter($scopes,fn($s)=>in_array($s,$allowed,true))));
         if($accept&&$scopes===[])throw new InvalidArgumentException('Select at least one permission before approving.');
         return $this->request('POST','/pairing-requests/'.$requestId.'/decision',['accept'=>$accept,'scopes'=>$scopes],$device['device_token']);
+    }
+    public function requestRemoteTerminal(string $targetDevice,string $command,string $cwd,string $shell,int $timeoutSeconds):array {
+        $device=$this->ensureDevice();if(!preg_match('/^[a-f0-9-]{36}$/i',$targetDevice)||$targetDevice===$device['device_id'])throw new InvalidArgumentException('Choose a different paired target device.');
+        if(trim($command)===''||strlen($command)>12000||strlen($cwd)>2048)throw new InvalidArgumentException('Command or working directory is outside the supported bounds.');
+        if(!in_array($shell,['default','bash','zsh','sh','cmd','powershell'],true))throw new InvalidArgumentException('Unsupported target shell.');
+        $timeoutSeconds=max(1,min(120,$timeoutSeconds));
+        return $this->request('POST','/remote-terminal-requests',['target_device'=>$targetDevice,'command'=>$command,'cwd'=>$cwd,'shell'=>$shell,'timeout_seconds'=>$timeoutSeconds],$device['device_token']);
+    }
+    public function remoteTerminalInbox():array {
+        $device=$this->ensureDevice();return $this->request('GET','/remote-terminal-requests/inbox',null,$device['device_token']);
+    }
+    public function decideRemoteTerminalRequest(string $requestId,bool $accept):array {
+        $device=$this->ensureDevice();if(!preg_match('/^[a-f0-9-]{36}$/i',$requestId))throw new InvalidArgumentException('Invalid remote terminal request.');
+        return $this->request('POST','/remote-terminal-requests/'.$requestId.'/decision',['accept'=>$accept],$device['device_token']);
+    }
+    public function deviceIdentity():array { return $this->ensureDevice(); }
+    public function registerTerminalDeviceSigningKey(string $publicKey):array {
+        $device=$this->ensureDevice();$raw=base64_decode($publicKey,true);if($raw===false||strlen($raw)!==SODIUM_CRYPTO_SIGN_PUBLICKEYBYTES)throw new InvalidArgumentException('Local terminal signing public key is invalid.');
+        return $this->request('POST','/device/signing-key',['public_key'=>$publicKey],$device['device_token']);
+    }
+    public function terminalCloudSigningPublicKey():string {
+        $remote=$this->request('GET','/signing-key');$public=base64_decode((string)($remote['public_key']??''),true);$keyId=(string)($remote['key_id']??'');
+        if($public===false||strlen($public)!==SODIUM_CRYPTO_SIGN_PUBLICKEYBYTES||!hash_equals(hash('sha256',$public),$keyId))throw new RuntimeException('DCP Cloud terminal signing identity is invalid.');
+        $pinnedId=$this->value('cloud.terminal_signing_key_id');$pinnedKey=$this->value('cloud.terminal_signing_public_key');
+        if($pinnedId!==''&&(!hash_equals($pinnedId,$keyId)||!hash_equals($pinnedKey,(string)$remote['public_key'])))throw new RuntimeException('DCP Cloud signing key changed. Explicit trust rotation is required; remote execution is blocked.');
+        if($pinnedId===''){$this->save('cloud.terminal_signing_key_id',$keyId);$this->save('cloud.terminal_signing_public_key',(string)$remote['public_key']);}
+        return $public;
+    }
+    public function verifyTerminalDispatch(array $envelope,string $signature):bool {
+        $required=['schema_version','envelope_id','request_id','source_device','issuer','issuer_key_id','target_device_id','action','command','working_directory','shell','timeout_seconds','command_sha256','approval_hash','issued_at','expires_at','nonce'];$keys=array_keys($envelope);sort($keys);sort($required);if($keys!==$required)return false;
+        if(($envelope['schema_version']??null)!==1||($envelope['issuer']??'')!=='dcp-cloud'||($envelope['action']??'')!=='terminal.execute'||!is_string($envelope['command']??null)||trim($envelope['command'])===''||strlen($envelope['command'])>12000||!is_string($envelope['working_directory']??null)||strlen($envelope['working_directory'])>2048||!in_array($envelope['shell']??'', ['default','bash','zsh','sh','cmd','powershell'],true)||!is_int($envelope['timeout_seconds']??null)||$envelope['timeout_seconds']<1||$envelope['timeout_seconds']>120)return false;
+        $device=$this->ensureDevice();if(!hash_equals($device['device_id'],(string)$envelope['target_device_id'])||!hash_equals((string)$envelope['command_sha256'],(string)$envelope['approval_hash']))return false;
+        $hashInput=['request_id'=>(string)$envelope['request_id'],'source_device'=>(string)$envelope['source_device'],'target_device'=>(string)$envelope['target_device_id'],'command'=>(string)$envelope['command'],'cwd'=>(string)$envelope['working_directory'],'shell'=>(string)$envelope['shell'],'timeout_seconds'=>(int)$envelope['timeout_seconds']];$expected=hash('sha256',json_encode($hashInput,JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE));if(!hash_equals($expected,(string)$envelope['command_sha256']))return false;
+        if(!preg_match('/^[a-f0-9-]{36}$/',(string)$envelope['request_id'])||!preg_match('/^[a-f0-9-]{36}$/',(string)$envelope['envelope_id'])||!preg_match('/^[a-f0-9]{48}$/',(string)$envelope['nonce']))return false;$issued=strtotime((string)$envelope['issued_at']);$expires=strtotime((string)$envelope['expires_at']);$now=time();if($issued===false||$expires===false||$issued>$now+60||$expires<=$now||$expires<=$issued||$expires-$issued>120)return false;
+        $public=$this->terminalCloudSigningPublicKey();if(!hash_equals(hash('sha256',$public),(string)$envelope['issuer_key_id']))return false;$sig=base64_decode($signature,true);return $sig!==false&&strlen($sig)===SODIUM_CRYPTO_SIGN_BYTES&&sodium_crypto_sign_verify_detached($sig,$this->canonicalJson($envelope),$public);
+    }
+    private function canonicalJson(array $value):string {
+        $normalize=static function($item)use(&$normalize){if(!is_array($item))return $item;if(array_is_list($item))return array_map($normalize,$item);ksort($item,SORT_STRING);foreach($item as $key=>$child)$item[$key]=$normalize($child);return $item;};return json_encode($normalize($value),JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);
+    }
+    public function dispatchRemoteTerminalRequest(string $requestId):array {
+        $device=$this->ensureDevice();if(!preg_match('/^[a-f0-9-]{36}$/i',$requestId))throw new InvalidArgumentException('Invalid remote terminal request.');return $this->request('POST','/remote-terminal-requests/'.$requestId.'/dispatch',[],$device['device_token']);
+    }
+    public function submitRemoteTerminalResult(string $requestId,array $signedResult,string $signature):array {
+        $device=$this->ensureDevice();if(!preg_match('/^[a-f0-9-]{36}$/i',$requestId))throw new InvalidArgumentException('Invalid remote terminal request.');return $this->request('POST','/remote-terminal-requests/'.$requestId.'/result',['signed_result'=>$signedResult,'signature'=>$signature],$device['device_token']);
+    }
+    public function remoteTerminalRequestStatus(string $requestId):array {
+        $device=$this->ensureDevice();if(!preg_match('/^[a-f0-9-]{36}$/i',$requestId))throw new InvalidArgumentException('Invalid remote terminal request.');return $this->request('GET','/remote-terminal-requests/'.$requestId,null,$device['device_token']);
     }
     public function revokePairing(string $deviceId):array {
         $device=$this->ensureDevice();if(!preg_match('/^[a-f0-9-]{36}$/i',$deviceId))throw new InvalidArgumentException('Invalid paired device.');

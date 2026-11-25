@@ -1,0 +1,28 @@
+{
+  "timestamp": "2026-11-24T18:24:00+02:00",
+  "branch": "feature/alpha10-package-revision",
+  "head": "7a70284ef0b74cdb86276b41692b20c023a8f32d",
+  "ci": {
+    "linuxDistro": 45431191589,
+    "windowsBuild": 45431191605,
+    "cloudPhp": 45431191791,
+    "macosCleanPackage": 45425681044
+  },
+  "localTests": [
+    "php platform/tests/run.php",
+    "python3 platform/tests/update-package-build.py",
+    "bash platform/tests/sign-update-manifest.sh",
+    "php -l platform/scripts/lib/UpdateManifest.php",
+    "python3 -m py_compile platform/scripts/build-update-manifest.py platform/scripts/build-delta-package.py platform/tests/update-package-build.py",
+    "git diff --check"
+  ],
+  "result": "all passed",
+  "remaining": [
+    "wire signed schema-3 into release workflows and native updaters",
+    "Linux packaged updater",
+    "macOS packaged updater",
+    "Windows full-package fallback and schema-3 integration",
+    "target Alpha9-to-Alpha10 update/rollback/data-preservation tests"
+  ],
+  "release": "Alpha 10 unpublished; Alpha 9 untouched; Q005 open"
+}

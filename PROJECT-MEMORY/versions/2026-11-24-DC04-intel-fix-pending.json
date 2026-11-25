@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "conversation": "DC04",
+  "date": "2026-11-24",
+  "repository": "/Volumes/Data/ChatGPT/DCP",
+  "branch": "fix/alpha7-localai-cloud-pairing",
+  "pushedHead": "8705c38",
+  "activeTask": "Q005",
+  "activeTaskStatus": "partial",
+  "githubRun": {
+    "id": 45297880160,
+    "status": "completed",
+    "conclusion": "failure",
+    "jobs": {
+      "managedPhpIntel": {
+        "id": 138122769491,
+        "conclusion": "success",
+        "artifact": "dcp-php-runtime-macos-x64",
+        "bytes": 23027980
+      },
+      "managedPhpArm64": {
+        "id": 138122769825,
+        "conclusion": "success",
+        "artifact": "dcp-php-runtime-macos-arm64",
+        "bytes": 23324090
+      },
+      "macosPackageSmoke": {
+        "id": 138130032417,
+        "conclusion": "failure",
+        "passed": [
+          "managed PHP runtime artifact checksum and embedding",
+          "universal app build/signing/version/minimum macOS",
+          "official Apple Silicon llama.cpp SHA-256 and --version smoke"
+        ],
+        "failed": "Intel SSE4.2 llama.cpp link: unresolved OpenSSL/X509 symbols"
+      }
+    }
+  },
+  "diagnosis": [
+    "x86_64 llama.cpp was cross-built on arm64 macos-latest and CMake selected Homebrew OpenSSL 4.1.0 from the arm64 runner.",
+    "The existing local x86_64 engine also has dynamic /usr/local/opt/openssl@4 dependencies and LC_RPATH pointing to the development build directory; prior DYLD_LIBRARY_PATH smoke masked relocation failure."
+  ],
+  "preparedLocalFix": {
+    "committed": false,
+    "pushed": false,
+    "files": [
+      ".github/workflows/build-llama-macos-sse42.yml",
+      ".github/workflows/test-macos-package.yml",
+      ".github/workflows/release-macos.yml",
+      "platform/dcp-env/engines/llama.cpp/build-macos-generic.sh"
+    ],
+    "design": [
+      "Build Intel SSE4.2 llama.cpp on native macos-15-intel.",
+      "Build pinned OpenSSL 3.5.4 static for x86_64 with macOS 12.0 deployment target.",
+      "Link OpenSSL statically and include OpenSSL-LICENSE.txt.",
+      "Replace build-tree rpaths with @loader_path and reject non-portable/dynamic OpenSSL dependencies.",
+      "Run llama-server --version without DYLD_LIBRARY_PATH.",
+      "Use a reusable workflow artifact in both macOS package test and release workflows; keep package job on arm64 for universal PHP and ARM64 smoke."
+    ]
+  },
+  "localValidation": {
+    "bashSyntax": "passed",
+    "allWorkflowYaml": "10/10 parsed",
+    "currentStateJson": "passed",
+    "gitDiffCheck": "passed",
+    "actionlint": "not installed"
+  },
+  "dirtyWorkingTree": {
+    "sourceFiles": [
+      ".github/workflows/release-macos.yml",
+      ".github/workflows/test-macos-package.yml",
+      "platform/dcp-env/engines/llama.cpp/build-macos-generic.sh",
+      ".github/workflows/build-llama-macos-sse42.yml"
+    ],
+    "docsAndMemory": [
+      "PROJECT-MEMORY/ACCESS-INVENTORY.md",
+      "PROJECT-MEMORY/CHANGELOG.md",
+      "PROJECT-MEMORY/CURRENT-STATE.json",
+      "PROJECT-MEMORY/tasks/Q005-managed-php-macos.md",
+      "ROADMAP.md",
+      "WORK-QUEUE.md",
+      "PROJECT-MEMORY/handoffs/DC04-resume-2026-11-24.md",
+      "PROJECT-MEMORY/versions/2026-11-24-DC04-resume.json",
+      "PROJECT-MEMORY/versions/2026-11-24-DC11-memory-reconciliation.json",
+      "PROJECT-MEMORY/versions/2026-11-24-DC12-continuation.json"
+    ],
+    "stagingRule": "If approved, stage only the four listed source files; do not stage docs/memory wholesale."
+  },
+  "nextAction": "Await explicit user approval to commit/push the four-file Intel SSE4.2 fix and rerun macOS package CI. No release/tag/install/deployment without separate approval.",
+  "constraints": [
+    "Do not compile large runtimes locally; Mac has about 8.1 GiB free.",
+    "Do not publish alpha.9 until all release gates pass and separate release approval is obtained.",
+    "Do not run Windows installer as dcpadmin; use verified interactive amradeldotcom session.",
+    "Preserve existing Windows SQLite and master.key with rollback backup.",
+    "Q006 remains partial and gated behind Q005."
+  ]
+}

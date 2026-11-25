@@ -17,7 +17,7 @@ $checks = [
     'agent adapters have a dedicated status list' => str_contains($page, 'id="agent-list"') && str_contains($js, "api('/api/agents')"),
     'agent status API is backed by AgentService' => str_contains($api, "if(\$method==='GET'&&\$path==='/api/agents')") && str_contains($api, '$this->agents->all()'),
     'terminal page exposes keyboard-submittable form and output' => str_contains($page, 'id="terminal-form"') && str_contains($page, 'id="terminal-command"') && str_contains($page, 'id="terminal-output"') && str_contains($js, "$('#terminal-form').onsubmit=async e=>{e.preventDefault()"),
-    'terminal API is disabled in web preview and runs the allow-listed service' => str_contains($api, "if(\$method==='POST'&&\$path==='/api/terminal/run')") && str_contains($api, "'web-preview'") && str_contains($api, '$this->terminal->run'),
+    'terminal API is disabled in web preview and runs the full shell as the current OS user' => str_contains($api, "if(\$method==='POST'&&\$path==='/api/terminal/run')") && str_contains($api, "'web-preview'") && str_contains($api, '$this->terminal->execute'),
     'terminal uses argument-array process execution without shell evaluation' => str_contains($terminal, 'proc_open($args') && !str_contains($terminal, 'shell_exec') && !str_contains($terminal, 'eval('),
     'Windows terminal pwd uses PowerShell Get-Location instead of cmd cd argument quoting' => str_contains($terminal, "['powershell.exe','-NoProfile','-NonInteractive','-Command','(Get-Location).Path']"),
     'DeepSeek Harness process probing is restricted to macOS where its app can exist' => str_contains($dsh, "PHP_OS_FAMILY !== 'Darwin'") && str_contains($dsh, '/Applications/DeepSeek Harness.app'),
@@ -35,3 +35,6 @@ foreach ($checks as $label => $ok) {
 }
 echo $failed === 0 ? "ALL SYSTEM TOOLS CONTRACT CHECKS PASSED\n" : "$failed SYSTEM TOOLS CONTRACT CHECK(S) FAILED\n";
 exit($failed === 0 ? 0 : 1);
+
+$wrapper=(string)file_get_contents(dirname(__DIR__).'/wrappers/macos/main.m');
+ok(str_contains($wrapper,'environment[@"TMPDIR"]=@"/tmp";'),'macOS wrapper normalizes TMPDIR so bundled PHP can reach external HTTPS services');

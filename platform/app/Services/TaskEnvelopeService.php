@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
-final class TaskEnvelopeService {
+interface CloudTerminalDeviceSigner { public function registerSigningKey(string $deviceId):array; public function signPayload(string $deviceId,array $payload):string; }
+
+final class TaskEnvelopeService implements CloudTerminalDeviceSigner {
  private const ACTIONS=['workspace.read','workspace.write'];private const MAX_TTL=300;private const MAX_PAYLOAD_BYTES=16384;
  public function __construct(private PDO $db,private Crypto $crypto){}
  public function registerSigningKey(string $deviceId):array{

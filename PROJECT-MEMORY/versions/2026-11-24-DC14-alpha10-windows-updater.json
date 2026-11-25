@@ -1,0 +1,106 @@
+{
+  "checkpoint": "DC14",
+  "timestamp": "2026-11-24T16:50:35+02:00",
+  "project": "DCP",
+  "branch": "feature/alpha10-package-revision",
+  "head": "ec170a695a8729ff24edbbbf2a5e46b0d82b680c",
+  "release": {
+    "tag": "v1.0.0-alpha.9",
+    "releaseId": 456688871,
+    "tagCommit": "8b5bf08d6291897338ca322432ccf1962e0c2ed1",
+    "assets": 6,
+    "immutableByPolicy": true,
+    "changed": false,
+    "linuxDefect": "platform/app/Core/Database.php missing"
+  },
+  "alpha10": {
+    "version": "1.0.0-alpha.10",
+    "packageRevision": 1,
+    "branch": "feature/alpha10-package-revision",
+    "commits": [
+      "3f37d4d",
+      "8190261",
+      "ec170a6"
+    ],
+    "published": false,
+    "merged": false
+  },
+  "ci": {
+    "windowsBuild": {
+      "run": 45418031428,
+      "status": "success"
+    },
+    "windowsPackage": {
+      "run": 45418031542,
+      "status": "success",
+      "updaterTransactionTests": "success"
+    },
+    "linuxBuild": {
+      "run": 45418031828,
+      "status": "success"
+    },
+    "cloudPhp": {
+      "run": 45418031562,
+      "status": "success"
+    },
+    "macosRetry": {
+      "run": 45416881645,
+      "status": "queued/in-progress",
+      "x64Php": "in_progress",
+      "x64Llama": "in_progress",
+      "arm64Php": "queued",
+      "arm64Llama": "queued"
+    },
+    "macosPriorFailure": {
+      "run": 45413374893,
+      "reason": "test workflow omitted DCPPackageRevision from test Info.plist",
+      "fixedBy": "8190261"
+    }
+  },
+  "windowsUpdater": {
+    "localTests": "passed",
+    "ciTests": "passed",
+    "coverage": [
+      "schema 2",
+      "legacy revision 0",
+      "official HTTPS origin/version checks",
+      "SHA-256 and size",
+      "path/reparse/user-data protection",
+      "correct packaged PHP path",
+      "transaction rollback",
+      "retained snapshots",
+      "status JSON",
+      "startup process check"
+    ],
+    "remaining": [
+      "full-package fallback",
+      "cryptographic signature/attestation",
+      "real VM Alpha9-to-Alpha10 update"
+    ]
+  },
+  "targetVm": {
+    "windows": {
+      "host": "192.168.8.99",
+      "sshAlias": "windows-dcp-admin",
+      "interactiveUser": "amradeldotcom",
+      "sqliteSha256": "a2f6252cb0c6984bc2c7b1a30f65e49f0d9a69f2ac2950d613e7c54ecb93fa45",
+      "masterKeySha256": "b1d13ad07a1dffc595cb63ee49f6ab0bd748c5155a142d753dd273a4ac10e00d",
+      "backupsMatch": true,
+      "modified": false
+    },
+    "ubuntu": {
+      "host": "192.168.8.88",
+      "sshAlias": "ubuntu-dcp-admin",
+      "publishedAlpha9Defective": true,
+      "modified": false
+    }
+  },
+  "network": {
+    "resumeMarkerPresent": false,
+    "gatewayPing": "passed",
+    "internet": "HTTP 200",
+    "monitor": "600-second local LaunchAgent; cannot reopen ChatGPT session",
+    "sshConfig": "must use -F /Volumes/Data/ChatGPT/DCP-Lab-SSH/config; default config stale"
+  },
+  "next": "complete macOS native retry; implement Linux/macOS packaged updaters, Windows full fallback, cryptographic attestation and end-to-end update/rollback tests; keep Q005 open"
+}

@@ -1,39 +1,46 @@
 <?php
 declare(strict_types=1);
 
-final class TerminalService {
- public function __construct(private array $config){}
+interface CloudTerminalShellExecutor { public function execute(string $command,?string $cwd=null,int $timeout=30,string $shell='default'):array; }
+
+final class TerminalService implements CloudTerminalShellExecutor {
+ private array $sessions=[];private ?DcpTerminalSessionClient $sessionClient=null;
+ public function __construct(private array $config){require_once __DIR__.'/DcpTerminalSessionClient.php';if(empty($config['terminal_session_daemon_worker'])&&!empty($config['storage']))$this->sessionClient=new DcpTerminalSessionClient($config);}
  public function commands():array{
-  $base=['pwd',PHP_OS_FAMILY==='Windows'?'ls (dir)':'ls','date','whoami','php -v','php -m','git status'];
-  if(PHP_OS_FAMILY==='Darwin')$base[]='brew install/list/verify llama.cpp';
-  return $base;
+  return [PHP_OS_FAMILY==='Windows'?'PowerShell / CMD':'bash / zsh / sh','Full shell commands','Interactive terminal sessions via persistent STDIO host','Process listing and termination'];
  }
- public function run(string $command):array{
-  $command=trim($command);if($command==='')throw new InvalidArgumentException('Enter a command.');
-  $parts=preg_split('/\\s+/', $command);$bin=array_shift($parts);$root=$this->config['terminal_root'];
-  $windows=PHP_OS_FAMILY==='Windows';if($windows&&$bin==='dir')$bin='ls';$args=[];
-  if($bin==='pwd')$args=$windows?['powershell.exe','-NoProfile','-NonInteractive','-Command','(Get-Location).Path']:['/bin/pwd'];
-  elseif($bin==='ls'){
-   $target=$root;
-   if(count($parts)>1)throw new RuntimeException('Only ls [directory] is allowed.');if(isset($parts[0])&&$parts[0]!=='.'){$realRoot=realpath($root)?:$root;$candidate=realpath($root.DIRECTORY_SEPARATOR.$parts[0]);$compareRoot=$windows?strtolower($realRoot):$realRoot;$compareCandidate=$candidate===false?'':($windows?strtolower($candidate):$candidate);$prefix=rtrim($compareRoot,DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR;if(!$candidate||($compareCandidate!==$compareRoot&&!str_starts_with($compareCandidate,$prefix)))throw new RuntimeException('Path outside DCP workspace.');$target=$candidate;}
-   $args=$windows?['powershell.exe','-NoProfile','-NonInteractive','-Command','Get-ChildItem -Force -LiteralPath '.escapeshellarg($target).' | Select-Object Mode,Length,Name | Format-Table -AutoSize']:['/bin/ls','-la',$target];
-  }elseif($bin==='date')$args=$windows?['powershell.exe','-NoProfile','-NonInteractive','-Command','Get-Date -Format o']:['/bin/date'];
-  elseif($bin==='whoami')$args=$windows?['whoami.exe']:['/usr/bin/whoami'];
-  elseif($bin==='php'){
-   if(!in_array($parts[0]??'', ['-v','-m','--version'],true)||count($parts)!==1)throw new RuntimeException('Only php -v and php -m are allowed.');
-   $args=[PHP_BINARY,$parts[0]];
-  }elseif($bin==='git'){
-   if(($parts[0]??'')!=='status'||count($parts)>1)throw new RuntimeException('Only git status is allowed.');
-   $git=$windows?'git.exe':'/usr/bin/git';$args=[$git,'-C',$root,'status','--short','--branch'];
-  }elseif($bin==='brew'&&PHP_OS_FAMILY==='Darwin'){
-   $brew='/opt/homebrew/bin/brew';if(!is_executable($brew))$brew='/usr/local/bin/brew';
-   $allowed=[['install','llama.cpp'],['list','--versions','llama.cpp'],['--prefix','llama.cpp']];
-   if(!in_array($parts,$allowed,true))throw new RuntimeException('Only approved llama.cpp Homebrew install and verification commands are allowed.');
-   $args=array_merge([$brew],$parts);
-  }else throw new RuntimeException('Command blocked. Allowed: '.implode(', ',$this->commands()).'.');
-  $spec=[0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']];$proc=proc_open($args,$spec,$pipes,$root);
-  if(!is_resource($proc))throw new RuntimeException('Unable to start command.');
-  fclose($pipes[0]);$out=stream_get_contents($pipes[1]);$err=stream_get_contents($pipes[2]);fclose($pipes[1]);fclose($pipes[2]);$code=proc_close($proc);
-  return ['command'=>$command,'output'=>substr((string)$out.(string)$err,0,12000),'exit_code'=>$code];
+ /** Full shell execution for the local DCP user identity. */
+ public function execute(string $command,?string $cwd=null,int $timeout=30,string $shell='default'):array{
+  $command=trim($command);if($command==='')throw new InvalidArgumentException('Enter a command.');if(strlen($command)>12000)throw new InvalidArgumentException('Command exceeds 12 KB.');
+  $root=(string)($this->config['terminal_root']??getcwd());$working=$cwd===null||trim($cwd)===''?$root:$cwd;$real=realpath($working);if($real===false||!is_dir($real))throw new InvalidArgumentException('Working directory does not exist.');
+  $timeout=max(1,min(120,$timeout));$windows=PHP_OS_FAMILY==='Windows';if($windows&&in_array($shell,['bash','zsh','sh'],true))throw new InvalidArgumentException('POSIX shells are unavailable on this Windows DCP host.');if(!$windows&&in_array($shell,['cmd','powershell'],true))throw new InvalidArgumentException('Windows shells are unavailable on this POSIX DCP host.');
+  if($windows){$exe=$shell==='cmd'?'cmd.exe':'powershell.exe';$args=$exe==='cmd.exe'?[$exe,'/D','/S','/C',$command]:[$exe,'-NoLogo','-NoProfile','-NonInteractive','-Command',$command];}
+  else{$exe=match($shell){'bash'=>'/bin/bash','sh'=>'/bin/sh','zsh'=>is_executable('/bin/zsh')?'/bin/zsh':'/bin/bash',default=>getenv('SHELL')?:'/bin/bash'};if(!is_executable($exe))$exe='/bin/sh';$args=[$exe,'-lc',$command];}
+  return $this->executeArgv($command,$args,$real,$timeout);
+ }
+ public function listProcesses(int $limit=100):array{
+  $limit=max(1,min(300,$limit));if(PHP_OS_FAMILY==='Windows'){$script="\$ErrorActionPreference='Stop'; Get-CimInstance Win32_Process | ForEach-Object { \$owner=\$_.GetOwner(); if(\$owner.ReturnValue -eq 0 -and \$owner.User -eq \$env:USERNAME) { [pscustomobject]@{ ProcessId=\$_.ProcessId; ParentProcessId=\$_.ParentProcessId; Name=\$_.Name; CommandLine=\$_.CommandLine } } } | Select-Object -First ".$limit." | ConvertTo-Json -Compress";$r=$this->executeArgv('process list',['powershell.exe','-NoProfile','-NonInteractive','-Command',$script],(string)($this->config['terminal_root']??getcwd()),10);$items=json_decode($r['output'],true);if(!is_array($items))$items=[];}else{$r=$this->executeArgv('process list',['/bin/ps','-u',(function_exists('posix_getpwuid')?((posix_getpwuid(posix_geteuid())['name']??get_current_user())):get_current_user()),'-o','pid=,ppid=,stat=,etime=,comm='],(string)($this->config['terminal_root']??getcwd()),10);$items=[];foreach(array_slice(preg_split('/\\r?\\n/',trim($r['output'])),-$limit) as $line){if(preg_match('/^\\s*(\\d+)\\s+(\\d+)\\s+(\\S+)\\s+(\\S+)\\s+(.+)$/',$line,$m))$items[]=['pid'=>(int)$m[1],'parent_pid'=>(int)$m[2],'state'=>$m[3],'elapsed'=>$m[4],'command'=>$m[5]];}}return ['processes'=>$items,'count'=>count($items),'limit'=>$limit];
+ }
+ public function terminateProcess(int $pid):array{
+  if($pid<2||$pid===getmypid())throw new InvalidArgumentException('Refusing to terminate an invalid or protected DCP process.');$parent=function_exists('posix_getppid')?posix_getppid():0;if($pid===$parent)throw new RuntimeException('Refusing to terminate the DCP parent process.');
+  if(PHP_OS_FAMILY==='Windows'){$script="\$p=Get-CimInstance Win32_Process -Filter 'ProcessId=".$pid."'; if(!\$p){throw 'Process not found'}; \$o=\$p.GetOwner(); if(\$o.ReturnValue -ne 0 -or \$o.User -ne \$env:USERNAME){throw 'Process is not owned by the current user'}; Stop-Process -Id ".$pid." -ErrorAction Stop; Write-Output TERMINATED";$r=$this->executeArgv('terminate process',['powershell.exe','-NoProfile','-NonInteractive','-Command',$script],(string)($this->config['terminal_root']??getcwd()),10);if(!str_contains($r['output'],'TERMINATED'))throw new RuntimeException('Windows process termination was not confirmed.');}
+  else{if(!function_exists('posix_kill')||!function_exists('posix_geteuid'))throw new RuntimeException('POSIX process control is unavailable.');if(!posix_kill($pid,0))throw new RuntimeException('Process does not exist or is not accessible to this user.');$owner=$this->executeArgv('process owner',['/bin/ps','-o','uid=','-p',(string)$pid],(string)($this->config['terminal_root']??getcwd()),5);if((int)trim($owner['output'])!==posix_geteuid())throw new RuntimeException('Process is not owned by the current OS user.');if(!posix_kill($pid,SIGTERM))throw new RuntimeException('Unable to send SIGTERM to process.');usleep(150000);$alive=posix_kill($pid,0);if($alive)throw new RuntimeException('SIGTERM was sent; process has not exited yet. No SIGKILL was issued.');}
+  return ['pid'=>$pid,'terminated'=>true,'signal'=>'SIGTERM or OS equivalent'];
+ }
+ public function startSession(string $command,?string $cwd=null,string $shell='default'):array{
+  if($this->sessionClient)return $this->sessionClient->request('start',['command'=>$command,'cwd'=>$cwd,'shell'=>$shell]);
+  $command=trim($command);if($command===''||strlen($command)>12000)throw new InvalidArgumentException('Session command must contain 1–12000 bytes.');$root=(string)($this->config['terminal_root']??getcwd());$working=$cwd===null||trim($cwd)===''?$root:$cwd;$real=realpath($working);if($real===false||!is_dir($real))throw new InvalidArgumentException('Working directory does not exist.');$windows=PHP_OS_FAMILY==='Windows';if($windows&&in_array($shell,['bash','zsh','sh'],true))throw new InvalidArgumentException('POSIX shells are unavailable on this Windows DCP host.');if(!$windows&&in_array($shell,['cmd','powershell'],true))throw new InvalidArgumentException('Windows shells are unavailable on this POSIX DCP host.');
+  if($windows){$exe=$shell==='cmd'?'cmd.exe':'powershell.exe';$args=$exe==='cmd.exe'?[$exe,'/D','/S','/C',$command]:[$exe,'-NoLogo','-NoProfile','-Command',$command];}else{$exe=match($shell){'bash'=>'/bin/bash','sh'=>'/bin/sh','zsh'=>is_executable('/bin/zsh')?'/bin/zsh':'/bin/bash',default=>getenv('SHELL')?:'/bin/bash'};if(!is_executable($exe))$exe='/bin/sh';$args=[$exe,'-lc',$command];}
+  $spec=[0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']];$proc=proc_open($args,$spec,$pipes,$real);if(!is_resource($proc))throw new RuntimeException('Unable to start terminal session.');foreach($pipes as $pipe)stream_set_blocking($pipe,false);$id='dcpterm_'.bin2hex(random_bytes(10));$this->sessions[$id]=['process'=>$proc,'pipes'=>$pipes,'command'=>$command,'cwd'=>$real,'started_at'=>date(DATE_ATOM),'output'=>'','closed'=>false];return ['session_id'=>$id,'command'=>$command,'cwd'=>$real,'status'=>'running','message'=>'Interactive terminal session started. Use session read/write/stop tools.'];
+ }
+ public function readSession(string $id,int $maxBytes=16384):array{if($this->sessionClient)return $this->sessionClient->request('read',['session_id'=>$id,'max_bytes'=>$maxBytes]);$s=&$this->session($id);if($s['closed'])return ['session_id'=>$id,'status'=>'exited','output'=>'','exit_code'=>$s['exit_code']??null,'output_buffer_bytes'=>strlen($s['output'])];$out=stream_get_contents($s['pipes'][1])?:'';$err=stream_get_contents($s['pipes'][2])?:'';$chunk=substr($out.$err,0,max(1,min(65536,$maxBytes)));$s['output'].=$chunk;if(strlen($s['output'])>262144)$s['output']=substr($s['output'],-262144);$status=proc_get_status($s['process']);if(!$status['running']&&!$s['closed']){$s['closed']=true;$s['exit_code']=$status['exitcode'];foreach($s['pipes'] as $pipe)if(is_resource($pipe))fclose($pipe);$s['pipes']=[];proc_close($s['process']);$s['process']=null;}return ['session_id'=>$id,'status'=>$s['closed']?'exited':'running','output'=>$chunk,'exit_code'=>$s['exit_code']??null,'output_buffer_bytes'=>strlen($s['output'])];}
+ public function writeSession(string $id,string $input):array{if($this->sessionClient)return $this->sessionClient->request('write',['session_id'=>$id,'input'=>$input]);$s=&$this->session($id);if($s['closed'])throw new RuntimeException('Terminal session has already exited.');if(strlen($input)>8192)throw new InvalidArgumentException('Terminal input exceeds 8 KB.');$written=fwrite($s['pipes'][0],$input);if($written===false)throw new RuntimeException('Unable to write to terminal session.');return ['session_id'=>$id,'bytes_written'=>$written,'status'=>'running'];}
+ public function stopSession(string $id):array{if($this->sessionClient)return $this->sessionClient->request('stop',['session_id'=>$id]);$s=&$this->session($id);if(!$s['closed']){proc_terminate($s['process']);usleep(100000);$status=proc_get_status($s['process']);if($status['running'])proc_terminate($s['process'],9);foreach($s['pipes'] as $pipe)if(is_resource($pipe))fclose($pipe);$s['pipes']=[];proc_close($s['process']);$s['process']=null;$s['closed']=true;}return ['session_id'=>$id,'status'=>'stopped'];}
+ private function &session(string $id):array{if(!isset($this->sessions[$id]))throw new RuntimeException('Terminal session not found in this MCP host process.');return $this->sessions[$id];}
+ private function executeArgv(string $command,array $args,string $cwd,int $timeout):array{
+  $spec=[0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']];$proc=proc_open($args,$spec,$pipes,$cwd);if(!is_resource($proc))throw new RuntimeException('Unable to start terminal command.');fclose($pipes[0]);stream_set_blocking($pipes[1],false);stream_set_blocking($pipes[2],false);$out='';$err='';$started=microtime(true);$timedOut=false;
+  do{$out.=stream_get_contents($pipes[1])?:'';$err.=stream_get_contents($pipes[2])?:'';$status=proc_get_status($proc);if(!$status['running'])break;if(microtime(true)-$started>$timeout){$timedOut=true;proc_terminate($proc);usleep(150000);$status=proc_get_status($proc);if($status['running'])proc_terminate($proc,9);break;}usleep(50000);}while(true);
+  $out.=stream_get_contents($pipes[1])?:'';$err.=stream_get_contents($pipes[2])?:'';fclose($pipes[1]);fclose($pipes[2]);$code=proc_close($proc);if($timedOut)$code=124;
+  $combined=substr($out.$err,0,65536);return ['command'=>$command,'cwd'=>$cwd,'output'=>$combined,'exit_code'=>$code,'timed_out'=>$timedOut,'duration_ms'=>(int)((microtime(true)-$started)*1000),'truncated'=>strlen($out.$err)>65536];
  }
 }

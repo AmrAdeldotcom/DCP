@@ -18,8 +18,12 @@ $deviceRevokeEnd = $deviceRevokeStart === false ? false : strpos($source, "if(\$
 $deviceRevokeRoute = ($deviceRevokeStart !== false && $deviceRevokeEnd !== false)
     ? substr($source, $deviceRevokeStart, $deviceRevokeEnd - $deviceRevokeStart)
     : '';
+$cloudMcpStart = strpos($source, "if(\$path==='/api/v1/mcp'&&\$method==='POST')");
+$cloudMcpEnd = $cloudMcpStart === false ? false : strpos($source, "reply(404,['error'=>'not_found'])", $cloudMcpStart);
+$cloudMcpRoute = ($cloudMcpStart !== false && $cloudMcpEnd !== false) ? substr($source, $cloudMcpStart, $cloudMcpEnd - $cloudMcpStart) : '';
 
 $checks = [
+    'DCP Cloud landing page supports all nine approved DCP locales and Core-first positioning' => count(array_filter(['ar','en','nl','es','pt','fr','de','zh','ja'], static fn($locale) => str_contains($source, "'".$locale."'=>['dir'"))) === 9 && str_contains($source, 'DCP Core executes locally under your policies') && str_contains($source, 'radial-gradient'),
     'production APP_KEY must be at least 32 printable non-placeholder characters' => str_contains($source, 'strlen($appKey)<32') && str_contains($source, 'replace[-_ ]?with'),
     'current and previous APP_KEY hashes are supported during rotation' => count($rotationHashes) === 2 && hash_equals($rotationHashes[0], dcp_cloud_hash_token($rotationToken, $currentKey)) && hash_equals($rotationHashes[1], dcp_cloud_hash_token($rotationToken, $previousKey)),
     'auth, account linking and pairing-code lookup accept previous-key tokens' => substr_count($source, 'hash_token_candidates(') >= 5,
@@ -45,6 +49,11 @@ $checks = [
     'pause/resume updates only presence_paused_at and preserves signaling scopes' => str_contains($source, 'UPDATE device_pairings SET presence_paused_at=? WHERE id=? AND revoked_at IS NULL'),
     'presence scope authorization rejects a paused pairing while other scopes remain intact' => str_contains($source, "return \$scope!=='presence'||\$row['presence_paused_at']===null;"),
     'pair presence pause endpoint is rate limited' => str_contains($source, "rate_limit('pair-presence',120,3600)"),
+    'Cloud MCP endpoint requires authenticated account bearer token' => str_contains($source, "if(\$path==='/api/v1/mcp'&&\$method==='POST')") && str_contains($source, '$u=auth_user();'),
+    'Cloud MCP endpoint exposes only read-only account device and pairing tools' => str_contains($source, 'dcp_cloud_list_devices') && str_contains($source, 'dcp_cloud_pairing_overview') && str_contains($source, "'readOnlyHint'=>true"),
+    'Cloud MCP endpoint does not expose remote task dispatch or terminal execution' => !str_contains($cloudMcpRoute, 'dcp_terminal_execute') && !str_contains($cloudMcpRoute, 'task.dispatch'),
+    'Cloud MCP token creation issues a scoped-lifetime API token and supports owner-only revocation' => str_contains($source, "/api/v1/mcp-tokens") && str_contains($source, 'DELETE FROM api_tokens WHERE user_id=? AND id=?') && str_contains($source, "INTERVAL 30 DAY"),
+    'Cloud MCP validates 2026 protocol metadata and method/name headers' => str_contains($source, 'mcp_request_metadata_header_mismatch') && str_contains($source, 'mcp_name_header_mismatch'),
 ];
 $failed = 0;
 foreach ($checks as $label => $ok) {

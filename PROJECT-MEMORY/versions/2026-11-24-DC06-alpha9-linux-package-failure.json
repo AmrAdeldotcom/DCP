@@ -1,0 +1,62 @@
+{
+  "timestamp": "2026-11-24T14:57:19+02:00",
+  "session": "DC06",
+  "repository": "/Volumes/Data/ChatGPT/DCP",
+  "branch": "fix/alpha7-localai-cloud-pairing",
+  "headCommit": "8b5bf08d6291897338ca322432ccf1962e0c2ed1",
+  "releaseTag": "v1.0.0-alpha.9",
+  "releaseId": 456688871,
+  "macIntel": {
+    "status": "smoke-tested-cleaned",
+    "appVersion": "1.0.0-alpha.9",
+    "appArchitecture": "x86_64",
+    "php": "8.4.28",
+    "phpSha256": "8f64cba8886dab10e7ed2850b493118bbe8bb51045d293e2dcb6c7bdfec0139e",
+    "llama": "x86_64 --version/--help passed",
+    "trackedFilesCompared": 101,
+    "differences": 0,
+    "cleanup": "only ~/Applications/DCP-Alpha9-Smoke removed",
+    "originalServices": "PHP 92383:18991, llama 99659:19123, Ollama 2101/2106:11434 remained active"
+  },
+  "ubuntu": {
+    "status": "installed-but-http-500",
+    "target": "/home/amr/Applications/DCP",
+    "php": "8.3.6 all required extensions passed",
+    "binary": "ELF x86-64, ldd clean",
+    "appPidStopped": 742874,
+    "phpPidStopped": 742899,
+    "port": "127.0.0.1:18765 closed",
+    "error": "missing platform/app/Core/Database.php due flattened package app directory"
+  },
+  "linuxFix": {
+    "status": "local-uncommitted",
+    "files": [
+      "platform/scripts/build-linux.sh",
+      ".github/workflows/build-linux.yml",
+      ".github/workflows/release-linux.yml",
+      "platform/tests/linux-package-smoke.sh"
+    ],
+    "checks": [
+      "bash -n",
+      "Ruby YAML parse",
+      "copy layout regression",
+      "php platform/tests/run.php",
+      "git diff --check",
+      "corrected Ubuntu fixture HTTP smoke: PHP 8.3.6, 23 plugins"
+    ]
+  },
+  "windows": {
+    "status": "blocked-connectivity",
+    "hosts": [
+      "192.168.8.62",
+      "192.168.8.54"
+    ],
+    "filesChanged": false
+  },
+  "installerSourceAudit": {
+    "mainCommit": "25c81e23e0a6810a7c9b70a33d0794b00ed5de0d",
+    "macLinuxScriptOnMain": false,
+    "windowsInstallerOnMain": "older implementation; not synchronized with tag"
+  },
+  "next": "Commit/push four-file Linux fix and verify CI; obtain approval before new alpha tag/main merge; retry Windows access."
+}

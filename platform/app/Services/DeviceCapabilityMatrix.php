@@ -15,12 +15,12 @@ final class DeviceCapabilityMatrix {
   $capabilities=is_array($node['capabilities']??null)?$node['capabilities']:[];
   $online=is_array($node)&&!empty($node['installed'])&&!empty($node['running'])&&!empty($node['connected']);
   $workspace=$online&&in_array('tasks',$capabilities,true);
-  $terminal=$online&&in_array('safe-terminal',$capabilities,true);
+  $terminal=$online&&in_array('terminal.execute',$capabilities,true);
   $devices=$online&&in_array('devices',$capabilities,true);
   return [
    $this->entry('workspace.read','Local workspace read',$workspace?'available':'unavailable','not_required',$workspace?'Read-only workspace operations are available inside the DCP workspace.':'DCP Local Node workspace adapter is not connected.'),
    $this->entry('workspace.write','Local workspace write',$workspace?'available':'unavailable','explicit-approval',$workspace?'Writes are limited to approved DCP tasks and the private workspace.':'DCP Local Node workspace adapter is not connected.'),
-   $this->entry('terminal.safe','Local safe terminal',$terminal?'available':'unavailable','signed_in_user',$terminal?'Allow-listed commands run as the signed-in user inside the configured DCP root.':'Safe terminal adapter is not connected.'),
+   $this->entry('terminal.execute','Full local terminal',$terminal?'available':'unavailable','signed_in_user',$terminal?'Full shell commands and scripts run as the DCP OS user. Remote devices require explicit user approval before execution.':'Full terminal adapter is not connected.'),
    $this->entry('device.inventory','Local device inventory',$devices?'available':'unavailable','not_required',$devices?'Local device inventory is available.':'Device inventory adapter is not connected.'),
    $this->entry('remote.task.dispatch','Remote task dispatch','not_implemented','not_available','DCP Cloud pairing currently grants presence/signaling only. Legacy token-authenticated Device Agent task polling is tracked separately.'),
    $this->entry('remote.browser.control','Remote browser control','not_implemented','not_available','Shared browser transport and explicit browser capability grants are not implemented.'),

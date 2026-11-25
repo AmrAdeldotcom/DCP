@@ -1,6 +1,6 @@
 # Connect Codex, VS Code or Antigravity to DCP
 
-DCP includes a local MCP host using JSON-RPC over STDIO. It exposes platform status, masked provider listing, device/task listing, safe terminal diagnostics, unread IMAP mail, and task creation that always waits for user approval in the DCP dashboard.
+DCP includes a local MCP host using JSON-RPC over STDIO. It exposes platform status, masked provider listing, device/task listing, full terminal execution, unread IMAP mail, and task creation that always waits for user approval in the DCP dashboard.
 
 1. Confirm PHP CLI is installed and DCP platform is in a stable location.
 2. Copy the matching example configuration into the MCP configuration file used by your client.

@@ -3,12 +3,12 @@ declare(strict_types=1);
 require_once dirname(__DIR__).'/app/Services/DeviceCapabilityMatrix.php';
 $matrix=new DeviceCapabilityMatrix();
 $local=$matrix->local([
- ['id'=>'dcp-node','installed'=>true,'running'=>true,'connected'=>true,'capabilities'=>['tasks','safe-terminal','devices']],
+ ['id'=>'dcp-node','installed'=>true,'running'=>true,'connected'=>true,'capabilities'=>['tasks','terminal.execute','devices']],
 ]);
 $localById=[];foreach($local as $item)$localById[$item['id']]=$item;
 ok(($localById['workspace.read']['status']??'')==='available','local node exposes scoped workspace read capability');
 ok(($localById['workspace.write']['approval']??'')==='explicit-approval','local workspace writes require explicit task approval');
-ok(($localById['terminal.safe']['status']??'')==='available','local node exposes only the verified safe terminal capability');
+ok(($localById['terminal.execute']['status']??'')==='available','local node exposes the full terminal as its only terminal capability');
 ok(($localById['remote.task.dispatch']['status']??'')==='not_implemented','local matrix does not imply remote task dispatch is implemented');
 $remote=$matrix->remote(['scopes'=>['presence','signaling'],'presence_granted'=>true,'presence_paused'=>true]);
 $remoteById=[];foreach($remote as $item)$remoteById[$item['id']]=$item;

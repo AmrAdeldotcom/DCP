@@ -1,0 +1,56 @@
+{
+  "date": "2026-11-24",
+  "branch": "feature/alpha10-package-revision",
+  "head": "d47f2c0",
+  "release": "v1.0.0-alpha.10",
+  "releasePublished": false,
+  "macOS": "Latest monitor-enabled Alpha 10 bundle installed from isolated temp build; visual UI/API/signature checks passed; SQLite/master.key unchanged",
+  "windows": "Alpha 9 remains; clean Alpha 10 install pending",
+  "ubuntu": "Alpha 9 remains; clean Alpha 10 install pending",
+  "ci": {
+    "linuxPackageBuild": "45458161076 success",
+    "signedUpdaterContracts": "45458161245 success",
+    "macOSPackage": "45458161119 queued",
+    "windowsBuild193cfa4": "45457125112 success",
+    "windowsPackage193cfa4": "45457125199 success",
+    "linuxUbuntuKali193cfa4": "45457125166 success"
+  },
+  "localTests": "Windows PowerShell and C# updater tests; macOS 52 assertions; Linux updater health/watcher/cache; Linux package smoke; Atom feed; signed release assembly passed",
+  "next": "Wait for all signed Alpha 10 release jobs/assets; install Windows and Ubuntu fresh, restore user data backups, then publish platform probe update and verify all three clients.",
+  "main": "d47f2c0",
+  "tag": "v1.0.0-alpha.10",
+  "releaseWorkflowRun": 45459081495,
+  "windowsBackup": {
+    "path": "C:\\\\DCP-Backups\\\\DCP-UserData-before-alpha10-20261124-2025-EET",
+    "files": 8,
+    "bytes": 161768,
+    "verified": true
+  },
+  "ubuntuBackups": {
+    "userDataSha256": "63b5fd7add14ec13c39da263acf27a59894e123dbaea18bc9f60f4c17a7d214a",
+    "localShareSha256": "b2776f5ae0630d2a30a91aa3ae75c2849268fb0280adbda544c57887cac067a",
+    "verified": true
+  },
+  "windowsInstall": {
+    "version": "1.0.0-alpha.10",
+    "php": "8.5.13",
+    "apiHttp": 200,
+    "rootHttp": 200,
+    "sqliteIntegrity": "ok",
+    "packageSha256": "bd0bb554d38ff41d20da849b9807bd3a4e2762ef4eb352a610c5c58739bb8a61"
+  },
+  "ubuntuInstall": {
+    "version": "1.0.0-alpha.10",
+    "php": "8.3.6",
+    "apiHttp": 200,
+    "rootHttp": 200,
+    "watcherPid": 799817,
+    "packageSha256": "66d3c3bb3691b2e148f4c2cf3ba1725f70818eda3b5ae5fd4ed36defec342651"
+  },
+  "macOSInstall": {
+    "version": "1.0.0-alpha.10",
+    "ui": "rendered on display 2",
+    "service": "Little Snitch blocked PHP github.com connection pending user allow"
+  },
+  "endToEndUpdateTest": "pending Alpha11 platform probe"
+}

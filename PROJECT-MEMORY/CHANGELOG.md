@@ -481,3 +481,74 @@
 - DC51: enforce private NTFS ACLs for per-device workspaces (current user, SYSTEM, Administrators only), preserve inherited private file ACLs without recursive symlink traversal, and make workspace tests OS-aware. Local full suite passes; GitHub full-platform CI 45587700487 passes Ubuntu and Windows; macOS queued.
 
 - DC52: extract the seven-tool MCP catalog/dispatch into shared `DcpToolRegistry`; add explicit capability/approval policies, JSON-schema/path/content validation, and MCP stdio E2E. Fix the platform test harness so it reaches Linux updater transaction/rollback/crash-recovery/health contracts. Local full suite + worker + HTTP E2E pass; cross-platform CI run 45589253032 pending.
+
+- DC53: implement provider-neutral tool-call results and optional adapter interface; normalize Ollama and OpenAI-compatible tool calls; add malformed/refusal/empty/bounds fixtures; fix detached Chat worker bootstrap. Local full suite, worker E2E and HTTP E2E pass. Task 1 CI green on all three OS; Tasks 2–3 CI pending. Preserve source workspace as DCP-Source and install a clean stable GitHub Release into isolated /Volumes/Data/DiGiPL/DCP.
+## 2026-11-25 — DC54 architecture, Desktop Commander reference and Q012 coordinator
+- Approved and documented DCP Core + MCP STDIO/Remote HTTP + CLI + API + DCP Node/Agent Runtime architecture; Desktop Commander remains an optional plugin and DSH Agent is supported through the agent runtime.
+- Cloned official open-source `wonderwhy-er/DesktopCommanderMCP` to `/Volumes/Data/DiGiPL/References/DesktopCommanderMCP` as a read-only engineering reference; upstream push disabled; no dependencies installed.
+- Added `ChatExecutionCoordinator`, shared tool proposal validation, bounded versioned plans, canonical argument hashes, idempotency keys and approval records. The worker persists model-proposed tool calls but does not execute them.
+- Installed stable DCP `v1.0.0` to `/Volumes/Data/DiGiPL/DCP`; checksum/runtime/app bundle and HTTP health verified without launching the app. Fresh user-data directories are separate from source.
+- Local full platform, worker E2E, HTTP E2E, PHP lint, JS syntax, installer contract and diff checks pass. No commit/push/release of source changes.
+
+
+## 2026-11-25 — DC55: Cloud connectivity, DP_MEMORY acquisition and temporary memory
+- Diagnosed bundled PHP Cloud timeout to inherited macOS `TMPDIR`; normalized the native wrapper to `/tmp`, rebuilt source app bundle and verified Cloud device identity + heartbeat. Stable installed v1.0.0 was not patched.
+- Downloaded complete non-shallow upstream Git repositories for memory-core, Cognee and official MCP servers under `/Volumes/Data/DiGiPL/DP_MEMORY/sources/`; updated exact commits/licenses. Documented independent deferred project architecture, roadmap and decisions. No dependencies/build/runtime.
+- Added temporary DCP hierarchical Markdown+JSON memory with scoped bootstrap/keyword recall, secret redaction, soft retirement and worker context injection; full Markdown entries are not injected into prompts.
+
+## 2026-11-25 — DC56: DCP Core MCP local + Cloud
+- Added local loopback-only Streamable HTTP MCP endpoint `/mcp`, bearer token scopes, one-time CLI token provisioning and Origin validation over the shared DcpToolRegistry.
+- Added Cloud authenticated Streamable HTTP MCP endpoint `/api/v1/mcp` with read-only account device/pairing tools and 30-day API token create/revoke routes. No remote task execution is exposed.
+- Added local MCP HTTP E2E and Cloud contract assertions, including protocol 2026-07-28 metadata/header validation.
+- No commit, push or release.
+
+
+## 2026-11-25 — DC57: Q012 Task 5 atomic execution claim foundation
+- Added durable tool-execution ledger with unique idempotency keys, plan-version/argument-hash binding, hashed one-time lease tokens, lease expiry and opaque result references.
+- Added atomic claim, completion and failure transitions; duplicate completed calls do not execute again, expired/uncertain claims fail closed and are never retried automatically.
+- Added dedicated idempotency E2E covering duplicate claims, approval gate, one-time lease, failure and expired lease; integrated it into the full platform test suite. Actual tool invocation remains disabled until capability grants, result artifacts and review APIs are complete.
+
+## 2026-11-25 — DC58–DC61: DCP Core Local + Cloud MCP parity expansion
+- Expanded the shared DCP tool registry to 31 tools, including full foreground shell, interactive STDIO-host terminal sessions, bounded filesystem CRUD/search/edit/stat and process inventory/termination and local Core Cloud pairing/signaling controls.
+- Added separate local HTTP MCP scopes for terminal execution, filesystem read/write/delete and Cloud status/pairing/connection operations. Local HTTP E2E verifies full terminal execution and denies filesystem write without its separate scope.
+- Redesigned the Cloud landing page using the existing PHP/HTML/CSS stack and translated it into all nine DCP locales. Nine isolated page renders, PHP lint, JS syntax and diff checks pass.
+- Cloud remains a control plane/signaling gateway; no remote terminal/task execution is exposed.
+
+## 2026-11-25 — DC62–DC63: Q012 Task 6 review and Task 7 safe conversation resume
+- Added execution plan/step/result/approval review API and Chat UI; approval/rejection decisions are audited and never execute tools.
+- Added checkpoint ownership/hash verification and explicit conversation-only resume. New user-confirmed chat turn is created; old tool calls are never replayed. Unresolved or failed tool execution claims block resume.
+- Added unit/UI contract assertions. Q012 Task 5 remains incomplete: capability resolver, private artifact/result storage and actual tool dispatch are still required before step-level resume.
+- Full platform suite after Q012 additions: ALL PLATFORM TESTS PASSED; Cloud contract and local MCP HTTP E2E PASS; PHP/JS syntax and diff checks PASS. No commit/push/release/deploy.
+
+## 2026-11-25 — DC64: filesystem edit/stat and process lifecycle
+- Added SHA-256-guarded atomic exact filesystem edit and metadata/stat tool; expanded local registry to 31 tools.
+- Added current-user process listing and ownership-checked graceful process termination; DCP host and parent are protected, no SIGKILL escalation.
+- Added independent process.read/process.terminate local HTTP MCP scopes and scope-filtered E2E assertions.
+
+## 2026-11-25 — DC65: Q012 approval-bound tool execution and reviewed resume
+- Added plan-version/step/tool/capability-bound grants created by explicit approval decisions; rejection revokes the grant.
+- Added private redacted result artifact storage, one-time immutable-plan tool invocation service, audit and job-bound artifact retrieval.
+- Added explicit per-step Execute UI/API; dependency and approval gates apply; no automatic provider-proposed execution.
+- Added execution E2E for actual approved filesystem write, grant revocation, idempotent replay prevention, artifact privacy and secret redaction.
+- Q012 Task 5 now implemented locally; Task 7 supports integrity-checked, explicit conversation resume and reviewed per-step execution, but no automatic multi-step loop.
+
+
+## 2026-11-25 — DC66: MCP keepalive, DCP logo and Resource Mesh architecture
+- Reworked the local STDIO host to send periodic MCP server pings, consume ping replies, buffer JSON-RPC input and handle EOF cleanly.
+- DCP Core initialize identity now advertises the existing DCP logo; added and integrated keepalive/logo E2E.
+- Full platform suite passed, including MCP STDIO, keepalive/logo and local Streamable HTTP E2E.
+- Specified DCP Resource Mesh / Universal AI Gateway for local AI/API sharing, teams/devices, owner-local credentials, resource broker, Hermes/provider adapters and signed task routing.
+- No Claude restart, Windows/Ubuntu patch validation, Cloud deploy, commit, push or release.
+- Focused MCP keepalive/logo E2E and PHP syntax checks also passed on Ubuntu 24.04 and Windows 11 using disposable test fixtures; fixtures removed.
+
+
+## 2026-11-25 — DC67: Full terminal, Resource Mesh, Cloud approvals and persistent sessions
+- Q005 explicitly marked closed per user correction; Q012 Tasks 6/7 remain complete.
+- Removed the restricted terminal tool and unified local shell execution under dcp_terminal_execute.
+- Added private loopback terminal session daemon shared across STDIO MCP, HTTP MCP and provider tool calls; added daemon sharing and HTTP reconnect E2E.
+- Implemented local Resource Registry/Broker, grants/invocation ledger, four MCP tools and REST routes; implemented Cloud resource/team/grant schema, migration and authenticated APIs.
+- Added Cloud remote terminal request inbox and exact-hash target approve/reject. Approval does not dispatch or execute; signed delivery and target UI remain open.
+- Full platform suite: ALL PLATFORM TESTS PASSED. No commit/push/release/deploy.
+
+
+- DC67 follow-on: completed source-side remote Terminal request submission from the Terminal page and target-side approval inbox in Devices. The target UI displays the exact command/hash and explicit approve/reject; approval records only, no execution. Full platform suite passes after UI contracts.
