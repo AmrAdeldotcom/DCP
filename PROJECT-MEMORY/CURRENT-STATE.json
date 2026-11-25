@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "DCP — Desktop Connector Platform",
   "updatedAt": "2026-11-25T07:08:09+02:00",
-  "session": "DC49",
+  "session": "DC50",
   "repository": "/Volumes/Data/ChatGPT/DCP",
   "branch": "feature/local-ai-runtime-discovery",
   "headCommit": "0a94542",
@@ -16,28 +16,23 @@
     "architecture": "x86_64"
   },
   "activeTask": "Q012",
-  "activeTaskStatus": "Task Inbox, background Chat Jobs and durable provider-boundary checkpoint snapshots pass local tests and cross-platform Ubuntu/Windows/macOS E2E; agent-plan/tool-result context merge and worker recovery remain open",
-  "nextTask": "Extend checkpoint snapshot with agent plan version, tool-result references, last confirmed step and resumable step graph; then build human review/context merger with explicit approval. Keep queued instructions manual.",
+  "activeTaskStatus": "Q012: durable checkpoint snapshots passed cross-platform CI; DC50 adds versioned execution plan/step graph, dependency-gated transitions, opaque tool-result refs and explicit approval persistence; local tests pass, cross-platform CI pending",
+  "nextTask": "Connect the actual agent execution coordinator/tool loop to versioned plan/step/result/approval persistence; then implement reviewed, idempotent step-level resume and worker heartbeat/recovery.",
   "nextTaskFile": "PROJECT-MEMORY/tasks/Q012-shared-chat-task-inbox.md",
   "followingTask": "Q014 live Device Agent acceptance on Windows/Ubuntu/macOS; Q005 installed-client update/rollback/data-preservation acceptance",
   "latestSessionCheckpoint": {
-    "conversation": "DC49",
+    "conversation": "DC50",
     "date": "2026-11-25",
-    "timestamp": "2026-11-25T07:05:46+02:00",
     "branch": "feature/local-ai-runtime-discovery",
-    "baseCommit": "0a94542",
-    "checkpointSnapshot": "durable SQLite checkpoint snapshot + SHA-256 hash; human-review only; queue not auto-executed",
-    "localTests": "platform suite, worker E2E, HTTP checkpoint snapshot E2E all pass",
-    "crossPlatform": "previous background worker baseline 45550728368 green on Ubuntu/Windows/macOS; DC49 snapshot delta CI pending",
-    "next": "run CI; extend snapshot with plan/tool result graph; build human review/context merger and explicit approvals",
-    "crossPlatformCi": {
-      "run": 45551354459,
-      "status": "success",
-      "ubuntu-24.04": "success",
-      "windows-2025": "success",
-      "macos-15": "success"
-    },
-    "ciUrl": "https://github.com/AmrAdeldotcom/DCP/actions/runs/45551354459"
+    "baseCommit": "0ee8c3d",
+    "executionPlanContext": "versioned plan/steps/tool refs/approvals persisted in checkpoint schema v2",
+    "localTests": "full platform suite, worker E2E, HTTP E2E, PHP lint, JS syntax, git diff check pass",
+    "crossPlatformCi": "pending after push",
+    "limitations": [
+      "no live planner/tool loop integration",
+      "step resume disabled",
+      "manual approval required"
+    ]
   },
   "knownConstraints": [
     "Work only in /Volumes/Data/ChatGPT/DCP.",
@@ -486,7 +481,7 @@
     "endToEndUpdateTest": "Still pending on real installed clients: apply a signed update and verify rollback plus SQLite/master.key/user-data preservation on Windows, Ubuntu and macOS."
   },
   "lastCheckpoint": "DC20 three Alpha 10 installs verified; macOS Little Snitch github.com allow pending; release workflow still building 2026-11-24T20:50:00+02:00",
-  "latestHandoff": "PROJECT-MEMORY/handoffs/DC49-durable-chat-checkpoint-context-2026-11-25.md",
+  "latestHandoff": "PROJECT-MEMORY/handoffs/DC50-execution-plan-checkpoint-context-2026-11-25.md",
   "linuxUpdaterDC17": {
     "status": "implemented-locally-not-committed",
     "files": [
@@ -669,7 +664,7 @@
     ]
   },
   "lastUpdated": "2026-11-25T06:05:07+02:00",
-  "currentCheckpoint": "DC49 — durable checkpoint snapshot, SHA-256 context hash and manual-review flags implemented; local full suite + worker/HTTP E2E + Chrome DOM pass; GitHub run 45551354459 green on Ubuntu/Windows/macOS.",
+  "currentCheckpoint": "DC50 — checkpoint snapshot schema v2 includes versioned execution plan, last confirmed step, dependency graph, opaque tool-result refs and pending approvals. Local full suite + worker E2E + delayed-provider HTTP E2E + PHP lint + JS syntax pass. Step-level resume remains disabled; resume_requires_review=true.",
   "localAIWindows": {
     "status": "real interactive-user Qwen3 0.6B start/chat/stop smoke passed",
     "user": "AMRWIN11\\amradeldotcom",
@@ -789,7 +784,8 @@
       "jsSyntax": "pass",
       "workflowYaml": "pass",
       "workerPid": "worker records getmypid() during atomic claim",
-      "checkpointSnapshot": "unit + HTTP E2E with SHA-256 verification passed locally"
+      "checkpointSnapshot": "unit + HTTP E2E with SHA-256 verification passed locally",
+      "executionPlanContext": "full platform suite passes including plan DAG, dependency gate, approval and snapshot schema-v2 assertions"
     },
     "limitations": [
       "checkpoint is at provider HTTP-call boundary, not inside a multi-step tool loop",
@@ -843,6 +839,31 @@
         "url": "https://github.com/AmrAdeldotcom/DCP/actions/runs/45551354459"
       },
       "implementationCommit": "0a94542"
+    },
+    "executionPlanContext": {
+      "status": "implemented-locally",
+      "snapshotSchemaVersion": 2,
+      "tables": [
+        "chat_job_execution_plans",
+        "chat_job_execution_steps",
+        "chat_job_tool_results",
+        "chat_job_approvals"
+      ],
+      "limits": {
+        "planMetadataBytes": 32768,
+        "steps": 100
+      },
+      "safety": [
+        "DAG cycle rejection",
+        "dependency-gated running/completed transitions",
+        "opaque tool result refs + SHA-256 only",
+        "approval state scoped to plan version",
+        "no automatic execution"
+      ],
+      "stepGraphAvailable": true,
+      "resumable": false,
+      "resumeRequiresReview": true,
+      "liveCoordinatorIntegration": "not implemented"
     }
   },
   "latestImplementationCommit": "0a94542",

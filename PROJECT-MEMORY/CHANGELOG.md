@@ -475,3 +475,5 @@
 - Unit and authenticated HTTP E2E verify snapshot contents and hash. New cross-platform CI run pending.
 
 - DC49 cross-platform GitHub Actions run `45551354459` passed on Ubuntu 24.04, Windows Server 2025 and macOS 15, including real worker launch and authenticated checkpoint snapshot/Hash E2E.
+
+- DC50: checkpoint schema v2 now captures versioned execution plans, dependency step graphs, opaque tool-result references and pending human approvals; dependency gates and cycle validation added. Local full suite and worker/HTTP E2E pass; cross-platform CI pending.

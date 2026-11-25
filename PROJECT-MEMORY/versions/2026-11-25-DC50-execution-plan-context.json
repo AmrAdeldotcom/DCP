@@ -1,0 +1,38 @@
+{
+  "checkpoint": "DC50",
+  "date": "2026-11-25",
+  "repository": "AmrAdeldotcom/DCP",
+  "branch": "feature/local-ai-runtime-discovery",
+  "baseCommit": "0ee8c3d",
+  "scope": "DCP only; DP_Anything deferred",
+  "implementation": [
+    "versioned execution plan metadata",
+    "ordered dependency step graph",
+    "DAG cycle rejection",
+    "dependency-gated step transitions",
+    "opaque tool-result refs and SHA-256 hashes",
+    "plan-version-scoped explicit approvals",
+    "checkpoint snapshot schema v2"
+  ],
+  "tests": {
+    "platformSuite": "ALL PLATFORM TESTS PASSED",
+    "workerE2E": "DCP_CHAT_WORKER_BACKGROUND_E2E_PASS",
+    "httpE2E": "DCP_CHAT_JOB_HTTP_E2E_PASS",
+    "phpLint": "pass",
+    "jsSyntax": "pass",
+    "gitDiffCheck": "pass"
+  },
+  "crossPlatformCi": "pending after push",
+  "limitations": [
+    "no live agent planner/tool-loop integration",
+    "step-level resume disabled",
+    "no automatic context merge or execution",
+    "human approval required"
+  ],
+  "next": [
+    "connect agent coordinator/tool loop",
+    "reviewed idempotent step resume",
+    "worker heartbeat/crash recovery",
+    "queue context merger/replanning and approval UI"
+  ]
+}

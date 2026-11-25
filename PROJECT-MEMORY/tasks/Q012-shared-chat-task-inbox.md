@@ -19,6 +19,17 @@ Source spec: `platform/docs/proposals/DCP-Chat-Live-Task-Inbox-Interrupt-Queue.m
 - Task Inbox instructions remain untrusted, visible and queued. They are never executed automatically or silently merged into a provider request. The user must review/insert/send them explicitly.
 - Worker startup failure falls back to the synchronous ChatService path; expired worker leases fail closed and expose an actionable error rather than leaving the UI busy indefinitely.
 
+### DC50 — execution-plan checkpoint context foundation (local implementation)
+
+- Added durable SQLite tables for versioned chat execution plans, ordered dependency steps, opaque tool-result references and plan-version-scoped approval requests.
+- `ChatJobService` can persist a bounded plan (maximum 100 steps / 32 KB plan metadata), validate unique step keys and dependency references, and reject dependency cycles.
+- Step transitions are explicit (`planned → running → completed|blocked|failed`; blocked/failed may be retried deliberately). A dependent step cannot enter `running` or `completed` until all dependencies are confirmed `completed`.
+- Tool outputs are not copied into checkpoint JSON. Only opaque result references and SHA-256 hashes are stored.
+- Approval requests remain pending until an explicit `approved` or `rejected` decision. Decisions are scoped to the current plan version and never trigger execution.
+- Checkpoint snapshot schema is now version 2 and includes `execution_context`: plan version/metadata, last confirmed completed step, dependency graph, tool-result references and pending approvals.
+- A snapshot without a recorded execution plan explicitly reports `step_graph_available=false` and `resumable=false`. Even with a plan graph, `resumable=false` and `resume_requires_review=true`: the actual multi-step coordinator/worker resume loop is not implemented yet.
+- This is a persistence and safety foundation, not a live agent planner. Current chat worker still performs one provider call; no tool loop was enabled and no queued instruction is automatically merged or executed.
+
 ## Tests / evidence
 
 - `platform/tests/task-inbox.php`: persistence, session association, unassigned-message visibility, priority, sent/cancelled state transitions, empty/oversize rejection, unknown-session rejection, priority bounds and duplicate transitions.
@@ -34,13 +45,15 @@ Source spec: `platform/docs/proposals/DCP-Chat-Live-Task-Inbox-Interrupt-Queue.m
 - Isolated PHP built-in-server HTTP smoke (`DCP_Q012_HTTP_TASK_INBOX_PASS`): CSRF rejection, enqueue, list, priority update, mark-sent and cancel all passed using a disposable DCP user-data root.
 - Isolated Chrome DOM smoke: `DCP_DC44_CHROME_DOM_PASS`; the real browser rendered the Task Inbox controls and capability matrix.
 - `python3 platform/tests/chat-job-http-e2e.py`: `DCP_CHAT_JOB_HTTP_E2E_PASS` (including durable snapshot and SHA-256 verification).
+- DC50 execution-plan tests: DAG cycle rejection, dependency-gated transitions, monotonic plan versions, opaque tool-result references, pending/decided approval state, and schema-v2 checkpoint context all pass as part of `php platform/tests/run.php`.
+- DC50 local worker E2E: `DCP_CHAT_WORKER_BACKGROUND_E2E_PASS`; delayed-provider HTTP E2E: `DCP_CHAT_JOB_HTTP_E2E_PASS`; PHP lint across app/bootstrap/tests, JS syntax and `git diff --check` pass.
 - `DCP_RUN_CHAT_WORKER_E2E=1 php platform/tests/chat-worker-e2e.php`: `DCP_CHAT_WORKER_BACKGROUND_E2E_PASS`.
 - Isolated Chrome DOM smoke: `DCP_DC48_CHROME_DOM_PASS`; checkpoint button/status and Task Inbox rendered.
 - `git diff --check`: passed.
 
 ## Remaining Q012 / Stage 6 work
 
-1. Extend the current conversation/queue snapshot with current plan version, last confirmed agent step, tool-result references, pending approvals and a resumable step graph.
+1. Connect the actual agent execution coordinator/tool loop to the new plan/step/result/approval persistence APIs; implement safe step-level resume with idempotency and recovery.
 2. Add queue review + context merger/replanning. A checkpoint must present the new instructions and their impact; conflicting/sensitive changes require explicit user approval before continuation.
 3. Add worker lease renewal/heartbeat, crash recovery and safe retry with idempotency keys. Current 30-minute lease is a fail-closed timeout, not resumable execution.
 4. Add task lifecycle/event timeline (`reviewing`, `ready_to_integrate`, `integrated`, `executing`, `completed`, `blocked`, `rejected`, `cancelled`) and link each inbox message to a task.
