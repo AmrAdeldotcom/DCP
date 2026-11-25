@@ -20,6 +20,7 @@ $checks = [
     'cached Qwen3 GGUF launches directly without forcing a network download' => str_contains($service, 'llamaModelArguments') && str_contains($service, "return ['-m'," . '$modelFile' . "]") && str_contains($service, 'return ' . '$model' . "==='qwen3:0.6b'?2048"),
     'Windows process identity binds listener port, PID and executable' => str_contains($service, 'Get-NetTCPConnection -LocalPort $Port') && str_contains($service, '$p.ExecutablePath -ieq $Executable'),
     'Windows runner tolerates normal native stderr but propagates non-zero exit' => str_contains($service, "\$ErrorActionPreference = 'Continue'") && str_contains($service, 'if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }'),
+    'slow GGUF startup gets a 60-second readiness window and cleans up on failure' => str_contains($service, '$attempt<120') && str_contains($service, "\$this->stop('llama.cpp')") && str_contains($service, 'within 60 seconds'),
 ];
 $failed = 0;
 foreach ($checks as $label => $passed) {

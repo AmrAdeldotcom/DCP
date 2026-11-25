@@ -436,8 +436,12 @@ PS;
   $state=['port'=>$port,'pid'=>$pid,'binary'=>$bin,'model'=>$model,'managed'=>true,'task_name'=>$taskName,'started_at'=>date(DATE_ATOM)];
   if(file_put_contents($this->llamaStateFile(),json_encode($state,JSON_UNESCAPED_SLASHES),LOCK_EX)===false)throw new RuntimeException('Could not persist the managed llama-server process identity.');
   if(!$this->managedProcessMatches($state)){@unlink($this->llamaStateFile());throw new RuntimeException('The launched llama-server process identity could not be verified.');}
-  $ready=false;for($attempt=0;$attempt<40;$attempt++){if($this->llamaApiReady($port)){$ready=true;break;}usleep(250000);}
-  if(!$ready)throw new RuntimeException('The managed llama.cpp process started but its OpenAI-compatible API did not become ready. Check the llama.cpp runtime log.');
+  // Intel Macs can take longer to map a GGUF into memory; allow up to 60 seconds.
+  $ready=false;for($attempt=0;$attempt<120;$attempt++){if($this->llamaApiReady($port)){$ready=true;break;}usleep(500000);}
+  if(!$ready) {
+   try{$this->stop('llama.cpp');}catch(Throwable $cleanupError){}
+   throw new RuntimeException('The managed llama.cpp process started but its OpenAI-compatible API did not become ready within 60 seconds. Check the llama.cpp runtime log.');
+  }
   return ['ok'=>true,'started'=>true,'message'=>'llama.cpp is ready on an available loopback port.','model'=>$model,'base_url'=>'http://127.0.0.1:'.$port.'/v1','port'=>$port,'pid'=>$pid];
  }
 

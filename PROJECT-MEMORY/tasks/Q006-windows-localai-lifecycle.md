@@ -78,3 +78,24 @@ Updated Q006 state: real low-memory model start/chat/stop now passes on both Win
 - UI contract: ALL LOCAL AI UI CONTRACT CHECKS PASSED.
 - node --check platform/public/assets/app.js — PASS.
 - php platform/tests/run.php — ALL PLATFORM TESTS PASSED.
+
+## macOS real-device acceptance — 2026-11-25
+Machine: Intel macOS host, using the packaged DCP managed SSE4.2 llama.cpp binary.
+Existing service protection: the existing llama-server on 127.0.0.1:19123 (PID 99659) was left running and unchanged.
+Model: Qwen3 0.6B Q4_K_M, copied from the verified Windows cache into a disposable /tmp fixture; the test used its own LLAMA_CACHE and storage root.
+Initial result exposed a readiness-window issue: the model loaded successfully but took about 15.8 seconds before listening, while LocalAIService allowed only 10 seconds. The API was healthy when probed directly. The temporary server was stopped through LocalAIService; the existing 19123 listener remained untouched.
+Fix: increased the managed API readiness window to 60 seconds and added best-effort managed stop/state cleanup when readiness fails.
+Retest passed:
+- Managed llama.cpp loaded the Qwen3 GGUF and listened on a separate ephemeral loopback port (61058).
+- OpenAI-compatible chat returned exact probe DCP_QWEN06_MAC_OK.
+- LocalAIService confirmed managed stop and cleared its runtime state.
+- Post-test check confirmed the 19123 listener/PID 99659 remained running.
+- Temporary /tmp harness and the copied 462 MiB model file were removed after the test.
+
+## Q006 cross-platform closeout
+- Windows: real interactive-user Qwen3 0.6B start/chat/stop PASS.
+- Ubuntu 24.04: real managed Qwen3 0.6B start/chat/stop PASS; pre-existing update watcher remained running.
+- Intel macOS: real managed Qwen3 0.6B start/chat/stop PASS; pre-existing llama-server on port 19123 remained running.
+- UI/API contract: 11 assertions pass; model-manager contract: 11 assertions pass.
+- Full platform suite, PHP lint, JavaScript syntax and diff checks pass.
+- All test-only model copies/harnesses removed. Windows model cache retained under DCP-UserData for reuse. No SQLite/master.key was modified.
