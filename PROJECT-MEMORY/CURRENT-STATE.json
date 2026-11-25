@@ -5,7 +5,7 @@
   "session": "DC49",
   "repository": "/Volumes/Data/ChatGPT/DCP",
   "branch": "feature/local-ai-runtime-discovery",
-  "headCommit": "0ac7352",
+  "headCommit": "0a94542",
   "latestReleaseTag": "v1.0.0",
   "workingTree": "DC48: DCP-only work on feature/local-ai-runtime-discovery. Persistent Task Inbox + background Chat Jobs + provider-boundary checkpoint. Do not stage unrelated pre-existing untracked handoffs/version files or modify DP_Anything.",
   "device": {
@@ -25,7 +25,7 @@
     "date": "2026-11-25",
     "timestamp": "2026-11-25T07:05:46+02:00",
     "branch": "feature/local-ai-runtime-discovery",
-    "baseCommit": "0ac7352",
+    "baseCommit": "0a94542",
     "checkpointSnapshot": "durable SQLite checkpoint snapshot + SHA-256 hash; human-review only; queue not auto-executed",
     "localTests": "platform suite, worker E2E, HTTP checkpoint snapshot E2E all pass",
     "crossPlatform": "previous background worker baseline 45550728368 green on Ubuntu/Windows/macOS; DC49 snapshot delta CI pending",
@@ -620,7 +620,7 @@
     },
     "releaseStatus": "Linux/Windows packages successful; macOS arm64 PHP successful; macOS x64 PHP and Intel llama in progress; Apple Silicon llama queued; no public release assets yet"
   },
-  "branchHead": "0ac7352",
+  "branchHead": "0a94542",
   "originBranchHead": "ab3d5c6",
   "dc21Checkpoint": {
     "timestamp": "2026-11-24T20:23:42+02:00",
@@ -826,8 +826,9 @@
         "automatic_execution=false"
       ],
       "queuedBeforeClaim": "paused_before_provider snapshot with no fabricated assistant reply",
-      "ci": "pending after push"
+      "ci": "pending after push",
+      "implementationCommit": "0a94542"
     }
   },
-  "latestImplementationCommit": "0ac7352"
+  "latestImplementationCommit": "0a94542"
 }

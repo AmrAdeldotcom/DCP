@@ -43,5 +43,6 @@
     "worker lease heartbeat/crash recovery/idempotency",
     "separate task mode",
     "packaged desktop acceptance"
-  ]
+  ],
+  "implementationCommit": "0a94542"
 }
