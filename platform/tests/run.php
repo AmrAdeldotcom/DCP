@@ -108,6 +108,5 @@ require __DIR__ . '/mcp-host-e2e.php';
 require __DIR__ . '/task-inbox-ui-contract.php';
 require __DIR__ . '/local-ai-ui-contract.php';
 require __DIR__ . '/update-manifest.php';
-require __DIR__ . '/linux-update-transaction.php';
-require __DIR__ . '/linux-updater-health.php';
+if(PHP_OS_FAMILY==='Windows'){echo "SKIP: Linux updater transaction/health execution contracts run on POSIX CI runners.\n";}else{require __DIR__ . '/linux-update-transaction.php';require __DIR__ . '/linux-updater-health.php';}
 echo "ALL PLATFORM TESTS PASSED\n";
