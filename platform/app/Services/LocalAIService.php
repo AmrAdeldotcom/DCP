@@ -325,16 +325,25 @@ PS;
  private function llamaModelProfiles():array {
   return ['qwen3:0.6b'=>'mradermacher/Qwen3-0.6B-GGUF:Q4_K_M','qwen3:1.7b'=>'tensorblock/Qwen_Qwen3-1.7B-GGUF:Q4_K_M','qwen3:4b'=>'Qwen/Qwen3-4B-GGUF:Q4_K_M','llama3.2:3b'=>'bartowski/Llama-3.2-3B-Instruct-GGUF:Q4_K_M'];
  }
+ private function llamaContextSize(string $model):int {
+  return $model==='qwen3:0.6b'?2048:4096;
+ }
+ private function isSameManagedLlamaModel(array $state,string $model):bool {
+  return ($state['managed']??false)===true && hash_equals((string)($state['model']??''),$model);
+ }
  public function startLlama(string $model):array {
   $profiles=$this->llamaModelProfiles();
   if(!isset($profiles[$model]))throw new InvalidArgumentException('This model is not enabled for llama.cpp yet.');
   $state=$this->llamaState();
-  if($state&&((($state['managed']??false)===true)||$this->llamaApiReady((int)$state['port'])))return ['ok'=>true,'already_running'=>true,'message'=>'The existing DCP llama.cpp server is already running.','model'=>$state['model']??$model,'base_url'=>'http://127.0.0.1:'.(int)$state['port'].'/v1','port'=>(int)$state['port']];
-  $external=$this->discoverExternalLlama();
-  if($external)return ['ok'=>true,'reused_existing'=>true,'message'=>'Reusing the existing llama.cpp server without changing its process or settings.','model'=>$model,'base_url'=>'http://127.0.0.1:'.(int)$external['port'].'/v1','port'=>(int)$external['port']];
+  if($state&&($state['managed']??false)===true) {
+   if($this->isSameManagedLlamaModel($state,$model)&&$this->managedProcessMatches($state)&&$this->llamaApiReady((int)$state['port']))return ['ok'=>true,'already_running'=>true,'message'=>'The requested DCP-managed llama.cpp model is already running.','model'=>$model,'base_url'=>'http://127.0.0.1:'.(int)$state['port'].'/v1','port'=>(int)$state['port']];
+   throw new RuntimeException('A different DCP-managed llama.cpp model is already running. Stop it before starting another model.');
+  }
+  // Do not bind a requested model name to an unrelated external llama.cpp service.
+  // Leave external services untouched and start the requested model on a separate port.
   $bin=$this->llamaBinary();if($bin==='')throw new RuntimeException('llama-server is not installed or could not be detected.');
   $port=$this->freePort();$os=PHP_OS_FAMILY;$log=$this->storage.'/logs/llama-server.log';if(!is_dir(dirname($log)))mkdir(dirname($log),0700,true);
-  $args=['-hf',$profiles[$model],'-c','8192','--host','127.0.0.1','--port',(string)$port];
+  $args=['-hf',$profiles[$model],'-c',(string)$this->llamaContextSize($model),'-ngl','0','--host','127.0.0.1','--port',(string)$port];
   if($os==='Windows') {
    $ps=$this->storage.'/start-llama-server.ps1';$exe=str_replace("'","''",$bin);$out=str_replace("'","''",$this->storage.'/logs/llama-server.stdout.log');$err=str_replace("'","''",$this->storage.'/logs/llama-server.stderr.log');
    $quoted=implode(',',array_map(static fn($value)=>"'".str_replace("'","''",$value)."'", $args));
