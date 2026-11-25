@@ -328,6 +328,10 @@ PS;
  private function llamaContextSize(string $model):int {
   return $model==='qwen3:0.6b'?2048:4096;
  }
+ private function llamaCacheDirectory():string {
+  $configured=trim((string)(getenv('LLAMA_CACHE')?:''));
+  return $configured!==''?$configured:dirname($this->storage).'/models/llama.cpp';
+ }
  private function isSameManagedLlamaModel(array $state,string $model):bool {
   return ($state['managed']??false)===true && hash_equals((string)($state['model']??''),$model);
  }
@@ -342,23 +346,25 @@ PS;
   // Do not bind a requested model name to an unrelated external llama.cpp service.
   // Leave external services untouched and start the requested model on a separate port.
   $bin=$this->llamaBinary();if($bin==='')throw new RuntimeException('llama-server is not installed or could not be detected.');
-  $port=$this->freePort();$os=PHP_OS_FAMILY;$log=$this->storage.'/logs/llama-server.log';if(!is_dir(dirname($log)))mkdir(dirname($log),0700,true);
+  $port=$this->freePort();$os=PHP_OS_FAMILY;$log=$this->storage.'/logs/llama-server.log';if(!is_dir(dirname($log)))mkdir(dirname($log),0700,true);$cache=$this->llamaCacheDirectory();if(!is_dir($cache)&&!mkdir($cache,0700,true)&&!is_dir($cache))throw new RuntimeException('Could not create the private llama.cpp model cache.');
   $args=['-hf',$profiles[$model],'-c',(string)$this->llamaContextSize($model),'-ngl','0','--host','127.0.0.1','--port',(string)$port];
   if($os==='Windows') {
    $ps=$this->storage.'/start-llama-server.ps1';$exe=str_replace("'","''",$bin);$out=str_replace("'","''",$this->storage.'/logs/llama-server.stdout.log');$err=str_replace("'","''",$this->storage.'/logs/llama-server.stderr.log');
    $quoted=implode(',',array_map(static fn($value)=>"'".str_replace("'","''",$value)."'", $args));
    $body=<<<'PS'
 $ErrorActionPreference = 'Stop'
+$env:LLAMA_CACHE = '__CACHE__'
 $p = Start-Process -FilePath '__EXE__' -ArgumentList @(__ARGS__) -WindowStyle Hidden -PassThru -RedirectStandardOutput '__OUT__' -RedirectStandardError '__ERR__'
 Write-Output $p.Id
 PS;
-   $body=str_replace(['__EXE__','__ARGS__','__OUT__','__ERR__'],[$exe,$quoted,$out,$err],$body)."\n";
+   $cacheEsc=str_replace("'","''",$cache);
+   $body=str_replace(['__CACHE__','__EXE__','__ARGS__','__OUT__','__ERR__'],[$cacheEsc,$exe,$quoted,$out,$err],$body)."\n";
    file_put_contents($ps,$body);
    $pid=(int)$this->run('powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File '.escapeshellarg($ps),8);
    if($pid<1)throw new RuntimeException('Windows could not start llama-server. Check the llama.cpp runtime log.');
   } else {
    $command=escapeshellarg($bin);foreach($args as $arg)$command.=' '.escapeshellarg($arg);
-   $pid=(int)$this->run('nohup '.$command.' > '.escapeshellarg($log).' 2>&1 < /dev/null & echo $!',5);
+   $pid=(int)$this->run('nohup env LLAMA_CACHE='.escapeshellarg($cache).' '.$command.' > '.escapeshellarg($log).' 2>&1 < /dev/null & echo $!',5);
    if($pid<1)throw new RuntimeException('Could not launch llama-server. Check the DCP Engine activity log.');
   }
   $runtime=dirname($this->llamaStateFile());if(!is_dir($runtime))mkdir($runtime,0700,true);

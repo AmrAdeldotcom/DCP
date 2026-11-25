@@ -27,6 +27,7 @@ if(preg_match('#^/v1/connections/[a-f0-9-]{36}/signals$#',$path)){echo json_enco
 if(str_ends_with($path,'/models')){echo json_encode(['data'=>[['id'=>'mock-model']]]);return;}
 if(str_ends_with($path,'/chat/completions')){
  $message=(string)($body['messages'][array_key_last($body['messages']??[])]['content']??'');
+ if(preg_match('/qwen3/i',(string)($body['model']??''))===1&&($body['chat_template_kwargs']['enable_thinking']??null)!==false){echo json_encode(['choices'=>[['message'=>['content'=>'']]]]);return;}
  echo json_encode(['choices'=>[['message'=>['content'=>'MOCK_CHAT_OK:'.$message]]]]);return;
 }
 echo json_encode(['ok'=>true]);
