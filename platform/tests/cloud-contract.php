@@ -4,7 +4,8 @@ declare(strict_types=1);
 $source = file_get_contents(__DIR__ . '/../cloud/index.php');
 $migration = file_get_contents(__DIR__ . '/../cloud/schema.migrate.sql');
 $schema = file_get_contents(__DIR__ . '/../cloud/schema.mysql.sql');
-if (!is_string($source) || !is_string($migration) || !is_string($schema)) {
+$mcpService = file_get_contents(__DIR__ . '/../cloud/McpService.php');
+if (!is_string($source) || !is_string($migration) || !is_string($schema) || !is_string($mcpService)) {
     fwrite(STDERR, "FAIL: could not read DCP Cloud router.\n");
     exit(1);
 }
@@ -50,9 +51,12 @@ $checks = [
     'presence scope authorization rejects a paused pairing while other scopes remain intact' => str_contains($source, "return \$scope!=='presence'||\$row['presence_paused_at']===null;"),
     'pair presence pause endpoint is rate limited' => str_contains($source, "rate_limit('pair-presence',120,3600)"),
     'Cloud MCP endpoint requires authenticated account bearer token' => str_contains($source, "if(\$path==='/api/v1/mcp'&&\$method==='POST')") && str_contains($source, '$u=auth_user();'),
-    'Cloud MCP endpoint exposes only read-only account device and pairing tools' => str_contains($source, 'dcp_cloud_list_devices') && str_contains($source, 'dcp_cloud_pairing_overview') && str_contains($source, "'readOnlyHint'=>true"),
-    'Cloud MCP endpoint does not expose remote task dispatch or terminal execution' => !str_contains($cloudMcpRoute, 'dcp_terminal_execute') && !str_contains($cloudMcpRoute, 'task.dispatch'),
-    'Cloud MCP token creation issues a scoped-lifetime API token and supports owner-only revocation' => str_contains($source, "/api/v1/mcp-tokens") && str_contains($source, 'DELETE FROM api_tokens WHERE user_id=? AND id=?') && str_contains($source, "INTERVAL 30 DAY"),
+    'Cloud MCP endpoint exposes scoped read-only device, pairing, resource, team and grant tools' => str_contains($mcpService, 'dcp_cloud_list_devices') && str_contains($mcpService, 'dcp_cloud_pairing_overview') && str_contains($mcpService, 'dcp_cloud_resource_discover') && str_contains($mcpService, 'dcp_cloud_list_teams') && str_contains($mcpService, 'dcp_cloud_list_resource_grants') && str_contains($mcpService, "'readOnlyHint'=>true"),
+    'Cloud MCP endpoint does not expose arbitrary shell execution or raw terminal dispatch' => !str_contains($mcpService, 'dcp_terminal_execute') && !str_contains($mcpService, 'task.dispatch'),
+    'Cloud MCP token creation issues a scoped-lifetime API token and supports owner-only revocation' => str_contains($source, "/api/v1/mcp-tokens") && str_contains($source, 'DELETE FROM api_tokens WHERE user_id=? AND id=?') && str_contains($source, "INTERVAL 30 DAY") && str_contains($source, 'scopes_json'),
+    'Cloud API tokens persist explicit scopes and legacy account tokens retain wildcard compatibility' => str_contains($source, 'a.scopes_json AS api_token_scopes_json') && str_contains($source, "json_encode(['*'])") && str_contains($schema, 'scopes_json TEXT NOT NULL') && str_contains($migration, 'dcp_api_token_scopes_ddl'),
+    'scoped Cloud MCP tokens are rejected by every ordinary Cloud REST route' => str_contains($source, 'function auth_user(bool $allowScopedMcpToken=false)') && str_contains($source, 'scoped_mcp_token_cannot_access_cloud_rest_api') && str_contains($source, '$u=auth_user(true);$scopes=') ,
+    'Cloud readiness verifies the API token scopes migration before serving the upgraded MCP route' => str_contains($source, 'SELECT scopes_json FROM api_tokens LIMIT 0'),
     'Cloud MCP validates 2026 protocol metadata and method/name headers' => str_contains($source, 'mcp_request_metadata_header_mismatch') && str_contains($source, 'mcp_name_header_mismatch'),
 ];
 $failed = 0;

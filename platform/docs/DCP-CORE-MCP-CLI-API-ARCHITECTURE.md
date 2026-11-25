@@ -218,3 +218,28 @@ Task 6 adds execution-plan review and approval-decision APIs/UI. Approval decisi
 - `POST /api/chat/jobs/tools/execute` is CSRF-protected and requires explicit per-step user action. `GET /api/chat/jobs/tool-result` returns only artifacts attached to that job. Approval alone never executes.
 - Chat review UI displays exact arguments and only shows Execute when the step is planned/blocked, dependencies are complete, and any required approval is current. Failed/uncertain executions fail closed.
 - Q012 Task 7 safe step resume is explicit, dependency-aware and reviewed. Conversation resume is a separate explicit new turn after checkpoint integrity validation. No automatic multi-step tool replay.
+
+
+## MCP delivery status — DC68
+
+### Local DCP Core MCP
+- STDIO MCP host advertises the DCP logo and remains alive across multiple JSON-RPC requests.
+- Local Streamable HTTP endpoint is `/mcp`, bound to loopback, with independently scoped bearer tokens, Origin validation, CSRF-free bearer authentication, bounded request bodies and protocol metadata checks.
+- STDIO and HTTP use the same provider-neutral DCP Core registry. STDIO supports all 34 tools, including persistent terminal sessions; HTTP exposes request-safe tools and uses the shared terminal-session daemon for interactive sessions.
+- Local memory tools are read-only over MCP until the explicit memory-write authorization path is enabled.
+- Token creation/revocation: `platform/bin/mcp-token.php` and `platform/bin/mcp-token-revoke.php`.
+
+### DCP Cloud MCP
+- Remote Streamable HTTP endpoint: `https://dcp.amradel.com/api/v1/mcp`.
+- Cloud MCP is a control-plane surface, not a shell host. It exposes five authenticated, read-only tools: `dcp_cloud_list_devices`, `dcp_cloud_pairing_overview`, `dcp_cloud_resource_discover`, `dcp_cloud_list_teams`, and `dcp_cloud_list_resource_grants`.
+- Resource discovery is account-scoped and follows active user/team/device grants; expired/revoked grants are excluded. Secret references and credentials never appear in MCP output.
+- Cloud MCP tokens have their own explicit scopes (`cloud.devices.read`, `cloud.resources.read`, `cloud.teams.read`, `cloud.grants.read`) and 30-day expiry. Ordinary account API tokens retain their existing wildcard API behavior for backwards compatibility; an MCP token cannot mutate Cloud state.
+- API token scope storage is included in the fresh-install schema and idempotent upgrade migration. Revoke an MCP token through the owner-authenticated `DELETE /api/v1/mcp-tokens/{id}` route.
+- Cloud MCP validates the supported protocol versions and the 2026 method/name metadata headers. Notifications are accepted without creating server-side sessions; SSE subscriptions are not advertised.
+- Remote terminal execution, task dispatch, resource invocation and mutations are deliberately not exposed as Cloud MCP tools. Those require the separate Q015 signed Node/target-approval path and owner-local execution.
+
+### Acceptance
+- Local STDIO keepalive/logo, all 34 tool definitions and MCP tool dispatch are covered by the local host E2E tests.
+- Local Streamable HTTP authentication/scope denial, terminal session continuity and MCP request handling are covered by HTTP E2E tests.
+- Cloud MCP SQLite service tests cover token scope filtering, account isolation, device/pairing discovery, user/team/device resource grants, expiry, grant ownership and secret-reference non-disclosure.
+- Cloud router contracts cover protocol metadata, token scope schema/migration, rate limits and absence of shell/dispatch tools.

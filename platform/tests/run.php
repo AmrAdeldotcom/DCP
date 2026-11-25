@@ -110,6 +110,7 @@ require __DIR__ . '/resource-registry.php';
 require __DIR__ . '/terminal-session-daemon.php';
 require __DIR__ . '/cloud-resource-contract.php';
 require __DIR__ . '/cloud-terminal-signing.php';
+require __DIR__ . '/cloud-mcp-service.php';
 require __DIR__ . '/cloud-terminal-execution.php';
 require __DIR__ . '/remote-terminal-approval-ui.php';
 require __DIR__ . '/mcp-host-e2e.php';

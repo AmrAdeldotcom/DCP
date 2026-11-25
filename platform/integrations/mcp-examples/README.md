@@ -9,3 +9,12 @@ DCP includes a local MCP host using JSON-RPC over STDIO. It exposes platform sta
 5. Restart the MCP client and confirm that DCP tools appear.
 
 The MCP server does not expose full API keys, mail passwords, arbitrary shell execution, or a tool that bypasses the DCP task approval queue.
+
+
+## DCP Cloud MCP (remote, read-only control plane)
+
+Endpoint: `https://dcp.amradel.com/api/v1/mcp`
+
+Create a 30-day scoped token from the authenticated Cloud account using `POST /api/v1/mcp-tokens`, then configure the MCP client with the returned bearer token. The token is restricted to device, resource, team and grant read scopes; revoke it with `DELETE /api/v1/mcp-tokens/{id}`. Do not paste account passwords or device tokens into MCP client configuration.
+
+Cloud MCP exposes device/pairing/resource/team/grant discovery only. Use Local DCP Core MCP for local terminal, filesystem, process and model tools; the Cloud endpoint intentionally does not provide remote shell execution.

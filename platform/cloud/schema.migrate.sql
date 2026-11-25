@@ -65,6 +65,20 @@ CREATE TABLE IF NOT EXISTS api_rate_limits (
  INDEX(expires_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- Scope API bearer tokens so Cloud MCP clients receive read-only capabilities only.
+SET @dcp_api_token_scopes_exists = (
+ SELECT COUNT(*) FROM information_schema.COLUMNS
+ WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='api_tokens' AND COLUMN_NAME='scopes_json'
+);
+SET @dcp_api_token_scopes_ddl = IF(
+ @dcp_api_token_scopes_exists=0,
+ 'ALTER TABLE api_tokens ADD COLUMN scopes_json TEXT NOT NULL DEFAULT ''["*"]'' AFTER expires_at',
+ 'SELECT 1'
+);
+PREPARE dcp_api_token_scopes_stmt FROM @dcp_api_token_scopes_ddl;
+EXECUTE dcp_api_token_scopes_stmt;
+DEALLOCATE PREPARE dcp_api_token_scopes_stmt;
+
 -- DCP Resource Mesh: metadata and grants only; secrets remain in owner-local vaults.
 CREATE TABLE IF NOT EXISTS cloud_teams (
  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,

@@ -118,3 +118,12 @@ DCP should feel unrestricted in capability to an authorized user, but it cannot 
 - Source submits the exact command, working directory, shell and bounded timeout to Cloud. Cloud stores a canonical SHA-256 binding to request ID, source/target devices and all command parameters, with a five-minute expiry.
 - Target DCP Devices page displays requester identity, exact command, working directory, shell, timeout, expiry and hash. Target user explicitly approves or rejects. Approval is recorded against the same hash and target device and does not itself execute or dispatch.
 - Remote execution remains disabled until signed Cloud delivery, target-side verification and signed result handling are implemented. Pairing, source-side confirmation or an approval record alone never executes a remote shell.
+
+
+## MCP completion checkpoint — DC68
+
+DCP MCP now has two intentionally distinct surfaces:
+- **Local DCP Core MCP:** full local capability surface through STDIO and scoped loopback Streamable HTTP, backed by the shared DCP registry and local OS identity.
+- **DCP Cloud MCP:** authenticated read-only account control plane for devices, pairings, shared resources, teams and resource grants. It never runs shell commands on the Cloud host and never returns owner-local secret references.
+
+Cloud MCP token scopes are persisted per API token and upgraded idempotently. Five tools are discoverable according to the token's exact read scopes. Mutating Cloud actions and remote execution remain separate, explicit REST/target-approval workflows rather than being smuggled into read-only MCP tools.
