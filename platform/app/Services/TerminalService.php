@@ -12,7 +12,7 @@ final class TerminalService {
   $command=trim($command);if($command==='')throw new InvalidArgumentException('Enter a command.');
   $parts=preg_split('/\\s+/', $command);$bin=array_shift($parts);$root=$this->config['terminal_root'];
   $windows=PHP_OS_FAMILY==='Windows';if($windows&&$bin==='dir')$bin='ls';$args=[];
-  if($bin==='pwd')$args=$windows?['cmd.exe','/c','cd']:['/bin/pwd'];
+  if($bin==='pwd')$args=$windows?['powershell.exe','-NoProfile','-NonInteractive','-Command','(Get-Location).Path']:['/bin/pwd'];
   elseif($bin==='ls'){
    $target=$root;
    if(count($parts)>1)throw new RuntimeException('Only ls [directory] is allowed.');if(isset($parts[0])&&$parts[0]!=='.'){$realRoot=realpath($root)?:$root;$candidate=realpath($root.DIRECTORY_SEPARATOR.$parts[0]);$compareRoot=$windows?strtolower($realRoot):$realRoot;$compareCandidate=$candidate===false?'':($windows?strtolower($candidate):$candidate);$prefix=rtrim($compareRoot,DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR;if(!$candidate||($compareCandidate!==$compareRoot&&!str_starts_with($compareCandidate,$prefix)))throw new RuntimeException('Path outside DCP workspace.');$target=$candidate;}
