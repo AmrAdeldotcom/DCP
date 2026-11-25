@@ -1,0 +1,10 @@
+{
+  "session": "DC40",
+  "timestamp": "2026-11-25T04:51:15+0200",
+  "branch": "feature/local-ai-runtime-discovery",
+  "head": "de0ffdb45f1c0ea7b7f8027a8f82f3a580273263",
+  "Q005": "partial; local updater/release regression suites green; signed Alpha 10 CI and target upgrades open",
+  "Q010": "browser keyboard Enter and clipboard UI mock flow pass; authenticated external-agent lifecycle open",
+  "release": "Alpha 9 latest published; Alpha 10 unpublished",
+  "safety": "no commit/push/release/target install or user-data mutation"
+}

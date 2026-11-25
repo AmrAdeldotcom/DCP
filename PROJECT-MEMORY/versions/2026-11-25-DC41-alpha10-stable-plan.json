@@ -1,0 +1,17 @@
+{
+  "session": "DC41",
+  "timestamp": "2026-11-25T05:02:56+0200",
+  "branch": "feature/local-ai-runtime-discovery",
+  "head": "dd0595ff0d89d17cdaf5b88de7589ae34dd037f6",
+  "pushedCommit": "dd0595f",
+  "alpha10Release": {
+    "tag": "v1.0.0-alpha.10",
+    "assetCount": 19,
+    "prerelease": true
+  },
+  "main": "30fe3fd",
+  "alpha10TagCommit": "ba3b8f5",
+  "ci": "new runs pending at checkpoint",
+  "stableTarget": "v1.0.0 based on approved Alpha10 codebase",
+  "cleanup": "remove Alpha3\u20139 Releases/tags only after stable publication and target acceptance; historical Actions runs separate"
+}

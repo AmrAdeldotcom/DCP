@@ -29,7 +29,7 @@
 - [ ] Fix route contract mismatch behind not_found and email_already_registered.
 - [ ] Add configurable Cloud base URL and health/compatibility display.
 - [ ] Move login/register to global header modal; move pairing into Devices.
-- [ ] Device inventory: online/offline, identity, owner, scopes, pause/resume/revoke.
+- [x] Device inventory: online/offline, identity, scopes, pause/resume/revoke. (Local UI/API/schema and contract tests pass; live two-device acceptance is pending the separately approved Cloud deployment.)
 - [ ] Persist account-linked identities and provide transparent 24-hour anonymous pairing policy.
 - [ ] Verify two real devices (Mac + Windows) through full pairing and revocation tests.
 

@@ -40,3 +40,10 @@ Important limitation: these checks validate status discovery only. Desktop Comma
 - PHP lint and git diff --check — PASS.
 
 Test harnesses were removed after execution. No DCP database, master.key, existing Ollama model, or unrelated service was modified.
+
+
+## DC38 — browser keyboard and clipboard acceptance (2026-11-25)
+- Re-ran the actual local DCP web UI in headless Chrome against `http://127.0.0.1:18991/`.
+- Keyboard acceptance: opened Terminal, typed `pwd`, pressed Enter, verified the terminal output contained `/Volumes/Data/ChatGPT/DCP`; then ran `ls .`, verified the workspace listing and confirmed the input cleared. Result: `DCP_Q010_BROWSER_KEYBOARD_ENTER_PASS`.
+- Clipboard acceptance: opened Devices, intercepted the one-time pairing-code API with a deterministic test response, replaced only the page-context Clipboard API with a test double, clicked **Create one-time pairing code**, and verified the exact code was passed to `navigator.clipboard.writeText` and displayed in the UI. Result: `DCP_Q010_CLIPBOARD_UI_FLOW_PASS`. The host/system clipboard and real pairing backend were not touched.
+- The browser flow is validated. Authenticated Desktop Commander and DeepSeek Harness lifecycle adapters remain open; status detection must not be represented as task-execution connectivity.

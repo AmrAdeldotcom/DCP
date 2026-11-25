@@ -20,7 +20,7 @@ This folder is the durable continuity layer for ChatGPT and other authorized eng
 - `architecture/`: architecture notes and cross-component contracts.
 - `bugs/`: reproducible bug records and diagnostics.
 - `testing/`: test baselines and verification evidence.
-- `handoffs/`: concise handoff notes for new conversations. Latest checkpoint: `handoffs/DC19-live-monitor-ubuntu-diagnosis-macos-guard-2026-11-24.md`.
+- `handoffs/`: concise handoff notes for new conversations. Latest checkpoint: `handoffs/DC41-alpha10-stable-promotion-2026-11-25.md`.
 
 ## Update protocol
 - After each meaningful task: update CURRENT-STATE.json, append CHANGELOG.md, and create a timestamped checkpoint in versions/.
@@ -32,3 +32,7 @@ This folder is the durable continuity layer for ChatGPT and other authorized eng
 - If connection drops, do not retry a side-effecting call while it is pending. Check its call status first, then resume from CURRENT-STATE.json.
 
 - `ACCESS-INVENTORY.md` — safe inventory of configured GitHub, Hostinger and lab SSH routes; never stores secret values.
+
+- Latest handoff: PROJECT-MEMORY/handoffs/DC41-alpha10-stable-promotion-2026-11-25.md — Alpha 10 published asset inventory and prerelease status, pushed offline-safe updater/source-fetch fix, local test results, GitHub CI status and v1.0.0 stable promotion/cleanup gates.
+
+- Latest Alpha 10 cross-platform rollout checkpoint: PROJECT-MEMORY/handoffs/DC20-alpha10-three-platform-update-rollout-2026-11-24.md (Windows and Ubuntu installed; macOS Little Snitch github.com allow pending; signed release workflow still building).

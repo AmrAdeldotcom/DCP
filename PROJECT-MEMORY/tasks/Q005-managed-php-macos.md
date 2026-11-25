@@ -432,3 +432,48 @@ Result: **6/6 passed**
 - Commit a8bc81fd pushed; CI runs 45447308256 manifest, 45447308173 Linux build, 45447308527 Windows build in progress; 45447308397 macOS package queued. Linux distro run 45446122964 passed Ubuntu and Kali.
 - Production signing secret DCP_RELEASE_SIGNING_PRIVATE_KEY_B64 remains missing. Preflight run 45446629180 failed only at this missing secret after all manifest/delta/ephemeral-signature tests passed. Keychain key exists; GitHub CLI absent; user must add the repository Actions secret manually.
 - Alpha 9 unchanged; Alpha 10 unpublished; no target install/update. Q005 remains partial.
+
+
+## DC21 — Alpha 10 update monitors and regression fixes — 2026-11-24T20:23:42+02:00
+- Actual local/origin branch head is f59c086dac22789d6c5b316b5fbd03066cb0c8d0 (not the stale ec170a6 in older prompts). Commits 193cfa4 and f59c086 are pushed. No merge, PR or release was created.
+- Linux: signed package download/cache and 300-second watcher are wired into Run-DCP.sh; watcher applies only through the transaction engine after the process guard allows it. Fixed optional watcher env var default under set -u. Linux package smoke asserts generated launcher syntax/default and --download CLI.
+- macOS: wrapper pre-downloads/stages signed packages every 300 seconds before prompting. Fixed false-positive cache predicate and reused one verified release snapshot in download selection. Added absent-cache, exact-base Delta, base-mismatch and Full fallback tests; macOS updater suite now passes 52 assertions.
+- Windows: five-minute background updater monitor cancellation is handled; Windows build and clean package on 193cfa4 passed.
+- Local tests: platform suite, Linux updater health/transaction, macOS updater (52), Windows PowerShell and C# client, delta builder, Linux extractor, signature/tamper, signed release assembly, PHP/Bash/Zsh/PowerShell syntax, JSON/YAML and diff checks all pass. Windows cross-target wrapper build passed with one existing WindowsBase warning. Current Objective-C main.m compiled successfully without rebuilding PHP/llama runtimes.
+- CI on f59c086: Linux build 45458161076 PASS; Ubuntu+Kali 45458160914 PASS including packaged updater check; Windows build 45458161409 PASS; signed manifest/delta 45458161245 PASS. macOS native clean package 45458161119 remains QUEUED for all four Intel/Apple Silicon PHP/llama jobs. Windows clean package 45457125199 passed on 193cfa4.
+- Read-only device checks: Mac Alpha10 app version/build/revision 1.0.0-alpha.10/10/1 and codesign verify passed; SQLite/master.key hashes recorded; Ollama/PHP/llama listeners unchanged. Ubuntu remains Alpha9, no DCP listener. Windows AMRWIN11 has no DCP process/listener; existing pre-alpha9 backup root exists. No VM installs/replacements performed.
+- Alpha9 release 456688871/tag commit 8b5bf08d6291897338ca322432ccf1962e0c2ed1/six assets unchanged; latest release list still Alpha9 only. Alpha10 unpublished. Production Actions signing secret still missing. User explicitly said do not merge or release yet. Q005 remains PARTIAL; Q006/Q007 isolated; no PHP feature work.
+
+
+## DC39 — resilient native Intel source fetch (2026-11-25)
+- The latest signed Alpha 10 candidate failed before compilation because the Intel macOS runner could not resolve `github.com` while cloning the pinned llama.cpp source. No signed release assembly or publication occurred.
+- Added `platform/scripts/clone-pinned-source.sh`, a bounded retry helper for HTTPS GitHub pinned-source clones (maximum 8 attempts; release workflow uses 5 attempts with increasing delays). It refuses to overwrite an existing destination, validates repository/ref/attempt arguments, and verifies the resulting checkout has a HEAD. `file://` is accepted only to support isolated local tests.
+- Replaced direct OpenSSL 3.5.4 and llama.cpp b12655 clones in `.github/workflows/build-llama-macos-sse42.yml` with the helper. Added a workflow preflight test.
+- Added `platform/tests/clone-pinned-source.sh`; a fake Git transport simulates two transient DNS failures, then performs a real local clone on attempt three and verifies the exact fixture.
+- Local evidence: helper/test Bash syntax PASS; retry test PASS (two simulated failures, third attempt succeeds); Ruby YAML parse PASS for the Intel workflow; `git diff --check` PASS.
+- This is a local uncommitted change on `feature/local-ai-runtime-discovery`; no CI rerun is possible until a reviewed commit is pushed. No release, target install or user-data mutation performed.
+
+
+## DC40 — full local release regression pass (2026-11-25)
+After adding the source-fetch retry helper, reran the local release-critical suites on the connected Intel Mac. All passed:
+- `php platform/tests/run.php` — ALL LOCAL AI UI CONTRACT CHECKS PASSED; full platform suite exit 0.
+- `php platform/tests/update-macos.php` — ALL MACOS UPDATE CONTRACT TESTS PASSED (53 assertions).
+- `php platform/tests/linux-updater-health.php` — ALL LINUX UPDATER HEALTH TESTS PASSED.
+- `php platform/tests/linux-update-transaction.php` — ALL LINUX UPDATE TRANSACTION TESTS PASSED, including interrupted-apply recovery.
+- `python3 platform/tests/update-package-build.py` — ALL UPDATE PACKAGE BUILD TESTS PASSED, including schema-3 Delta/full fallback and user-data exclusion.
+- `python3 platform/tests/extract-linux-update.py` — ALL LINUX UPDATE ARCHIVE EXTRACTION TESTS PASSED.
+- `bash platform/tests/release-assembly.sh` — ALL SIGNED RELEASE ASSEMBLY TESTS PASSED using its ephemeral test key; four platform manifests synchronized and asset hashes verified. This is test signing, not production release signing.
+- `pwsh -NoProfile -File platform/tests/update-windows.ps1` — ALL WINDOWS UPDATER TESTS PASSED.
+- PHP lint: 61 files; source JavaScript syntax; `git diff --check` — PASS.
+These are local contract/regression tests only. No actual target Alpha 9→10 update, published release, GitHub runner validation or production signing was performed.
+
+
+## DC41 — offline updater fix pushed; Alpha 10 stable promotion plan (2026-11-25)
+- GitHub currently has a published `v1.0.0-alpha.10` release with 19 assets (four full packages, four signed schema-3 manifests/signatures, Delta assets and SHA256 files). It is still marked `prerelease=true`; it is not yet the first stable release.
+- Repository default branch is `main` at `30fe3fd`; Alpha 10 tag resolves to commit `ba3b8f5`; active development branch is `feature/local-ai-runtime-discovery`. The `feature/alpha10-package-revision` branch is at `db054a2` and is an ancestor of the Alpha 10 tag.
+- Pushed commit `dd0595f` to `feature/local-ai-runtime-discovery`: Linux updater treats temporary GitHub transport outages (DNS/timeout/408/425/429/5xx) as a retryable non-fatal check (`ok=true`, `available=false`, `retryable=true`), with deterministic injected transport regression tests. It also adds bounded retry cloning for pinned OpenSSL/llama.cpp sources and uses it in the Intel macOS build workflow.
+- Local full regression pass after the changes: platform suite; macOS updater (53 assertions); Linux updater health and transaction/rollback; update package builder; Linux archive extraction; signed release assembly using ephemeral test key; Windows updater; 61 PHP lints; JS syntax; retry helper simulation; all workflow YAML parsing; diff check. Linux package HTTP smoke was not run on this Mac because `platform/dist/linux` is not built here.
+- GitHub CI for `dd0595f` was queued/running at checkpoint; the prior `de0ffdb` failure was specifically the Ubuntu packaged updater's attempt to reach GitHub, not the Linux package build. Await final CI results before PR merge.
+- Stable promotion should use semantic version `1.0.0` based on the current approved Alpha 10 codebase, not simply relabel a `-alpha.10` semver tag as stable. After branch CI is green: merge the reviewed current development branch to `main`, update package metadata to version `1.0.0` / tag `v1.0.0` / stable channel, ensure release workflow marks non-prerelease and latest, then create `v1.0.0` tag exactly at `main` HEAD. The release workflow enforces that exact equality and rebuilds all four packages plus synchronized signed manifests.
+- Only after the stable release has all 19+ expected assets and successful build evidence should older Alpha 3–9 GitHub Release records/tags be removed. Preserve repository commit history and source; do not erase the only rollback assets until stable is verified.
+- Historical GitHub Actions failure records are separate from Releases/tags and cannot be hidden by deleting old release assets. Current connector has read access to run logs but no direct workflow-run deletion or release-edit action. Do not claim those historical red records have been removed.

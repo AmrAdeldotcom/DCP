@@ -343,3 +343,71 @@
 - Re-ran platform, Linux package/extraction, Windows transaction and C# contract tests plus Windows app build; all passed. Windows build has one existing WindowsBase warning and zero errors.
 - Pushed a8bc81fd. CI started: manifest/delta, Linux and Windows in progress; native macOS package queued. Previous Ubuntu/Kali distro run 45446122964 passed.
 - Production signing Actions secret remains missing; manifest preflight confirms this is the remaining failure after contract tests.
+
+
+## 2026-11-24T20:23:42+02:00 — DC21 Alpha 10 update-monitor fixes and CI
+- Recorded pushed HEAD f59c086 and the five-minute updater monitor implementations for Windows/Linux/macOS.
+- Recorded macOS pending-package cache predicate fix and single verified-release snapshot; macOS updater suite now 52 assertions.
+- Recorded green local platform/transaction/signature/release-assembly tests and green Linux Ubuntu/Kali, Windows build and manifest CI; native macOS package CI remains queued.
+- Recorded read-only Mac/Windows/Ubuntu state and immutable Alpha 9 release evidence. No release, merge or target replacement performed.
+
+
+
+## 2026-11-25 — DC31 Windows LocalAI lifecycle
+- Fixed Windows PowerShell 5.1 native-stderr handling in the managed llama.cpp runner; non-zero native exit codes still propagate.
+- Verified real interactive-user Qwen3 0.6B start, OpenAI-compatible chat and managed stop on Windows using the cached GGUF.
+- Added port/PID/executable ownership checks and exact scheduled-task cleanup. Full platform tests pass; no database or encryption key changed.
+
+
+
+## 2026-11-25 — DC32 Q006 cross-platform LocalAI closeout
+- Verified real Qwen3 0.6B managed start/chat/stop on Windows interactive user, Ubuntu 24.04 and Intel macOS.
+- Fixed Intel Mac readiness timeout (10s was too short for initial GGUF mapping); readiness now allows 60s and cleans up on failure.
+- Preserved existing Mac llama.cpp listener 19123 and Ubuntu update watcher; all disposable test harnesses/model copies removed.
+- Added Local AI UI/API contract checks; full platform suite, model-manager contract, UI contract and JS syntax pass.
+
+
+## 2026-11-25 — DC34 Windows terminal and agent status
+- Fixed Windows TerminalService pwd quoting and verified the allow-listed commands under the interactive Windows user.
+- Verified DCP Local Node status on Windows, macOS and Ubuntu; made DSH/Desktop Commander process probes platform-aware.
+- DSH and Desktop Commander remain detection-only/not connected; no false connected status claimed.
+
+
+## 2026-11-25 — DC35 real custom GGUF conversion
+- Imported a real Qwen3 0.6B Q4_K_M GGUF, verified SHA-256/private 0600 storage, converted through Ollama, ran a real chat probe, then deleted only the temporary model and imported file.
+- Existing Ollama DiGEMA models and service remained intact; no SQLite/master.key changed.
+
+
+## 2026-11-25 — DC36 DCP GGUF UI/API flow
+- Verified real DCP app API import, Ollama conversion, ready-state polling, Qwen3 chat via the Ollama provider adapter, and API deletion.
+- Fixed Ollama manifest visibility race (120-second grace) and Qwen3 hidden-thinking output.
+- Temporary model/file removed; existing DiGEMA models and Ollama service preserved.
+
+
+## 2026-11-25 — DC37 local security hardening
+- Restricted desktop static router to canonical public/assets files and verified encoded traversal does not expose config source.
+- Isolated web-preview data root, added nonce CSP/security headers, enforced Cloud HTTPS/TLS verification, and ignored local release keys/test harnesses.
+- Security contracts, Cloud/UI/model/system contracts, 61 PHP lints, JavaScript syntax and full platform suite pass.
+
+
+## 2026-11-25 — DC38 browser interaction acceptance
+- Verified real browser keyboard Enter in DCP Terminal (`pwd`, `ls .`) and confirmed output/input behavior.
+- Verified Devices one-time pairing-code clipboard UI path using a mocked API and page-context clipboard test double; no real pairing code or host clipboard content was accessed.
+- Q010 remains active only for authenticated Desktop Commander/DeepSeek Harness lifecycle adapters.
+
+
+## 2026-11-25 — DC39 resilient macOS source fetch
+- Added bounded retry helper for pinned GitHub source clones and integrated it into Intel macOS OpenSSL/llama.cpp builds.
+- Added a local regression test that simulates two transient DNS failures and succeeds on the third clone attempt. Bash syntax, workflow YAML and diff checks pass.
+- Q005 remains partial; this local change is not committed/pushed and cannot yet be validated on a GitHub runner.
+
+
+## 2026-11-25 — DC40 full updater regression pass
+- Re-ran local platform suite, macOS updater (53 assertions), Linux updater health/transaction, Delta package builder, Linux archive extraction, signed release assembly with an ephemeral test key, Windows updater, 61 PHP lints, JS syntax and diff check. All passed.
+- These are local tests only; no real Alpha9→Alpha10 target upgrade, production signing, GitHub CI rerun or release publication occurred.
+
+
+## 2026-11-25 — DC41 Alpha 10 stable promotion plan
+- Confirmed Alpha 10 release is published with 19 assets but remains prerelease.
+- Pushed `dd0595f` with offline-safe Linux updater checks and bounded pinned-source fetch retries. Local cross-platform regression suite passed.
+- Documented correct stable promotion path: merge reviewed code to main, create a semver `v1.0.0` stable release, verify all native signed packages, then remove old release records/tags. Historical Actions runs are separate from release records.

@@ -1,0 +1,11 @@
+{
+  "session": "DC38",
+  "timestamp": "2026-11-25T04:49:01+0200",
+  "branch": "feature/local-ai-runtime-discovery",
+  "head": "de0ffdb45f1c0ea7b7f8027a8f82f3a580273263",
+  "release": "v1.0.0-alpha.9 latest published; Alpha 10 unpublished",
+  "Q005": "partial; signed Alpha 10 run failed at Intel macOS source fetch due DNS",
+  "Q010": "browser keyboard Enter and clipboard UI mock flow passed; external agent lifecycle remains open",
+  "device": "Amrs-Mac-Pro online",
+  "safety": "no branch switch, reset, stash, commit, push, release, target install or user-data mutation"
+}
