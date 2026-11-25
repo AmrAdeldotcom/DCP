@@ -411,3 +411,9 @@
 - Confirmed Alpha 10 release is published with 19 assets but remains prerelease.
 - Pushed `dd0595f` with offline-safe Linux updater checks and bounded pinned-source fetch retries. Local cross-platform regression suite passed.
 - Documented correct stable promotion path: merge reviewed code to main, create a semver `v1.0.0` stable release, verify all native signed packages, then remove old release records/tags. Historical Actions runs are separate from release records.
+
+
+## 2026-11-25 — DC42 stable tag and release workflow
+- Fast-forwarded `main` to `cb3087e` after green feature-branch CI and pushed annotated `v1.0.0` tag at exactly the same commit.
+- Started stable signed cross-platform release run `45538884432`. Linux and Windows package jobs passed; macOS Intel/Apple Silicon and managed PHP jobs are queued.
+- Added stable Alpha10→1.0.0 Delta regression coverage and committed cleanup automation to remove prior Alpha/Beta releases/tags and completed failed Actions runs only after stable release assets/signatures are verified.

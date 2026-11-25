@@ -1,0 +1,15 @@
+{
+  "session": "DC42",
+  "timestamp": "2026-11-25T05:22:41+0200",
+  "main": "cb3087e27c344af774ecf60aca40c98904859a85",
+  "tag": "v1.0.0",
+  "releaseRun": 45538884432,
+  "releaseStatus": "in progress; Linux and Windows package jobs pass; macOS jobs queued",
+  "alpha10Release": "v1.0.0-alpha.10, 19 assets, used as exact stable Delta base",
+  "cleanup": "after successful stable publication, delete old alpha/beta releases/tags and completed failed Actions runs",
+  "notYetDone": [
+    "stable release publication",
+    "cleanup verification",
+    "live target update/rollback and user-data preservation"
+  ]
+}
