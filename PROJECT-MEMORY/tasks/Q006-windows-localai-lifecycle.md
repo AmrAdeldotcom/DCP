@@ -69,3 +69,12 @@ Result:
 No production DCP app files, SQLite, master.key, or existing services were changed. The temporary /tmp harness is disposable.
 
 Updated Q006 state: real low-memory model start/chat/stop now passes on both Windows interactive user and Ubuntu Linux. Remaining Q006 work: verify the Windows UI action/status path and macOS managed low-memory runtime path; then move on to remaining queued product phases.
+
+## UI/API contract closeout — 2026-11-25
+- Confirmed Local AI page renders the Qwen3 0.6B Run with llama.cpp action, posts the selected model to /api/local-ai/llama/start, and the API persists the returned OpenAI-compatible provider.
+- Confirmed successful Local AI actions refresh engine status, and the newly created provider is selected for Chat.
+- Corrected the confirmation copy so it no longer promises a model download when a verified local cache can be reused.
+- Added platform/tests/local-ai-ui-contract.php with 10 assertions and wired it into the full platform suite.
+- UI contract: ALL LOCAL AI UI CONTRACT CHECKS PASSED.
+- node --check platform/public/assets/app.js — PASS.
+- php platform/tests/run.php — ALL PLATFORM TESTS PASSED.

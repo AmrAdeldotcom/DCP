@@ -94,6 +94,7 @@ if(PHP_OS_FAMILY!=='Windows') {
 }
 
 $cloudContract=new CloudService($db,$crypto);ok(method_exists($cloudContract,'createPairingCode')&&method_exists($cloudContract,'requestPairing')&&method_exists($cloudContract,'decidePairing'),'cloud supports anonymous device identity and approval-based pairing');$cloudDeviceStored=$db->query("SELECT value FROM settings WHERE key='cloud.device_token_enc'")->fetchColumn();$cloudAccountStored=$db->query("SELECT value FROM settings WHERE key='cloud.user_token_enc'")->fetchColumn();ok(is_string($cloudDeviceStored)&&$crypto->decrypt($cloudDeviceStored)===str_repeat('b',64)&&$cloudAccountStored==='','cloud device identity stays encrypted in isolated mock tests and account token is cleared on logout');
+require __DIR__ . '/local-ai-ui-contract.php';
 require __DIR__ . '/update-manifest.php';
 require __DIR__ . '/linux-update-transaction.php';
 require __DIR__ . '/linux-updater-health.php';
