@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "project": "DCP — Desktop Connector Platform",
-  "updatedAt": "2026-11-25T06:53:33+02:00",
+  "updatedAt": "2026-11-25T07:05:00+02:00",
   "session": "DC48",
   "repository": "/Volumes/Data/ChatGPT/DCP",
   "branch": "feature/local-ai-runtime-discovery",
@@ -35,7 +35,9 @@
       "chrome": "DCP_DC48_CHROME_DOM_PASS"
     },
     "ci": "New Ubuntu/Windows/macOS matrix workflow .github/workflows/test-chat-worker.yml added; pending GitHub Actions result",
-    "remaining": "durable checkpoint context and context merger/replanning, worker heartbeat/recovery/idempotency, live cross-platform acceptance; Q014 and Q005 gates remain open"
+    "remaining": "durable checkpoint context and context merger/replanning, worker heartbeat/recovery/idempotency, live cross-platform acceptance; Q014 and Q005 gates remain open",
+    "windowsLauncherFix": "Start-Process without PassThru; explicit STARTED marker; worker records its own PID at claim time. Local worker + HTTP E2E pass; cross-platform CI retry pending.",
+    "ciSecondRun": 45550155507
   },
   "knownConstraints": [
     "Work only in /Volumes/Data/ChatGPT/DCP.",
@@ -785,7 +787,8 @@
       "chromeDom": "DCP_DC48_CHROME_DOM_PASS",
       "phpLint": "pass",
       "jsSyntax": "pass",
-      "workflowYaml": "pass"
+      "workflowYaml": "pass",
+      "workerPid": "worker records getmypid() during atomic claim"
     },
     "limitations": [
       "checkpoint is at provider HTTP-call boundary, not inside a multi-step tool loop",
@@ -795,7 +798,20 @@
       "Windows/Linux/macOS CI results pending"
     ],
     "workflow": ".github/workflows/test-chat-worker.yml",
-    "commit": "b554e08"
+    "commit": "b554e08",
+    "windowsLauncherFix": {
+      "status": "implemented-locally",
+      "details": "PowerShell Start-Process without PassThru returns STARTED immediately; worker writes its own PID atomically during claim()"
+    },
+    "ciFirstRun": {
+      "run": 45549942820,
+      "result": "Ubuntu and macOS pass; Windows worker test pass; HTTP test raced with short provider fixture"
+    },
+    "ciSecondRun": {
+      "run": 45550155507,
+      "result": "Ubuntu pass; macOS pass; Windows worker test pass; Windows HTTP test timed out because Start-Process launch command blocked until its 8-second launcher timeout"
+    },
+    "next": "Push detached Windows launcher fix and rerun three-platform CI. Do not mark Q012 cross-platform accepted until all jobs pass."
   },
   "latestImplementationCommit": "b554e08"
 }

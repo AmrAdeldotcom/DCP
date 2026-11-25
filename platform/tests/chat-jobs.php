@@ -7,7 +7,7 @@ $db->prepare('INSERT INTO chat_sessions(id,title,provider_id,created_at,updated_
 $inboxItem=$inbox->enqueue('Run this after the current answer',$chatSession);
 $job=$chatJobs->enqueue($chatSession,$p['id'],'mock-model','Current user message',[], $inboxItem['id']);
 ok(($job['status']??'')==='queued'&&($job['session_id']??'')===$chatSession,'Chat job and user message are persisted before provider execution');
-$claim=$chatJobs->claim($job['id']);ok(is_array($claim)&&($claim['status']??'')==='running','Chat worker atomically claims a queued job');
+$claim=$chatJobs->claim($job['id']);ok(is_array($claim)&&($claim['status']??'')==='running'&&(int)($claim['worker_pid']??0)===getmypid(),'Chat worker atomically claims a queued job and records its own process identity');
 $checkpoint=$chatJobs->requestCheckpoint($job['id']);ok(($checkpoint['status']??'')==='checkpoint_requested'&&($checkpoint['interrupt_requested']??false),'Chat checkpoint request records intent without cancelling the in-flight provider call');
 $completed=$chatJobs->complete($job['id'],'Mock assistant reply');ok(($completed['status']??'')==='checkpoint_ready'&&($completed['reply']??'')==='Mock assistant reply','Chat worker completes the current response at the requested safe checkpoint');
 $inboxSent=$db->prepare('SELECT status FROM task_inbox WHERE id=?');$inboxSent->execute([$inboxItem['id']]);ok($inboxSent->fetchColumn()==='sent','Task Inbox item is marked sent only after its background chat job completes');

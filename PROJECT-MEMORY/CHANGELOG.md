@@ -463,3 +463,5 @@
 - Full platform suite, isolated worker E2E, authenticated HTTP checkpoint E2E and Chrome DOM smoke passed on macOS.
 - Added Ubuntu/Windows/macOS GitHub Actions matrix; cross-platform result pending.
 - DP_Anything explicitly deferred; continue DCP only.
+
+- Windows CI exposed that the PowerShell launcher could block the HTTP request. Changed it to `Start-Process` without `-PassThru` and an immediate `STARTED` marker; the worker now persists its own PID at atomic claim time. Local worker and delayed-provider HTTP E2E pass; cross-platform CI retry pending.

@@ -57,7 +57,7 @@
     "workflowYaml": "pass",
     "gitDiffCheck": "pass"
   },
-  "ci": "retry pending after test-fixture timing adjustment",
+  "ci": "pending retry after Windows detached-launcher fix",
   "next": [
     "cross-platform CI validation",
     "durable checkpoint context snapshots",
@@ -73,5 +73,10 @@
     "macos": "success",
     "windows": "worker-e2e-success; http-test-raced-because-2.5s-delay-fixture-finished-before-first-poll",
     "testAdjustment": "mock provider delay increased to 10s; HTTP test asserts API returns within 8s"
+  },
+  "windowsLauncherFix": {
+    "change": "Start-Process without -PassThru; immediate STARTED marker; worker writes its own PID during atomic claim",
+    "workerPid": "persisted by claim() using getmypid()",
+    "httpE2e": "assert /api/chat returns under 8 seconds with a 10-second provider delay"
   }
 }
