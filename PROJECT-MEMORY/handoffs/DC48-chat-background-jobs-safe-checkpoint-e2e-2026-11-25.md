@@ -25,7 +25,7 @@ Scope: DCP only. `DP_Anything` is explicitly deferred.
 - PHP lint, Node syntax, workflow YAML parse and `git diff --check` pass.
 
 ## Cross-platform CI
-Added `.github/workflows/test-chat-worker.yml` matrix for `ubuntu-24.04`, `windows-2025`, `macos-15`, running both the real worker E2E and HTTP checkpoint E2E. This is committed locally but not yet pushed/run; do not claim cross-platform pass until Actions confirms all three.
+Added `.github/workflows/test-chat-worker.yml` matrix for `ubuntu-24.04`, `windows-2025`, `macos-15`, running both the real worker E2E and HTTP checkpoint E2E. Final run `45550728368` completed SUCCESS; all three OS jobs passed both tests.
 
 ## Explicit limits / next steps
 1. Checkpoint currently occurs at the end of one provider HTTP call; no mid-tool-loop checkpoint yet.
@@ -33,7 +33,7 @@ Added `.github/workflows/test-chat-worker.yml` matrix for `ubuntu-24.04`, `windo
 3. No queue auto-merge; human review/insert/send remains mandatory.
 4. Add lease heartbeat, crash recovery, idempotency keys and safe retry.
 5. Add review/context merger/replanning and approval gate.
-6. Verify Windows/Linux/macOS CI and actual packaged desktop acceptance.
+6. Complete actual packaged desktop acceptance on installed Windows, Ubuntu and macOS targets; cross-platform CI E2E is already green.
 7. Continue Q014 live Device Agent acceptance and Q005 installed-client update/rollback/data-preservation gates after Q012 baseline.
 
 ## Safety / repo hygiene
