@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "project": "DCP — Desktop Connector Platform",
+  "session": "DC68",
+  "date": "2026-11-25",
+  "branch": "feature/local-ai-runtime-discovery",
+  "headCommit": "c9620e5",
+  "stage": "Local and Cloud MCP source implementation closed; Q015 owner-local resource invocation and signed remote terminal result path implemented locally",
+  "completed": "Local MCP STDIO and loopback Streamable HTTP share 35 provider-neutral tools. Cloud MCP provides five scoped read-only account tools with token scope persistence and REST isolation. Owner-local Ollama/OpenAI-compatible resource invocation resolves encrypted provider credentials locally, records invocation outcomes and requires agent approval. Signed Cloud terminal dispatch/result code, target second-click execution, one-time local ledger, output redaction and source result display are implemented and contract-tested.",
+  "localTests": "php platform/tests/run.php — ALL PLATFORM TESTS PASSED; all platform PHP lint, node --check, git diff --check, MCP STDIO/HTTP E2E, Cloud MCP SQLite service/contracts, resource invocation and remote terminal contracts pass.",
+  "commits": [
+    "8967bc0",
+    "c2998ec",
+    "c9620e5"
+  ],
+  "limitations": [
+    "Commits are local only; branch is three commits ahead of origin.",
+    "Cloud public health 200 does not confirm new Cloud MCP code or api_tokens.scopes_json migration is deployed; no production deploy or DB migration was performed.",
+    "DCP_CLOUD_SIGNING_SEED must be provisioned in protected Cloud environment; Q007 APP_KEY approval remains pending.",
+    "Real Mac↔Windows/Ubuntu two-device signed execution has not been run.",
+    "Owner-local resource invocation is tested through an adapter fixture; no live provider call was made.",
+    "Cloud owner-node resource invocation proxy, local team/device grant parity, Hermes, native PTY/ConPTY, daemon crash recovery and Windows/Ubuntu full-suite acceptance remain open.",
+    "Stable installed v1.0.0 and existing DiGEMA MySQL/model data remain unchanged."
+  ],
+  "queue": {
+    "Q005": "closed per user confirmation",
+    "Q012": "Tasks 6 and 7 complete; Task 5 implementation locally tested",
+    "Q015": "active; local/cloud MCP source implementation closed, local owner invocation and signed remote terminal code implemented; cross-device and Cloud deployment acceptance remain"
+  },
+  "noPublication": true
+}

@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
   "project": "DCP — Desktop Connector Platform",
-  "updatedAt": "2026-11-25T20:15:00+02:00",
-  "session": "DC67",
+  "updatedAt": "2026-11-25T21:50:00+02:00",
+  "session": "DC68",
   "repository": "/Volumes/Data/ChatGPT/DCP-Source",
   "branch": "feature/local-ai-runtime-discovery",
-  "headCommit": "0522e14",
+  "headCommit": "c9620e5",
   "latestReleaseTag": "v1.0.0",
-  "workingTree": "DC67: consolidated the one full-shell terminal interface; added a private loopback session daemon shared across STDIO/HTTP/provider requests; implemented local Resource Registry/Broker and Cloud resource/team/grant APIs; added Cloud target-device terminal request/approve/reject inbox. Full platform suite passes. Q005 closed; Q012 Tasks 6/7 complete. No commit/push/release/deploy.",
+  "workingTree": "DC68: local and Cloud MCP control-plane implementations completed and committed; local MCP now exposes 35 provider-neutral tools, Cloud MCP exposes five scoped read-only tools. Added owner-local Ollama/OpenAI-compatible resource invocation and source-side signed remote-terminal result display. Full platform suite, PHP lint, JS syntax and diff checks pass. Three local commits are ahead of origin; no push or production Cloud deployment. The pre-existing NETWORK-RESUME-REQUEST.json remains untracked and was not staged.",
   "device": {
     "name": "Amrs-Mac-Pro",
     "id": "a23231bf-eabc-441c-a6e2-560e3ae7f957",
@@ -15,35 +15,50 @@
     "os": "macOS 14.7.1",
     "architecture": "x86_64"
   },
-  "activeTask": "Q015 — DCP Resource Mesh & Universal AI Gateway, plus DCP Core terminal parity and Cloud target approval",
-  "activeTaskStatus": "Local Resource Registry/Broker, SQLite grants/invocation ledger, four MCP tools and REST endpoints implemented. Cloud resource/team/grant schema+migration and authenticated endpoints implemented. Full terminal is one dcp_terminal_execute tool; old restricted tool removed. Persistent terminal session daemon shares sessions across STDIO MCP, HTTP MCP and provider calls. Cloud remote-terminal requests require terminal.request scope; source Terminal selector sends exact-hash approval request, target Devices UI displays and approves/rejects exact command. Approval does not dispatch; signed delivery/results remain disabled. Full platform suite passes on macOS. Windows/Ubuntu validation pending.",
-  "nextTask": "Implement signed Cloud terminal dispatch/result envelopes bound to the target-approved exact hash; finish local team/device grant discovery, owner-local secret resolver and real resource invocation adapters; integrate Hermes; add native PTY/ConPTY and daemon crash recovery; then run Windows/Ubuntu full validation and live Claude reconnect/logo check.",
+  "activeTask": "Q015 — DCP Resource Mesh & Universal AI Gateway",
+  "activeTaskStatus": "Local MCP is complete and tested (STDIO + loopback Streamable HTTP, 35 shared tools). Cloud MCP is implemented in source as a scoped read-only control plane with five tools, account-isolated device/pairing/resource/team/grant discovery, token scope persistence and REST-token isolation; Cloud MCP production deployment/migration is still pending. Q015 now includes owner-local Ollama and OpenAI-compatible resource invocation through encrypted ProviderService credentials, invocation ledger and agent approval; signed target-side Cloud terminal dispatch/result flow and source result UI are implemented and locally contract-tested. Real two-device execution and Windows/Ubuntu full-suite acceptance remain pending.",
+  "nextTask": "Continue Q015: implement Cloud owner-node resource invocation with signed request/result delivery and quota/concurrency enforcement across user/team/device grants; add local team/device grant discovery parity; then Hermes adapter and provider-neutral universal gateway. Complete real Mac↔Windows/Ubuntu two-device signed terminal and resource invocation tests, native PTY/ConPTY and terminal daemon crash recovery. Production Cloud MCP migration/deploy requires the Cloud API token-scope migration, DCP_CLOUD_SIGNING_SEED provisioning and the existing Q007 APP_KEY approval gate; do not bypass secret-file safety.",
   "nextTaskFile": "platform/docs/DCP-RESOURCE-MESH-AND-UNIVERSAL-AI-GATEWAY.md",
   "followingTask": "Q012 remaining automatic multi-step coordinator/worker heartbeat recovery and Q014 real Device Agent acceptance on Windows/Ubuntu/macOS. Q005 is closed and must not be reopened.",
   "latestSessionCheckpoint": {
-    "conversation": "DC67",
+    "conversation": "DC68",
     "date": "2026-11-25",
     "branch": "feature/local-ai-runtime-discovery",
-    "branchHead": "0522e14",
-    "stage": "DCP Core / Cloud Resource Mesh implementation and persistent cross-transport terminal sessions",
-    "completed": "Removed restricted dcp_run_safe_terminal and consolidated full shell under dcp_terminal_execute. Added authenticated local terminal session daemon and enabled all 35 tools across STDIO, HTTP MCP and provider schemas. Added local Resource Registry/Broker with grants/invocation ledger, owner-local Ollama/OpenAI-compatible invocation adapter and five resource MCP tools. Added Cloud resource/team/grant schema, migration and authenticated endpoints. Added Cloud target terminal request inbox and source/target DCP UI with exact command hash, expiry and approve/reject; approval does not dispatch.",
-    "localTests": "php platform/tests/run.php — ALL PLATFORM TESTS PASSED after Resource Registry, Cloud contracts, daemon sharing, HTTP MCP session reconnect, 35-tool provider schema and source/target terminal approval UI contracts. PHP lint, node --check and git diff --check pass.",
-    "limitations": [
-      "Terminal session daemon uses persistent pipes, not native PTY/ConPTY emulation; daemon crash recovery/reattach is not implemented.",
-      "Windows detached daemon launcher and latest Resource Mesh/Cloud changes have not been tested on Windows or Ubuntu in this turn.",
-      "Source/target DCP UIs now submit and review exact-command approval requests; signed dispatch/results and remote execution remain disabled.",
-      "Resource owner-local secret_ref is stored as an opaque reference; vault resolution and actual provider/API invocation adapters are not yet implemented.",
-      "Local team membership/grant discovery is incomplete; Cloud team grants are implemented.",
-      "Hermes adapter and universal AI gateway orchestration remain open.",
-      "No Claude app restart/reconnect or logo UI check in this turn.",
-      "Stable installed v1.0.0 unchanged; no commit/push/release/Cloud production migration/deploy."
+    "branchHead": "c9620e5",
+    "stage": "DCP MCP local + Cloud control plane closed in source; Q015 resource invocation and signed remote terminal delivery advanced",
+    "completed": [
+      "Committed the DCP Core foundations in 8967bc0 and scoped Cloud MCP in c2998ec.",
+      "Local MCP: STDIO keepalive/logo and loopback Streamable HTTP share the same registry; 35 provider-neutral tools are available, including dcp_resource_invoke.",
+      "Cloud MCP: five scoped read-only tools for devices, pairings, resources, teams and grants; API tokens store explicit scopes, MCP tokens cannot use ordinary Cloud REST APIs, and resource discovery follows active user/team/device grants without exposing secret_ref.",
+      "Owner-local resource invocation supports Ollama and configured OpenAI-compatible providers using opaque provider:<id> references resolved only by the encrypted local ProviderService vault; invocation ledger closes success/failure and agent calls require plan-bound approval.",
+      "Q015 signed Cloud terminal dispatch/result path, target approval/execution separation, one-time local execution ledger, device result signatures, output redaction and source-side result retrieval UI are implemented and locally contract-tested.",
+      "Committed the latest Q015 resource invocation and source result UI changes in c9620e5."
     ],
-    "workingDirectories": {
-      "source": "/Volumes/Data/ChatGPT/DCP-Source",
-      "releaseInstall": "/Volumes/Data/DiGiPL/DCP",
-      "dpMemory": "/Volumes/Data/DiGiPL/DP_MEMORY",
-      "desktopCommanderReference": "/Volumes/Data/DiGiPL/References/DesktopCommanderMCP"
-    }
+    "localTests": "php platform/tests/run.php — ALL PLATFORM TESTS PASSED. PHP lint across platform PHP files, node --check platform/public/assets/app.js, git diff --check, local MCP STDIO/HTTP E2E, Cloud MCP SQLite service/contract tests, resource invocation tests and remote terminal UI/dispatch contracts all pass.",
+    "commits": [
+      "8967bc0",
+      "c2998ec",
+      "c9620e5"
+    ],
+    "limitations": [
+      "Commits are local only: branch is three commits ahead of origin; no push or release.",
+      "Cloud public health endpoint currently returns ok/database/schema 200, but this does not prove the new Cloud MCP code or api_tokens.scopes_json migration is deployed. No production Cloud code upload or MySQL migration was performed.",
+      "Production DCP_CLOUD_SIGNING_SEED is not provisioned. Cloud signing requires a generated secret in the protected Cloud environment; never commit it.",
+      "Q007 production APP_KEY rotation remains blocked pending explicit approval; do not bypass the secret-file safety guard.",
+      "Signed remote terminal flow is tested with local mocks/contracts; real Mac↔Windows/Ubuntu two-device execution has not been run.",
+      "Owner-local resource invocation adapters are tested with a fake ChatService contract; no live external provider call was made in this turn.",
+      "Cloud owner-node resource invocation/proxy and cross-device invocation results are not yet implemented; local team/device grant discovery parity remains open.",
+      "Hermes adapter, native PTY/ConPTY, terminal daemon crash recovery/reattach and Windows/Ubuntu full-suite acceptance remain open.",
+      "Stable installed v1.0.0 was not modified; no Cloud production DB, existing DiGEMA MySQL data, user secrets or model files were changed."
+    ],
+    "next": [
+      "Implement Cloud resource invocation inbox/owner-node signed request-result with grants, quota and concurrency.",
+      "Complete local team/device grant discovery parity.",
+      "Integrate Hermes as a provider-neutral agent adapter and finish universal gateway orchestration.",
+      "Run real Mac↔Windows/Ubuntu signed terminal and resource invocation acceptance; add PTY/ConPTY and daemon recovery.",
+      "Only after explicit Q007 key approval, provision DCP_CLOUD_SIGNING_SEED and deploy Cloud code/migrations; then test the live Cloud MCP endpoint with a scoped token."
+    ],
+    "noPublication": true
   },
   "knownConstraints": [
     "Develop only in /Volumes/Data/ChatGPT/DCP-Source; stable installation is /Volumes/Data/DiGiPL/DCP; DP_MEMORY is separate at /Volumes/Data/DiGiPL/DP_MEMORY.",

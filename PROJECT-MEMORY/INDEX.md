@@ -67,3 +67,6 @@ This folder is the durable continuity layer for ChatGPT and other authorized eng
 
 
 - Latest DC67 handoff: handoffs/DC67-dcp-core-cloud-resource-mesh-terminal-sessions-2026-11-25.md; latest immutable checkpoint: versions/2026-11-25-DC67-dcp-core-cloud-resource-mesh-terminal-sessions.json.
+
+
+- **Current handoff (DC68):** `handoffs/DC68-local-cloud-mcp-q015-2026-11-25.md`; immutable checkpoint: `versions/2026-11-25-DC68-local-cloud-mcp-q015.json`. Local/Cloud MCP source implementations are committed; Q015 continues with Cloud owner-node resource invocation, team/device grant parity, Hermes and cross-platform acceptance.

@@ -552,3 +552,12 @@
 
 
 - DC67 follow-on: completed source-side remote Terminal request submission from the Terminal page and target-side approval inbox in Devices. The target UI displays the exact command/hash and explicit approve/reject; approval records only, no execution. Full platform suite passes after UI contracts.
+
+
+## 2026-11-25 — DC68: Local + Cloud MCP closure and Q015 invocation/dispatch
+- Committed DCP Core foundations (`8967bc0`) and a scoped read-only Cloud MCP control plane (`c2998ec`). Local MCP shares 35 tools across STDIO/loopback HTTP; Cloud MCP exposes five read-only account tools with explicit per-token scopes and REST-token isolation.
+- Added owner-local Ollama and OpenAI-compatible resource invocation through encrypted ProviderService credentials, invocation ledger, failure closure and agent approval policy. Added `dcp_resource_invoke` and source-side remote terminal signed-result retrieval UI; committed as `c9620e5`.
+- Completed local signed remote-terminal dispatch/result code path with target-side second-click execution, Ed25519 verification/signing, one-time local ledger and output redaction; mocked/contract tests pass.
+- `php platform/tests/run.php`: ALL PLATFORM TESTS PASSED. All platform PHP files lint, app.js syntax, git diff check, local MCP STDIO/HTTP E2E, Cloud MCP service/contracts and resource/remote-terminal tests pass.
+- Three commits are local and branch is ahead 3. No push, release, Cloud production upload/migration, or stable install modification. Cloud health 200 does not confirm new Cloud MCP deployment. Protected Cloud signing seed and existing Q007 APP_KEY approval remain production gates.
+- Next: Cloud owner-node resource invocation/proxy, local team/device grant parity, Hermes, two-device Windows/Ubuntu acceptance, native PTY/ConPTY and daemon crash recovery.
