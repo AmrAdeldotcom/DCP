@@ -851,3 +851,13 @@ Preserve static VM IPs Ubuntu 192.168.8.88 and Windows 192.168.8.99. Never stage
 - [ ] Confirm Mac package rebuild if needed; user explicitly requested VM acceptance rather than Mac visual testing.
 - [ ] Commit/push the Cloud status best-effort request change and its regression test.
 - Relay remains `false` / `signaling-only`; do not represent relay as online. Cloud heartbeat is separate from relay transport.
+
+
+## DC74 latest verification — 2026-11-26
+- [x] Latest source commits pushed to `feature/local-ai-runtime-discovery`: `1e5fa43` (chat flex sizing + model paths) and `a28caa7` (Cloud status best-effort enrichment).
+- [x] Full platform suite passed after Cloud change, including regression for optional Cloud details not blocking heartbeat. Local AI UI contract passed with the new full-height chat assertion. PHP lint, JS syntax, shell syntax and diff checks passed.
+- [x] Ubuntu DCP app now owns 127.0.0.1:60776; Bootstrap HTTP 200; Cloud status HTTP 200, connected=true, heartbeat verified. Ollama restored on 127.0.0.1:11434 after DCP had acquired 60776; Ollama API version 0.40.18 and model inventory count=1. Existing `/home/amr/.ollama/models` left in place.
+- [x] Cloud public health is healthy (database/schema ok). Ubuntu public TLS connection is slow (~8.5s), explaining why the UI could report Offline during the previous short request window. Optional pair detail requests are now bounded best-effort.
+- [ ] Windows source files are synchronized, but DCP.exe was not observed listening on 60776; no live Windows Cloud heartbeat confirmed. The logged-in interactive user is `amradeldotcom`; SSH identity is `dcpadmin`, so avoid launching under the wrong profile.
+- [ ] Cloud relay remains disabled (`relay:false`, `signaling-only`). Presence/heartbeat works; relay transport is not deployed.
+- [ ] User VM visual acceptance remains pending. No system-level Node/DC/DSH install performed.

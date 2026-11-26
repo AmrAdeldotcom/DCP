@@ -71,3 +71,13 @@ Date: 2026-11-26
 - The system Ollama service requires interactive authentication to start again; it remains stopped. No model files were moved/deleted.
 - Synced chat layout and CloudService source to Windows DCP package directory; Windows DCP process was not running. Do not launch as SSH account `dcpadmin` because user `amradeldotcom` has the active console session and different user data.
 - Cloud public health reports relay=false / signaling-only. Relay is not deployed/enabled.
+
+
+## Final DC74 verification — 2026-11-26
+- Pushed commits `1e5fa43` and `a28caa7` to `origin/feature/local-ai-runtime-discovery`. `PROJECT-MEMORY/NETWORK-RESUME-REQUEST.json` remained untracked and excluded.
+- Full platform suite passed after Cloud status change; local AI UI contract passed; PHP/JS/shell syntax and diff checks passed.
+- Ubuntu DCP owns fixed port 60776 and returns Bootstrap 200. Cloud status returns HTTP 200, connected=true, anonymous Guest, heartbeat verified. Public Cloud health DB/schema ok. The VM's TLS connection to Cloud is slow (~8.5s); optional pairing detail requests are now bounded best-effort so they cannot hold heartbeat status.
+- Restored Ollama on 127.0.0.1:11434 after DCP acquired 60776. API version 0.40.18; one existing model visible. Existing `~/.ollama/models` data was not moved or deleted.
+- Windows source synchronized, but DCP.exe was not running/listening at last check. Active interactive user is `amradeldotcom`; remote SSH account is `dcpadmin`, and no profile switch was made. Windows live Cloud heartbeat remains unverified.
+- Cloud relay remains false/signaling-only. Do not call this a relay success.
+- No system-level Node/DC/DSH install, no model migration, no stable app modification, no release/tag.
