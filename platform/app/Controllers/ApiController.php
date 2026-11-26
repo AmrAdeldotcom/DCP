@@ -60,6 +60,7 @@ final class ApiController {
    if($method==='GET'&&$path==='/api/providers/catalog'){$items=[];foreach($this->plugins->byType('provider') as $p){$items[]=['id'=>$p['id'],'name'=>$p['name'],'default_base_url'=>$p['default_base_url']??'','default_model'=>$p['default_model']??'','requires_api_key'=>(bool)($p['requires_api_key']??true),'model_discovery'=>$p['model_discovery']??'live'];}$this->json(['providers'=>$items]);}
    if($method==='GET'&&$path==='/api/providers'){$this->json(['providers'=>array_merge([['id'=>'ollama','name'=>'Ollama (Local)','driver'=>'ollama','base_url'=>'http://127.0.0.1:11434','model'=>'','api_key_masked'=>'','enabled'=>true]],$this->provider->list())]);}
    if($method==='GET'&&$path==='/api/agents'){$this->json(['agents'=>$this->agents->all()]);}
+   if($method==='POST'&&$path==='/api/agents/action'){$this->csrf();$this->json($this->agents->action((string)($d['id']??''),(string)($d['action']??'')));}
    if($method==='GET'&&$path==='/api/plugins'){$this->json(['plugins'=>$this->plugins->all()]);}
    if($method==='GET'&&$path==='/api/devices'){$this->json(['devices'=>$this->devices->list(),'invitations'=>$this->devices->invitations()]);}
    if($method==='GET'&&$path==='/api/settings'){$this->json(['language'=>$this->setting('language','en'),'theme'=>$this->setting('theme','light'),'mail'=>$this->mail->settings(),'terminal_root'=>$this->config['terminal_root'],'public_base_url'=>$this->setting('public_base_url','')]);}

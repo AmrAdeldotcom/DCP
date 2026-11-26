@@ -8,7 +8,7 @@ final class LocalAIService {
  private string $root;
  private string $storage;
  private array $catalog=[
-  ['id'=>'qwen3:0.6b','name'=>'Qwen3 0.6B · GGUF Q4_K_M','ram'=>4,'min_ram_gb'=>2,'download'=>'~397 MB · offline import recommended','tier'=>'Starter · First suggestion','note'=>'Import the supplied GGUF file once, then run it with llama.cpp or convert the same file into Ollama'],
+  ['id'=>'qwen3:0.6b','name'=>'Qwen3 0.6B · GGUF Q4_K_M','ram'=>4,'min_ram_gb'=>2,'download'=>'Download through the selected engine','tier'=>'Starter · First suggestion','note'=>'Install Ollama or llama.cpp, then download this model into the engine native model store'],
   ['id'=>'qwen3:1.7b','name'=>'Qwen3 1.7B','ram'=>8,'download'=>'~1.4 GB','tier'=>'Light','note'=>'Good balance for low-memory devices'],
   ['id'=>'qwen3:4b','name'=>'Qwen3 4B','ram'=>12,'download'=>'~2.5 GB','tier'=>'Balanced','note'=>'Recommended everyday assistant'],
   ['id'=>'qwen3:8b','name'=>'Qwen3 8B','ram'=>20,'download'=>'~5.2 GB','tier'=>'Powerful','note'=>'Better reasoning; needs more memory'],
@@ -40,62 +40,39 @@ final class LocalAIService {
   return $exit===0?trim($stdout):'';
  }
 
- private function llamaRuntimeCandidates(string $os,string $arch,string $features=''):array {
-  $arch=strtolower($arch);
-  if($os==='Linux')return in_array($arch,['x86_64','amd64'],true)?['linux-x64']:[];
-  if($os==='Darwin') {
-   if(in_array($arch,['arm64','aarch64'],true))return ['macos-arm64'];
-   if(in_array($arch,['x86_64','amd64'],true)) {
-    $hasAvx2=preg_match('/(?:^|\s)AVX2(?:\s|$)/i',$features)===1;
-    return $hasAvx2?['macos-x64-avx2','macos-x64-sse42']:['macos-x64-sse42'];
-   }
-  }
-  return [];
+ private function enginePathFile():string{return $this->storage.'/runtime/engine-paths.json';}
+ private function savedEnginePath(string $engine):string{
+  $file=$this->enginePathFile();if(!is_file($file)||is_link($file))return '';
+  $data=json_decode((string)file_get_contents($file),true);
+  return is_array($data)?(string)($data[$engine]??''):'';
  }
-
+ private function rememberEnginePath(string $engine,string $path):void{
+  if($path===''||!is_file($path))return;
+  if(PHP_OS_FAMILY!=='Windows'&&!is_executable($path))return;
+  $file=$this->enginePathFile();$dir=dirname($file);
+  if(!is_dir($dir)&&!mkdir($dir,0700,true)&&!is_dir($dir))return;
+  $data=[];if(is_file($file)&&!is_link($file)){$old=json_decode((string)file_get_contents($file),true);if(is_array($old))$data=$old;}
+  $data[$engine]=$path;$tmp=$file.'.tmp-'.bin2hex(random_bytes(4));
+  if(file_put_contents($tmp,json_encode($data,JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES),LOCK_EX)!==false){@chmod($tmp,0600);@rename($tmp,$file);@chmod($file,0600);}
+ }
  private function binary(string $name):string {
+  $engine=($name==='ollama'||$name==='ollama.exe')?'ollama':'llama.cpp';
+  $saved=$this->savedEnginePath($engine);
+  if($saved!==''&&is_file($saved)&&(PHP_OS_FAMILY==='Windows'||is_executable($saved)))return $saved;
   if(PHP_OS_FAMILY==='Windows') {
    $safe=preg_replace('/[^A-Za-z0-9._-]/','',$name)?:'';
    $found=$safe!==''?$this->run('where.exe '.$safe,3):'';
-   if($found!=='')return strtok($found,"\n")?:'';
+   if($found!==''){$path=strtok($found,"\n")?:'';if($path!==''){$this->rememberEnginePath($engine,$path);return $path;}}
    $local=getenv('LOCALAPPDATA')?:'';$programFiles=getenv('ProgramFiles')?:'C:\\Program Files';
-   $candidates=[];
-   if($name==='ollama'||$name==='ollama.exe')$candidates=[
-    $this->root.'\\dcp-env\\engines\\ollama\\windows-x64\\ollama.exe',
-    $local.'\\Programs\\Ollama\\ollama.exe',$local.'\\Ollama\\ollama.exe',$programFiles.'\\Ollama\\ollama.exe'
-   ];
-   if($name==='llama-server'||$name==='llama-server.exe')$candidates=[
-    $this->root.'\\dcp-env\\engines\\llama.cpp\\windows-x64\\llama-server.exe',
-    $local.'\\DCP\\llama.cpp\\bin\\llama-server.exe'
-   ];
-   foreach($candidates as $candidate)if($candidate!==''&&is_file($candidate))return $candidate;
+   $candidates=$engine==='ollama'?[$local.'\\Programs\\Ollama\\ollama.exe',$local.'\\Ollama\\ollama.exe',$programFiles.'\\Ollama\\ollama.exe']:[$local.'\\Programs\\llama.cpp\\llama-server.exe',$local.'\\Programs\\llama.cpp\\bin\\llama-server.exe'];
+   foreach($candidates as $candidate)if($candidate!==''&&is_file($candidate)){$this->rememberEnginePath($engine,$candidate);return $candidate;}
    return '';
   }
   $system=$this->run('command -v '.escapeshellarg($name),3);
-  if($system!==''){
-   $system=strtok($system,"\n")?:'';
-   if($system!==''&&is_executable($system))return $system;
-  }
-  $arch=strtolower(php_uname('m'));
-  $osArch=in_array($arch,['arm64','aarch64'],true)?'macos-arm64':'macos-x64';
-  if($name==='llama-server') {
-   $features='';
-   if(PHP_OS_FAMILY==='Darwin'&&in_array($arch,['x86_64','amd64'],true))
-    $features=$this->run('/usr/sbin/sysctl -n machdep.cpu.leaf7_features 2>/dev/null').' '.$this->run('/usr/sbin/sysctl -n machdep.cpu.features 2>/dev/null');
-   $candidates=$this->llamaRuntimeCandidates(PHP_OS_FAMILY,$arch,$features);
-   foreach($candidates as $runtime){$managed=$this->root.'/dcp-env/engines/llama.cpp/'.$runtime.'/llama-server';if(is_executable($managed))return $managed;}
-   $legacy=(getenv('HOME')?:'').'/.local/bin/llama-server';
-   if(is_executable($legacy))return $legacy;
-  }
-  if($name==='ollama') {
-   $systemApp='/Applications/Ollama.app/Contents/Resources/ollama';
-   if(PHP_OS_FAMILY==='Darwin'&&is_executable($systemApp))return $systemApp;
-   $managed=PHP_OS_FAMILY==='Linux'
-    ?$this->root.'/dcp-env/engines/ollama/linux-x64/bin/ollama'
-    :$this->root.'/dcp-env/engines/ollama/'.$osArch.'/Ollama.app/Contents/Resources/ollama';
-   if(is_executable($managed))return $managed;
-   if(PHP_OS_FAMILY==='Linux'&&is_executable($this->root.'/dcp-env/engines/ollama/linux-x64/ollama'))return $this->root.'/dcp-env/engines/ollama/linux-x64/ollama';
-  }
+  if($system!==''){$system=strtok($system,"\n")?:'';if($system!==''&&is_executable($system)){$this->rememberEnginePath($engine,$system);return $system;}}
+  $home=getenv('HOME')?:'';
+  $candidates=$engine==='ollama'?['/usr/local/bin/ollama','/opt/homebrew/bin/ollama','/usr/bin/ollama',$home.'/.local/bin/ollama','/Applications/Ollama.app/Contents/Resources/ollama',$home.'/Applications/Ollama.app/Contents/Resources/ollama']:['/opt/homebrew/bin/llama-server','/usr/local/bin/llama-server','/usr/bin/llama-server',$home.'/.local/bin/llama-server'];
+  foreach($candidates as $candidate)if($candidate!==''&&is_executable($candidate)){$this->rememberEnginePath($engine,$candidate);return $candidate;}
   return '';
  }
 
@@ -271,7 +248,7 @@ PS;
   $port=(int)($state['port']??0);$online=$port>0&&(($state['ready']??false)||$this->llamaApiReady($port));
   $url=$online?'http://127.0.0.1:'.$port.'/v1':'';
   return ['hardware'=>$this->hardware($refreshHardware),'engines'=>[
-   'ollama'=>['installed'=>$this->binary('ollama')!=='','online'=>$oll['online'],'models'=>$oll['models'],'url'=>'http://127.0.0.1:11434'],
+   'ollama'=>['installed'=>$this->binary('ollama')!=='','path'=>$this->binary('ollama'),'online'=>$oll['online'],'models'=>$oll['models'],'url'=>'http://127.0.0.1:11434'],
    'llama_cpp'=>['installed'=>$llama!=='','binary'=>$llama,'online'=>$online,'url'=>$url,'port'=>$port?:null,'pid'=>$state['pid']??null,'model'=>$state['model']??'','managed'=>(bool)($state['managed']??false)]
   ],'catalog'=>$this->catalog,'install_log'=>$this->tailLog()];
  }
@@ -298,19 +275,52 @@ PS;
    file_put_contents($script,$body);
    $pid=(int)$this->runWindowsPowerShell(['-File',$script],8);
    if($pid<1)throw new RuntimeException('Windows could not start Ollama.');
+  } elseif(PHP_OS_FAMILY==='Darwin') {
+   $app=is_dir('/Applications/Ollama.app')?'/Applications/Ollama.app':((getenv('HOME')?:'').'/Applications/Ollama.app');
+   if(is_dir($app))$this->run('/usr/bin/open -a '.escapeshellarg($app),8);
+   else $this->run('nohup '.escapeshellarg($bin).' serve > '.escapeshellarg($log).' 2>&1 < /dev/null & echo $!',5);
+   $pid=(int)$this->run('pgrep -xo ollama',3);
   } else {
-   $envPrefix=$managed?'OLLAMA_MODELS='.escapeshellarg(dirname($this->storage).'/models/ollama').' OLLAMA_HOST=127.0.0.1:11434 ':'';
-   $pid=(int)$this->run('nohup env '.$envPrefix.escapeshellarg($bin).' serve > '.escapeshellarg($log).' 2>&1 < /dev/null & echo $!',5);
-   if($pid<1)throw new RuntimeException('Could not start Ollama.');
+   $unit=$this->run('systemctl list-unit-files ollama.service --no-legend 2>/dev/null',3);
+   if(str_contains($unit,'ollama.service')){$this->run('pkexec systemctl start ollama.service',30);$pid=(int)$this->run('pgrep -xo ollama',3);}
+   else {$envPrefix='OLLAMA_HOST=127.0.0.1:11434 ';$pid=(int)$this->run('nohup env '.$envPrefix.escapeshellarg($bin).' serve > '.escapeshellarg($log).' 2>&1 < /dev/null & echo $!',5);}
+   if($pid<1)throw new RuntimeException('Could not start Ollama. Check the operating system service and its permissions.');
   }
   return ['ok'=>true,'started'=>true,'pid'=>$pid,'message'=>'Ollama start requested.'];
  }
 
  public function stop(string $engine):array {
-  if($engine!=='llama.cpp')throw new InvalidArgumentException('Only a DCP-managed llama.cpp process can be stopped here.');
+  if($engine==='ollama'){
+   $bin=$this->binary('ollama');if($bin==='')return ['ok'=>true,'stopped'=>false,'message'=>'Ollama is not installed.'];
+   if(!$this->ollama()['online'])return ['ok'=>true,'stopped'=>false,'message'=>'Ollama is already stopped.'];
+   if(PHP_OS_FAMILY==='Windows')$this->run('powershell.exe -NoProfile -NonInteractive -Command "Get-Process ollama -ErrorAction SilentlyContinue | Stop-Process -Force"',5);
+   elseif(PHP_OS_FAMILY==='Darwin'){$this->run('/usr/bin/osascript -e '.escapeshellarg('tell application "Ollama" to quit').' 2>/dev/null || true',5);$this->run('pkill -TERM -x ollama 2>/dev/null || true',3);}
+   else {$this->run('pkexec systemctl stop ollama.service 2>/dev/null || systemctl --user stop ollama.service 2>/dev/null || pkill -TERM -x ollama 2>/dev/null || true',30);}
+   for($i=0;$i<30;$i++){if(!$this->ollama()['online'])return ['ok'=>true,'stopped'=>true,'message'=>'Ollama service stopped.'];usleep(200000);}
+   throw new RuntimeException('Ollama did not stop. Check whether the operating system service requires administrator permission.');
+  }
+  if($engine!=='llama.cpp')throw new InvalidArgumentException('Unsupported local AI engine stop action.');
+  if(is_file($this->llamaStateFile())){$saved=json_decode((string)file_get_contents($this->llamaStateFile()),true);if(is_array($saved)&&($saved['managed']??false)===true&&!$this->managedProcessMatches($saved)){@unlink($this->llamaStateFile());return ['ok'=>true,'stopped'=>false,'message'=>'The saved llama.cpp process identity is stale; no process was stopped.'];}}
   $state=$this->llamaState();
-  if(!$state)return ['ok'=>true,'stopped'=>false,'message'=>'No DCP-managed llama.cpp process is running.'];
-  if(!($state['managed']??false))throw new RuntimeException('This is an external llama.cpp service. DCP will not stop a process it does not own.');
+  if(!$state&&is_file($this->llamaStateFile()))return ['ok'=>true,'stopped'=>false,'message'=>'The saved llama.cpp process identity is stale; no process was stopped.'];
+  if(!$state)$state=$this->discoverExternalLlama();
+  if(!$state)return ['ok'=>true,'stopped'=>false,'message'=>'No llama.cpp server is running.'];
+  if(!($state['managed']??false)){
+   $port=(int)($state['port']??0);$bin=$this->llamaBinary();
+   if($port<1024||$bin==='')throw new RuntimeException('Cannot safely identify the external llama.cpp process.');
+   if(PHP_OS_FAMILY==='Windows'){
+    $script='$c=Get-NetTCPConnection -LocalPort '.$port.' -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1; if($c){$p=Get-CimInstance Win32_Process -Filter ("ProcessId = " + $c.OwningProcess); if($p -and [string]::Equals([IO.Path]::GetFullPath($p.ExecutablePath),[IO.Path]::GetFullPath('.json_encode($bin).'),[StringComparison]::OrdinalIgnoreCase)){Stop-Process -Id $c.OwningProcess -Force; "STOPPED"}}';
+    $this->runWindowsPowerShell(['-Command',$script],5);
+   }else{
+    $pidText=$this->run('lsof -nP -t -iTCP:'.$port.' -sTCP:LISTEN 2>/dev/null',3);$pid=(int)trim(strtok($pidText,"\n")?:'0');
+    if($pid<1)throw new RuntimeException('Could not identify the llama.cpp listener PID.');
+    $command=$this->run('ps -p '.(int)$pid.' -o command=',3);
+    if($command===''||!str_contains($command,$bin))throw new RuntimeException('The listener is not the detected llama.cpp executable; refusing to stop it.');
+    $this->run('kill -TERM '.(int)$pid,3);
+   }
+   for($i=0;$i<30;$i++){if(!$this->port($port))return ['ok'=>true,'stopped'=>true,'message'=>'llama.cpp server stopped.'];usleep(200000);}
+   throw new RuntimeException('llama.cpp server did not stop.');
+  }
   if(!$this->managedProcessMatches($state)) {
    @unlink($this->llamaStateFile());
    return ['ok'=>true,'stopped'=>false,'message'=>'The saved process identity no longer matches this DCP-managed server; no process was stopped.'];
@@ -337,13 +347,13 @@ PS;
   if($engine==='ollama'&&$this->binary('ollama')!=='')return ['ok'=>true,'installed'=>true,'message'=>'Ollama is already installed.'];
   if($os==='Darwin') {
    $folder=$engine==='llama.cpp'?'llama.cpp':'ollama';
-   $script=$this->root.'/dcp-env/engines/'.$folder.'/install-macos.sh';
+   $script=$this->root.'/installers/engines/'.$folder.'/install-macos.sh';
    if(!is_file($script))throw new RuntimeException('DCP managed installer is missing: '.$script);
    $pid=(int)$this->run('nohup /bin/bash '.escapeshellarg($script).' >> '.escapeshellarg($log).' 2>&1 < /dev/null & echo $!',5);
    if($pid<1)throw new RuntimeException('Could not start the DCP-managed runtime installer.');
   } elseif($os==='Windows') {
    $folder=$engine==='llama.cpp'?'llama.cpp':'ollama';
-   $script=$this->root.'\\dcp-env\\engines\\'.$folder.'\\install-windows.ps1';
+   $script=$this->root.'\\installers\\engines\\'.$folder.'\\install-windows.ps1';
    if(!is_file($script))throw new RuntimeException('DCP managed installer is missing: '.$script);
    $launcher=$this->storage.'/launch-local-ai-install.ps1';$scriptEsc=str_replace("'","''",$script);$logEsc=str_replace("'","''",$log);
    $body=<<<'PS'
@@ -357,11 +367,10 @@ PS;
    if($pid<1)throw new RuntimeException('Windows could not start the DCP-managed local AI installer.');
   } elseif($os==='Linux') {
    $folder=$engine==='llama.cpp'?'llama.cpp':'ollama';
-   $script=$this->root.'/dcp-env/engines/'.$folder.'/install-linux.sh';
+   $script=$this->root.'/installers/engines/'.$folder.'/install-linux.sh';
    if(!is_file($script))throw new RuntimeException('DCP Linux runtime installer is missing: '.$script);
-   // Both engines are installed into the per-app DCP runtime tree; no sudo,
-   // system package mutation, or global /usr/local install is required.
-   $launch='nohup /bin/bash '.escapeshellarg($script).' >> '.escapeshellarg($log).' 2>&1 < /dev/null & echo $!';
+   // Engines are installed outside the DCP app into standard OS-level locations.
+   $installerPrefix=$engine==='ollama'?'pkexec /bin/bash ':'/bin/bash ';$launch='nohup '.$installerPrefix.escapeshellarg($script).' >> '.escapeshellarg($log).' 2>&1 < /dev/null & echo $!';
    $pid=(int)$this->run($launch,5);
    if($pid<1)throw new RuntimeException('Could not launch the Linux runtime installer. Check Engine activity logs.');
   } else throw new RuntimeException('Unsupported operating system: '.$os);
@@ -391,11 +400,13 @@ PS;
   return ['-hf',$profile];
  }
  private function llamaContextSize(string $model):int {
-  return $model==='qwen3:0.6b'?2048:4096;
+  return $model==='qwen3:0.6b'?8192:8192;
  }
  private function llamaCacheDirectory():string {
   $configured=trim((string)(getenv('LLAMA_CACHE')?:''));
-  return $configured!==''?$configured:dirname($this->storage).'/models/llama.cpp';
+  if($configured!=='')return $configured;
+  if(PHP_OS_FAMILY==='Windows')return (getenv('USERPROFILE')?:sys_get_temp_dir()).DIRECTORY_SEPARATOR.'.cache'.DIRECTORY_SEPARATOR.'huggingface'.DIRECTORY_SEPARATOR.'hub';
+  return (getenv('HOME')?:sys_get_temp_dir()).'/.cache/huggingface/hub';
  }
  private function isSameManagedLlamaModel(array $state,string $model):bool {
   return ($state['managed']??false)===true && hash_equals((string)($state['model']??''),$model);

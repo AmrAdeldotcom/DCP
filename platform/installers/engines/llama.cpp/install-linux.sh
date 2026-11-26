@@ -2,7 +2,8 @@
 set -Eeuo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PLATFORM_ROOT="$(cd "$SCRIPT_DIR/../../../.." && pwd)/platform"
-DEST="$PLATFORM_ROOT/dcp-env/engines/llama.cpp/linux-x64"
+DEST="$HOME/.local/bin/llama-server"
+DEST_DIR="$HOME/.local/bin"
 command -v curl >/dev/null || command -v wget >/dev/null || { echo "curl or wget is required." >&2; exit 1; }
 download() {
   local url="$1" output="$2"
@@ -11,8 +12,8 @@ download() {
 }
 command -v python3 >/dev/null || { echo "Python 3 is required." >&2; exit 1; }
 command -v tar >/dev/null || { echo "tar is required." >&2; exit 1; }
-if [ -x "$DEST/llama-server" ] && "$DEST/llama-server" --version >/dev/null 2>&1; then
-  echo "Compatible DCP-managed llama.cpp runtime already installed."
+if [ -x "$DEST" ] && "$DEST" --version >/dev/null 2>&1; then
+  echo "llama.cpp is already installed in the standard user binary location."
   exit 0
 fi
 TMP="$(mktemp -d)"
@@ -42,23 +43,16 @@ mkdir "$TMP/unpacked"
 tar -xzf "$TMP/llama.tar.gz" -C "$TMP/unpacked"
 SERVER="$(find "$TMP/unpacked" -type f -name llama-server -print -quit)"
 [ -n "$SERVER" ] || { echo "llama-server was not found in the official Ubuntu archive." >&2; exit 1; }
-STAGE="$DEST.new"
-rm -rf "$STAGE"
-mkdir -p "$STAGE"
-cp -R "$(dirname "$SERVER")/." "$STAGE/"
-chmod 0755 "$STAGE/llama-server"
-if ldd "$STAGE/llama-server" | grep -q "not found"; then
-  ldd "$STAGE/llama-server" >&2
+STAGE="$TMP/llama-server"
+cp "$SERVER" "$STAGE"
+chmod 0755 "$STAGE"
+if ldd "$STAGE" | grep -q "not found"; then
+  ldd "$STAGE" >&2
   echo "llama.cpp archive has unresolved shared-library dependencies." >&2
   exit 1
 fi
-"$STAGE/llama-server" --version
-PREVIOUS="$DEST.previous"
-rm -rf "$PREVIOUS"
-if [ -d "$DEST" ]; then mv "$DEST" "$PREVIOUS"; fi
-if ! mv "$STAGE" "$DEST"; then
-  [ ! -d "$PREVIOUS" ] || mv "$PREVIOUS" "$DEST"
-  exit 1
-fi
-rm -rf "$PREVIOUS"
-echo "DCP-managed llama.cpp installed to $DEST."
+"$STAGE" --version
+mkdir -p "$DEST_DIR"
+install -m 0755 "$STAGE" "$DEST.new"
+mv -f "$DEST.new" "$DEST"
+echo "System llama.cpp installed to $DEST."

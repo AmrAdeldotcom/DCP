@@ -11,19 +11,25 @@ elif [ "$ARCH" = "x86_64" ]; then
 else
   echo "Unsupported Mac architecture: $ARCH" >&2; exit 1
 fi
-DEST="$PLATFORM_ROOT/dcp-env/engines/llama.cpp/$RUNTIME"
-if [ -x "$DEST/llama-server" ] && "$DEST/llama-server" --version >/dev/null 2>&1; then
+DEST="$HOME/.local/bin/llama-server"
+TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
+if [ -x "$DEST" ] && "$DEST" --version >/dev/null 2>&1; then
   echo "Compatible DCP llama.cpp runtime already installed: $RUNTIME"; exit 0
 fi
 if [ "$RUNTIME" = "macos-x64-sse42" ]; then
-  BUILD_SCRIPT="$PLATFORM_ROOT/dcp-env/engines/llama.cpp/build-macos-generic.sh"
-  if [ -f "$PLATFORM_ROOT/dcp-env/engines/llama.cpp/source/CMakeLists.txt" ] || [ -n "${DCP_LLAMA_SOURCE:-}" ]; then
-    exec /bin/bash "$BUILD_SCRIPT"
-  fi
-  echo "This Intel CPU has no AVX2. The release must include the generic SSE4.2 runtime; refusing to download an incompatible AVX2 binary." >&2
-  exit 1
+  command -v git >/dev/null || { echo "Git is required for the generic Intel build." >&2; exit 1; }
+  command -v cmake >/dev/null || { echo "CMake is required for the generic Intel build." >&2; exit 1; }
+  command -v make >/dev/null || { echo "Make is required for the generic Intel build." >&2; exit 1; }
+  echo "No AVX2 detected; compiling the generic CPU server from official upstream source in a temporary folder."
+  git clone --depth 1 https://github.com/ggml-org/llama.cpp.git "$TMP/llama-source"
+  cmake -S "$TMP/llama-source" -B "$TMP/llama-build" -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF -DGGML_AVX2=OFF -DGGML_AVX=OFF -DGGML_FMA=OFF -DGGML_F16C=OFF -DLLAMA_BUILD_SERVER=ON
+  cmake --build "$TMP/llama-build" --config Release --target llama-server -j 4
+  SERVER="$TMP/llama-build/bin/llama-server"
+  [ -x "$SERVER" ] || { echo "Generic Intel llama-server build failed." >&2; exit 1; }
+  mkdir -p "$HOME/.local/bin"; install -m 0755 "$SERVER" "$DEST.new"; mv -f "$DEST.new" "$DEST"
+  echo "System llama.cpp installed to $DEST."
+  exit 0
 fi
-TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
 curl -fsSL 'https://api.github.com/repos/ggml-org/llama.cpp/releases?per_page=1' -o "$TMP/releases.json"
 python3 - "$TMP/releases.json" "$ASSET_HINT" "$TMP/url" "$TMP/digest" <<'PY'
 import json,sys
@@ -40,13 +46,7 @@ EXPECTED="$(cat "$TMP/digest")"; ACTUAL="$(shasum -a 256 "$TMP/llama.tar.gz" | a
 mkdir "$TMP/unpacked"; tar -xzf "$TMP/llama.tar.gz" -C "$TMP/unpacked"
 SERVER="$(find "$TMP/unpacked" -type f -name llama-server -print -quit)"
 [ -n "$SERVER" ] || { echo "llama-server was not found in the official archive." >&2; exit 1; }
-STAGE="$DEST.new"; rm -rf "$STAGE"; mkdir -p "$STAGE"; cp -R "$(dirname "$SERVER")/." "$STAGE/"
-chmod +x "$STAGE/llama-server"; "$STAGE/llama-server" --version >/dev/null
-PREVIOUS="$DEST.previous"; rm -rf "$PREVIOUS"
-if [ -d "$DEST" ]; then mv "$DEST" "$PREVIOUS"; fi
-if ! mv "$STAGE" "$DEST"; then
-  [ ! -d "$PREVIOUS" ] || mv "$PREVIOUS" "$DEST"
-  exit 1
-fi
-rm -rf "$PREVIOUS"
-echo "Compatible DCP-managed llama.cpp installed to $DEST."
+STAGE="$TMP/llama-server"; cp "$SERVER" "$STAGE"
+chmod +x "$STAGE"; "$STAGE" --version >/dev/null
+mkdir -p "$HOME/.local/bin"; install -m 0755 "$STAGE" "$DEST.new"; mv -f "$DEST.new" "$DEST"
+echo "System llama.cpp installed to $DEST."

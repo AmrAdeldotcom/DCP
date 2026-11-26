@@ -1,9 +1,9 @@
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
-$PlatformRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
-$Dest = Join-Path $PlatformRoot 'dcp-env\engines\llama.cpp\windows-x64'
+$Dest = Join-Path $env:LOCALAPPDATA 'Programs\llama.cpp'
 $SystemServer = Get-Command 'llama-server.exe' -ErrorAction SilentlyContinue
 if ($SystemServer) { Write-Host "System llama-server exists at $($SystemServer.Source); DCP will reuse it."; exit 0 }
+if (Test-Path (Join-Path $Dest 'llama-server.exe')) { Write-Host "llama.cpp already installed at $Dest"; exit 0 }
 $Releases = Invoke-RestMethod -Uri 'https://api.github.com/repos/ggml-org/llama.cpp/releases?per_page=1' -Headers @{ 'User-Agent' = 'DCP-Runtime-Installer' }
 $Asset = $Releases[0].assets | Where-Object { $_.name -match '^llama-.*-bin-win-cpu-x64\.zip$' } | Select-Object -First 1
 if (-not $Asset -or -not $Asset.digest.StartsWith('sha256:')) { throw 'Official llama.cpp Windows CPU x64 archive or SHA-256 digest is missing.' }
@@ -28,5 +28,5 @@ try {
     throw
   }
   if (Test-Path $Previous) { Remove-Item $Previous -Recurse -Force }
-  Write-Host "DCP-managed llama.cpp installed to $Dest."
+  Write-Host "System llama.cpp installed to $Dest."
 } finally { Remove-Item $Temp -Recurse -Force -ErrorAction SilentlyContinue }

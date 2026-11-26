@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "session": "DC72",
+  "date": "2026-11-26",
+  "branch": "feature/local-ai-runtime-discovery",
+  "headCommit": "pending-DC72",
+  "version": "1.0.0",
+  "build": 11,
+  "packageRevision": 2,
+  "releasePublished": false,
+  "tests": {
+    "platform": "ALL PLATFORM TESTS PASSED",
+    "localAiUiContracts": "ALL LOCAL AI UI CONTRACT CHECKS PASSED",
+    "phpLint": "PASS",
+    "jsSyntax": "PASS",
+    "gitDiffCheck": "PASS"
+  },
+  "devices": {
+    "macOS": {
+      "dcpPort": 60776,
+      "api": "ok",
+      "ollama": "running with 3 non-test models",
+      "desktopCommander": "installed/running; task channel not paired",
+      "dsh": "installed/running; task adapter not verified"
+    },
+    "ubuntu": {
+      "ip": "192.168.8.88",
+      "dcpPort": 60776,
+      "api": "ok",
+      "ollama": "removed",
+      "llamaCpp": "removed",
+      "desktopCommander": "not installed",
+      "dsh": "not supported in this build"
+    },
+    "windows": {
+      "ip": "192.168.8.99",
+      "dcpPort": 60776,
+      "api": "ok",
+      "php": "8.5.13",
+      "wrapper": "self-contained .NET win-x64",
+      "shortcut": "C:/DCP/DCP.exe",
+      "ollama": "not installed",
+      "llamaCpp": "not installed",
+      "desktopCommander": "not installed",
+      "dsh": "not supported in this build"
+    }
+  },
+  "modelCleanup": {
+    "qwen3TestModelRemoved": true,
+    "sha256": "ac2d97712095a558e31573f62f466a3f9d93990898b0ec79d7c974c1780d524a"
+  },
+  "cloud": "not paired; Guest/Offline until user pairs devices",
+  "open": [
+    "visual hard-refresh acceptance on all three WebViews",
+    "pair all devices to Cloud and verify heartbeat/reconnect",
+    "Q015 signed remote task/resource dispatch, owner approvals, grants and result flow",
+    "complete authenticated Desktop Commander task adapter",
+    "verify official DSH Windows/Linux distribution before supporting those platforms"
+  ]
+}

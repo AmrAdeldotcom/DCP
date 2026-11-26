@@ -2,6 +2,7 @@
   "version": "1.0.0",
   "releaseTag": "v1.0.0",
   "channel": "stable",
-  "build": "10",
-  "packageRevision": 1
+  "build": 11,
+  "packageRevision": 2,
+  "updated_at": "2026-11-26"
 }

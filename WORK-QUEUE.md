@@ -744,3 +744,27 @@ Preserve: static VM IPs Ubuntu 192.168.8.88, Windows 192.168.8.99; stable /Volum
 - [ ] Continue Q015 Cloud owner-node invocation and real two-device acceptance.
 
 Preserve static VM IPs: Ubuntu 192.168.8.88, Windows 192.168.8.99. Stable /Volumes/Data/DiGiPL/DCP v1.0.0 remains untouched. Do not stage PROJECT-MEMORY/NETWORK-RESUME-REQUEST.json.
+
+
+## DC72 active queue  OS-level engines, chat layout, Windows startup and VM cleanup
+
+### Completed
+- [x] Remove engine runtime/source bundles from DCP app tree; installers live under platform/installers/engines.
+- [x] Detect and persist OS-level Ollama/llama.cpp paths; use native model stores and optional GGUF import.
+- [x] Add Ollama start/stop and safe llama.cpp stop.
+- [x] Add Desktop Commander install/start/stop; DSH detection and macOS launch/quit with explicit Windows/Linux unsupported state.
+- [x] Bound chat history and raise local context to 8192; show detailed Ollama errors.
+- [x] Make chat conversation-first with 25/75 history/workspace and bottom AI/Tasks/device dock.
+- [x] Remove Qwen3 test model and copies from Mac/VMs; remove Ubuntu Ollama and bundled llama test runtime.
+- [x] Correct Windows shortcut, active-user ACL and deploy self-contained wrapper; Windows DCP API is live on 60776.
+- [x] Full platform and local AI UI contract tests pass.
+
+### Still open
+- [ ] Final sync last source deltas to Ubuntu/Windows and verify /api/agents.
+- [ ] Visual hard-refresh acceptance for chat dock on all three WebViews.
+- [ ] Pair Mac, Ubuntu and Windows to Cloud and test heartbeat/reconnect.
+- [ ] Q015 signed remote tasks/resources, approval, permanent grants, quotas, revocation and signed result flow.
+- [ ] Complete DC authenticated DCP task adapter; verify DSH cross-platform support only if official installers become available.
+- [ ] No signed release until Q015 and release checks are complete.
+
+Static VM IPs: Ubuntu 192.168.8.88, Windows 192.168.8.99. Stable /Volumes/Data/DiGiPL/DCP v1.0.0 untouched. Do not stage PROJECT-MEMORY/NETWORK-RESUME-REQUEST.json.

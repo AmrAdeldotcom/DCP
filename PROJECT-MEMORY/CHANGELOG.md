@@ -586,3 +586,14 @@
 - Reworked Chat into a 25/75 history/workspace layout with AI, Tasks and online-device context dock at the bottom, horizontal device tabs, @ suggestions, Send click/Enter wiring and persistent hamburger collapse.
 - Added architecture documentation for DP-Core/DC/DSH task routing, device resource grants, owner approvals, signed Cloud execution, external agent installation and port policy.
 - Full platform tests and local AI UI contract checks pass; Mac wrapper build and Linux fixed-port API check pass.
+
+
+## 2026-11-26  DC72: OS-level engines, conversation-first chat, VM cleanup and Windows repair
+- Removed bundled engine runtime/source from platform/dcp-env/engines; installer scripts now live under platform/installers/engines.
+- Ollama/llama.cpp discovery uses OS PATH and standard locations; discovered paths persist in private engine-paths.json. Models download into native Ollama/Hugging Face caches; GGUF import is optional.
+- Added Ollama Start/Stop and safe llama.cpp Stop after executable identity validation. Added Desktop Commander install/start/stop and DSH macOS detection/start/stop; DSH Windows/Linux are reported unsupported until an official installer is verified.
+- Fixed local chat context overflow by bounding history to 8 messages / 10,000 chars and setting Ollama/llama.cpp context to 8192; Ollama errors now include response detail.
+- Reworked last-loaded CSS so conversation uses the 75% workspace and full vertical space; AI/Tasks/device tabs sit below composer, with AI provider choices remaining in composer.
+- Removed temporary Qwen3 GGUF/model from Mac and both VMs; Ubuntu Ollama and bundled llama.cpp test runtime removed; Windows had no installed Ollama/llama.cpp/DC/DSH.
+- Fixed Windows desktop shortcut to C:\\DCP\\DCP.exe, repaired active-user data ACL, deployed self-contained .NET wrapper and confirmed DCP.exe + PHP 8.5.13 listening on 127.0.0.1:60776.
+- Mac and Ubuntu DCP also use fixed port 60776. All local listeners remain loopback-only. Full platform and local AI UI contract tests pass.

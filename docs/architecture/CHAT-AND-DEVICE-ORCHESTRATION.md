@@ -12,11 +12,14 @@ The Chat workspace is one conversation surface with multiple execution contexts.
 
 ## Workspace geometry
 
-- Conversation history occupies approximately 25% of the horizontal workspace.
-- Active conversation occupies approximately 75%.
+- Conversation history occupies 25% of the horizontal workspace.
+- Active conversation occupies 75%.
 - History scrolls independently; messages scroll independently.
 - Composer remains anchored at the bottom of the active conversation.
-- Context dock is at the bottom edge of the chat workspace, not above message history.
+- Messages and composer take the main vertical space.
+- AI provider/model selectors stay in the composer; large Local AI/API provider cards are not rendered above the conversation.
+- Optional Tasks panel appears only when Tasks is selected and remains below the composer.
+- Context dock is at the very bottom, after the composer and optional Tasks panel.
 - Context dock contains AI, Tasks, then one tab per online paired device using its friendly name.
 - If no paired device is online, show No Device Online.
 - Device tabs scroll horizontally with left/right arrows.

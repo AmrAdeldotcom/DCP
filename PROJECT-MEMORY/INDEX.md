@@ -82,3 +82,8 @@ This folder is the durable continuity layer for ChatGPT and other authorized eng
 - Current handoff (DC71): PROJECT-MEMORY/handoffs/DC71-fixed-ports-chat-layout-windows-acl-2026-11-26.md; fixed DCP port registry, bottom chat context dock, Send/hamburger handlers and device-orchestration architecture docs. Windows runtime acceptance remains open.
 
 - Model portability decision: docs/architecture/MODEL-PORTABILITY-AND-DEVICE-IDENTITY.md — GGUF SHA remains stable; device UUID/signing identity rotates on clone; Cloud re-pair required.
+
+- DC72 handoff: PROJECT-MEMORY/handoffs/DC72-os-level-runtimes-chat-windows-cleanup-2026-11-26.md; OS-level engine paths, native model caches, conversation-first chat, VM cleanup and self-contained Windows wrapper.
+- Runtime installation contract: docs/architecture/LOCAL-RUNTIME-INSTALLATION.md.
+
+- DC72 version snapshot: PROJECT-MEMORY/versions/2026-11-26-DC72-os-level-runtimes.json — build 11, all three DCP local API ports, engine cleanup and remaining Cloud/Q015 acceptance.
