@@ -5,7 +5,7 @@
   "session": "DC72",
   "repository": "/Volumes/Data/ChatGPT/DCP-Source",
   "branch": "feature/local-ai-runtime-discovery",
-  "headCommit": "pending-DC72",
+  "headCommit": "36e14cd",
   "latestReleaseTag": "v1.0.0",
   "workingTree": "DC72: external OS-level engine install/detection, native model stores, optional GGUF import, bottom context dock, bounded history/8192 context, Ollama/llama.cpp service control, DC agent actions, VM cleanup, Windows shortcut/ACL/self-contained wrapper. Tests pass; final cross-VM source sync and commit pending.",
   "device": {
@@ -24,7 +24,7 @@
     "conversation": "DC72",
     "date": "2026-11-26",
     "branch": "feature/local-ai-runtime-discovery",
-    "branchHead": "pending-DC72",
+    "branchHead": "36e14cd",
     "stage": "OS-level engine separation and model cleanup complete; Windows self-contained wrapper running on fixed port; final cross-VM sync and commit pending.",
     "completed": [
       "Moved Ollama/llama.cpp installer scripts to platform/installers/engines; removed bundled engine runtime/source tree from platform/dcp-env/engines.",
@@ -36,10 +36,10 @@
       "Qwen3 temporary GGUF/model removed from Mac and VMs; Ubuntu Ollama and bundled llama runtime removed; Windows no external engines/agents installed.",
       "Windows shortcut updated to C:\\\\DCP\\\\DCP.exe, ACL granted to active user, self-contained .NET wrapper deployed and running; PHP 8.5.13 listening on 127.0.0.1:60776.",
       "Mac and Ubuntu DCP APIs respond on 127.0.0.1:60776.",
-      "Local AI UI contract tests and full platform suite passed."
+      "Local AI UI contract tests and full platform suite passed.",
+      "Final DC72 platform source sync completed on Ubuntu 192.168.8.88 and Windows 192.168.8.99; Ubuntu /api/agents verified."
     ],
     "limitations": [
-      "Last small source deltas still need final sync to Ubuntu and Windows.",
       "Visual hard-refresh acceptance on all three WebViews still pending.",
       "DSH Windows/Linux installer is not verified; current DSH build reports macOS-only.",
       "Desktop Commander is detected and controllable but authenticated DCP task channel is not yet paired.",
@@ -1002,13 +1002,13 @@
       }
     }
   },
-  "latestImplementationCommit": "pending-DC72",
-  "latestPushedCommit": "pending-DC72",
+  "latestImplementationCommit": "36e14cd",
+  "latestPushedCommit": "36e14cd",
   "folderSeparation": {
     "source": "DCP-Source",
     "sourcePath": "/Volumes/Data/ChatGPT/DCP-Source",
     "sourceBranch": "feature/local-ai-runtime-discovery",
-    "sourceHead": "pending-DC72",
+    "sourceHead": "36e14cd",
     "sourceWorkingTree": "DC72 changes remain on feature/local-ai-runtime-discovery; stable /Volumes/Data/DiGiPL/DCP v1.0.0 untouched.",
     "releaseInstall": "DCP",
     "releaseInstallPath": "/Volumes/Data/DiGiPL/DCP",

@@ -4,6 +4,7 @@ Date: 2026-11-26
 Branch: feature/local-ai-runtime-discovery
 Build: 1.0.0 / 11
 Previous pushed branch head: 7483027
+DC72 implementation commit: 36e14cd
 Repository: /Volumes/Data/ChatGPT/DCP-Source
 
 ## User decisions
@@ -58,7 +59,7 @@ Repository: /Volumes/Data/ChatGPT/DCP-Source
 
 ## Remaining
 
-1. Final sync of the last DC process-detection/PageController deltas to Ubuntu and Windows; verify /api/agents.
+1. Final source sync to Ubuntu and Windows is complete; verify Windows /api/agents visually after hard refresh.
 2. Visually confirm bottom dock in each WebView after hard refresh.
 3. DSH Windows/Linux distribution is not verified; do not attempt guessed installs.
 4. DC is process-detected and controllable, but its authenticated DCP task channel is not yet paired.

@@ -760,7 +760,8 @@ Preserve static VM IPs: Ubuntu 192.168.8.88, Windows 192.168.8.99. Stable /Volum
 - [x] Full platform and local AI UI contract tests pass.
 
 ### Still open
-- [ ] Final sync last source deltas to Ubuntu/Windows and verify /api/agents.
+- [x] Final source sync of DC72 deltas to Ubuntu 192.168.8.88 and Windows 192.168.8.99; Ubuntu /api/agents verified.
+- [ ] Verify Windows /api/agents and visual hard-refresh acceptance for the bottom chat dock.
 - [ ] Visual hard-refresh acceptance for chat dock on all three WebViews.
 - [ ] Pair Mac, Ubuntu and Windows to Cloud and test heartbeat/reconnect.
 - [ ] Q015 signed remote tasks/resources, approval, permanent grants, quotas, revocation and signed result flow.

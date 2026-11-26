@@ -3,7 +3,7 @@
   "session": "DC72",
   "date": "2026-11-26",
   "branch": "feature/local-ai-runtime-discovery",
-  "headCommit": "pending-DC72",
+  "headCommit": "36e14cd",
   "version": "1.0.0",
   "build": 11,
   "packageRevision": 2,
@@ -56,5 +56,11 @@
     "Q015 signed remote task/resource dispatch, owner approvals, grants and result flow",
     "complete authenticated Desktop Commander task adapter",
     "verify official DSH Windows/Linux distribution before supporting those platforms"
-  ]
+  ],
+  "sourceSync": {
+    "ubuntu": "complete",
+    "windows": "complete",
+    "ubuntuAgentsApi": "verified",
+    "windowsAgentsApi": "source synced; final GET /api/agents visual acceptance pending"
+  }
 }
