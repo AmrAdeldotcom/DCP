@@ -300,9 +300,46 @@ internal sealed class MainWindow : Form
         catch (SocketException) { return 0; }
     }
 
+    private static bool HasExistingUserData(string path)
+    {
+        return File.Exists(Path.Combine(path, "data", "dcp.sqlite"))
+            || File.Exists(Path.Combine(path, "storage", "keys", "master.key"));
+    }
+
     private string ResolveUserDataDirectory()
     {
+        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
         var portable = Path.Combine(root, "DCP-UserData", "Windows");
+        var installLegacy = Path.Combine(Path.GetPathRoot(root) ?? "C:\\", "DCP", "DCP-UserData", "Windows");
+        var legacy = Path.Combine(localAppData, "DCP", "DCP-UserData", "Windows");
+        var fallback = Path.Combine(localAppData, "DiGiPL", "DCP", "DCP-UserData", "Windows");
+
+        // Older Windows packages stored the real database, encryption key and
+        // model cache under LocalAppData\DCP. Reuse that directory in place
+        // when the new portable location has no data. Never silently create a
+        // fresh device identity beside an existing profile or move model files.
+        if (!HasExistingUserData(portable) && HasExistingUserData(installLegacy))
+        {
+            Directory.CreateDirectory(Path.Combine(installLegacy, "storage", "logs"));
+            resolvedUserDataRoot = installLegacy;
+            AppendLog("Reusing existing C:\\DCP Windows user data in place; no database, key or model files were moved.");
+            return installLegacy;
+        }
+        if (!HasExistingUserData(portable) && HasExistingUserData(legacy))
+        {
+            Directory.CreateDirectory(Path.Combine(legacy, "storage", "logs"));
+            resolvedUserDataRoot = legacy;
+            AppendLog("Reusing existing legacy Windows DCP user data in place; no database, key or model files were moved.");
+            return legacy;
+        }
+        if (!HasExistingUserData(portable) && HasExistingUserData(fallback))
+        {
+            Directory.CreateDirectory(Path.Combine(fallback, "storage", "logs"));
+            resolvedUserDataRoot = fallback;
+            AppendLog("Reusing existing DiGiPL DCP user data in place.");
+            return fallback;
+        }
+
         try
         {
             Directory.CreateDirectory(Path.Combine(portable, "storage", "logs"));
@@ -314,7 +351,6 @@ internal sealed class MainWindow : Form
         }
         catch (UnauthorizedAccessException)
         {
-            var fallback = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DiGiPL", "DCP", "DCP-UserData", "Windows");
             Directory.CreateDirectory(fallback);
             if (Directory.Exists(portable)) CopyMissingUserData(portable, fallback);
             resolvedUserDataRoot = fallback;

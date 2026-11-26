@@ -861,3 +861,31 @@ Preserve static VM IPs Ubuntu 192.168.8.88 and Windows 192.168.8.99. Never stage
 - [ ] Windows source files are synchronized, but DCP.exe was not observed listening on 60776; no live Windows Cloud heartbeat confirmed. The logged-in interactive user is `amradeldotcom`; SSH identity is `dcpadmin`, so avoid launching under the wrong profile.
 - [ ] Cloud relay remains disabled (`relay:false`, `signaling-only`). Presence/heartbeat works; relay transport is not deployed.
 - [ ] User VM visual acceptance remains pending. No system-level Node/DC/DSH install performed.
+
+
+## DC75 final acceptance — 2026-11-26
+
+### Source and local AI
+- [x] Chat main-window flex sizing fix and regression contract; the AI workspace now fills the available window height rather than leaving a large blank footer gap.
+- [x] Chat startup no longer blocks on the full Local AI status probe; local provider selection works when the Local AI status is still loading.
+- [x] Friendly local model selector returns `Qwen3 0.6B · GGUF Q4_K_M` using the stable model id `qwen3:0.6b`, without probing a stopped port.
+- [x] Qwen3 0.6B/1.7B on Ollama/llama.cpp uses compact chat-only mode; large tool schemas and memory bootstrap are skipped for models too small to use them reliably. Larger providers retain structured tool execution.
+- [x] llama.cpp starts with context 8192, reasoning disabled, and bounded generation (`-n 512` for Qwen3 0.6B; 1024 for larger models).
+
+### Cloud and Windows TLS
+- [x] Windows managed PHP had no CA bundle. Added the official Mozilla CA bundle, explicit `CURLOPT_CAINFO` on Windows, and managed-runtime `curl.cainfo`/`openssl.cafile` configuration. TLS peer/hostname verification remains enabled.
+- [x] Production Cloud DB migration applied: `device_pairings.presence_paused_at DATETIME NULL`; schema verified. The incident was caused by code/schema drift, not by a Windows network outage.
+- [x] Windows Cloud heartbeat verified `connected=true` after CA trust and DB migration.
+- [x] Ubuntu Cloud heartbeat verified `connected=true` after the DB migration.
+
+### VM acceptance
+- [x] Windows 11 final7 deployment: DCP bootstrap, Cloud heartbeat, local Qwen3 selector, and DCP Chat end-to-end all passed. Chat reply was persisted as a completed job.
+- [x] Ubuntu final7 deployment/restart: DCP bootstrap, Cloud heartbeat, Ollama Qwen3 0.6B DCP Chat end-to-end all passed. Chat reply was persisted as a completed job.
+- [x] Chat layout CSS/JS assets verified on both VMs. Windows PHP installer PowerShell syntax validated.
+- [x] Existing Windows database, master key, Downloads model file, Ubuntu Ollama model store, and local model data preserved.
+- [x] Updated deployment/handoff documentation and regression tests.
+
+### Remaining explicit limitation
+- [ ] Cloud relay remains `relay=false`, `transport=signaling-only`. Presence/heartbeat works; relay transport and remote task dispatch are not yet implemented.
+- [ ] macOS visual acceptance intentionally not performed; the user requested VM testing.
+- [ ] Final source commits/push and clean branch verification.

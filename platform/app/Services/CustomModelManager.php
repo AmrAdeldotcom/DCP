@@ -5,7 +5,7 @@ trait CustomModelManager
 {
     private function customModelDirectory(): string
     {
-        return $this->storage . '/models/gguf';
+        return rtrim($this->llamaCacheDirectory(), '/\\') . DIRECTORY_SEPARATOR . 'custom';
     }
 
     private function customModelManifestPath(): string
@@ -13,8 +13,51 @@ trait CustomModelManager
         return $this->customModelDirectory() . '/models.json';
     }
 
+    private function legacyCustomModelDirectory(): string
+    {
+        return $this->storage . '/models/gguf';
+    }
+
+    private function migrateLegacyCustomModels(): void
+    {
+        $legacyDir = $this->legacyCustomModelDirectory();
+        $legacyManifest = $legacyDir . '/models.json';
+        $targetManifest = $this->customModelManifestPath();
+        if (is_file($targetManifest) || is_link($targetManifest) || !is_file($legacyManifest)) return;
+        if (is_link($legacyManifest) || is_link($legacyDir)) throw new RuntimeException('Legacy GGUF model storage cannot contain symlinks.');
+        $models = json_decode((string)file_get_contents($legacyManifest), true);
+        if (!is_array($models) || !array_is_list($models)) throw new RuntimeException('Legacy GGUF model manifest is invalid.');
+        $targetDir = $this->customModelDirectory();
+        if (!is_dir($targetDir) && !mkdir($targetDir, 0700, true) && !is_dir($targetDir)) throw new RuntimeException('Could not create the Downloads-backed custom GGUF directory.');
+        $legacyPrefix = rtrim(realpath($legacyDir) ?: $legacyDir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+        foreach ($models as $entry) {
+            if (!is_array($entry)) throw new RuntimeException('Legacy GGUF model entry is invalid.');
+            $file = (string)($entry['file'] ?? '');
+            $sha = strtolower((string)($entry['sha256'] ?? ''));
+            if ($file === '' || basename($file) !== $file || preg_match('/^[a-f0-9]{64}$/', $sha) !== 1) throw new RuntimeException('Legacy GGUF model path or checksum is invalid.');
+            $source = $legacyDir . DIRECTORY_SEPARATOR . $file;
+            if (is_link($source)) throw new RuntimeException('Legacy GGUF model file cannot be a symlink.');
+            $sourceReal = realpath($source);
+            if ($sourceReal === false || !str_starts_with($sourceReal, $legacyPrefix) || !is_file($sourceReal) || !hash_equals($sha, (string)hash_file('sha256', $sourceReal))) throw new RuntimeException('Legacy GGUF model failed its SHA-256 verification.');
+            $target = $targetDir . DIRECTORY_SEPARATOR . $file;
+            if (is_link($target)) throw new RuntimeException('Downloads GGUF destination cannot be a symlink.');
+            if (is_file($target)) {
+                if (!hash_equals($sha, (string)hash_file('sha256', $target))) throw new RuntimeException('A different GGUF already exists in Downloads; legacy model was not overwritten.');
+                continue;
+            }
+            $tmp = $target . '.migration-' . bin2hex(random_bytes(4));
+            if (!copy($sourceReal, $tmp) || !hash_equals($sha, (string)hash_file('sha256', $tmp))) { @unlink($tmp); throw new RuntimeException('Could not verify the copied legacy GGUF in Downloads.'); }
+            @chmod($tmp, 0600);
+            if (!rename($tmp, $target)) { @unlink($tmp); throw new RuntimeException('Could not finalize the copied legacy GGUF in Downloads.'); }
+            @chmod($target, 0600);
+        }
+        // Keep the old private-storage files untouched as a rollback copy.
+        $this->writeCustomModels($models);
+    }
+
     private function readCustomModels(): array
     {
+        $this->migrateLegacyCustomModels();
         $file = $this->customModelManifestPath();
         if (is_link($file)) throw new RuntimeException('Custom GGUF model manifest cannot be a symlink.');
         if (!is_file($file)) return [];
@@ -149,7 +192,7 @@ trait CustomModelManager
         $target = $dir . DIRECTORY_SEPARATOR . $targetName;
         if (file_exists($target) || is_link($target)) throw new RuntimeException('A file already exists at the custom model destination.');
         $tmp = $target . '.tmp-' . bin2hex(random_bytes(4));
-        if (!copy($source, $tmp)) throw new RuntimeException('Could not copy the GGUF file into DCP private storage.');
+        if (!copy($source, $tmp)) throw new RuntimeException('Could not copy the GGUF file into the Downloads model directory.');
         if (filesize($tmp) !== $size || !hash_equals($sha, (string)hash_file('sha256', $tmp))) {
             @unlink($tmp);
             throw new RuntimeException('Imported GGUF failed size or SHA-256 verification.');
@@ -195,7 +238,7 @@ trait CustomModelManager
         if (is_link($candidate)) throw new RuntimeException('Imported GGUF file cannot be a symlink.');
         $path = realpath($candidate);
         $prefix = rtrim(realpath($dir) ?: $dir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
-        if ($path === false || !str_starts_with($path, $prefix) || !is_file($path)) throw new RuntimeException('Imported GGUF file is missing or outside DCP storage.');
+        if ($path === false || !str_starts_with($path, $prefix) || !is_file($path)) throw new RuntimeException('Imported GGUF file is missing or outside the Downloads model directory.');
         $modelfile = $dir . DIRECTORY_SEPARATOR . $id . '.Modelfile';
         $modelPath = str_replace('\\', '/', $path);
         $modelfileText = 'FROM "' . str_replace('"', '\\"', $modelPath) . '"' . PHP_EOL;
@@ -257,7 +300,7 @@ trait CustomModelManager
         if (is_link($candidate)) throw new RuntimeException('Imported GGUF file cannot be a symlink.');
         $path = realpath($candidate);
         $prefix = rtrim(realpath($dir) ?: $dir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
-        if ($path === false || !str_starts_with($path, $prefix) || !is_file($path)) throw new RuntimeException('Imported GGUF file is missing or outside DCP storage.');
+        if ($path === false || !str_starts_with($path, $prefix) || !is_file($path)) throw new RuntimeException('Imported GGUF file is missing or outside the Downloads model directory.');
         if (!unlink($path)) throw new RuntimeException('Could not delete the imported GGUF file.');
         $modelfile = $dir . DIRECTORY_SEPARATOR . $id . '.Modelfile';
         if (is_file($modelfile) && !is_link($modelfile)) @unlink($modelfile);

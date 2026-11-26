@@ -106,6 +106,20 @@ if (-not (Test-Path -LiteralPath $PhpExe -PathType Leaf) -or -not (Test-DcpPhp $
         if (Test-Path -LiteralPath $Stage) { Remove-Item -LiteralPath $Stage -Recurse -Force }
     }
 }
+$CaBundleSource = Join-Path $Platform 'resources\certs\cacert.pem'
+if (-not (Test-Path -LiteralPath $CaBundleSource -PathType Leaf)) { throw 'The bundled Mozilla CA certificate store is missing.' }
+$CaBundleDest = Join-Path $PhpDir 'cacert.pem'
+Copy-Item -LiteralPath $CaBundleSource -Destination $CaBundleDest -Force
+$Ini = Join-Path $PhpDir 'php.ini'
+$CaPath = (Resolve-Path -LiteralPath $CaBundleDest).Path.Replace('\','/')
+$IniText = [IO.File]::ReadAllText($Ini)
+foreach ($Directive in @('curl.cainfo','openssl.cafile')) {
+    $Line = $Directive + ' = "' + $CaPath + '"'
+    $Pattern = '(?m)^\s*;?\s*' + [regex]::Escape($Directive) + '\s*=.*$'
+    if ($IniText -match $Pattern) { $IniText = [regex]::Replace($IniText,$Pattern,[System.Text.RegularExpressions.MatchEvaluator]{param($m) $Line}) }
+    else { $IniText += "`r`n$Line`r`n" }
+}
+[IO.File]::WriteAllText($Ini,$IniText,[Text.Encoding]::ASCII)
 $env:DCP_ROOT = $Root
 & $PhpExe $Verifier
 if ($LASTEXITCODE -ne 0) { throw 'DCP-managed PHP runtime verification failed.' }

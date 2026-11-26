@@ -8,7 +8,7 @@ final class LocalAIService {
  private string $root;
  private string $storage;
  private array $catalog=[
-  ['id'=>'qwen3:0.6b','name'=>'Qwen3 0.6B · GGUF Q4_K_M','ram'=>4,'min_ram_gb'=>2,'download'=>'Download through the selected engine','tier'=>'Starter · First suggestion','note'=>'Install Ollama or llama.cpp, then download this model into Downloads/DiGiPL/Models'],
+  ['id'=>'qwen3:0.6b','name'=>'Qwen3 0.6B · GGUF Q4_K_M','ram'=>4,'min_ram_gb'=>2,'download'=>'~484 MB','tier'=>'Starter · First suggestion','note'=>'offline import recommended; keep the model in Downloads/DiGiPL/Models/llama.cpp'],
   ['id'=>'qwen3:1.7b','name'=>'Qwen3 1.7B','ram'=>8,'download'=>'~1.4 GB','tier'=>'Light','note'=>'Good balance for low-memory devices'],
   ['id'=>'qwen3:4b','name'=>'Qwen3 4B','ram'=>12,'download'=>'~2.5 GB','tier'=>'Balanced','note'=>'Recommended everyday assistant'],
   ['id'=>'qwen3:8b','name'=>'Qwen3 8B','ram'=>20,'download'=>'~5.2 GB','tier'=>'Powerful','note'=>'Better reasoning; needs more memory'],
@@ -98,6 +98,13 @@ final class LocalAIService {
   return ['online'=>is_array($data)&&isset($data['models']),'models'=>array_map(fn($m)=>['id'=>$m['name'],'size'=>$m['size']??0],$data['models']??[])];
  }
 
+ private function recommendedModel(float $gb,bool $accelerated):string {
+  if($gb>=22&&$accelerated)return 'qwen3:8b';
+  if($gb>=14)return 'qwen3:4b';
+  if($gb>=10)return 'qwen3:1.7b';
+  return 'qwen3:0.6b';
+ }
+
  private function hardware(bool $forceRefresh=false):array {
   $cacheFile=$this->storage.'/cache/hardware.json';
   if(!$forceRefresh&&is_file($cacheFile)&&filemtime($cacheFile)>=time()-21600) {
@@ -129,7 +136,7 @@ final class LocalAIService {
   $gb=$ram>0?round($ram/1073741824,1):0;$vram=0;
   if(preg_match('/([0-9]+(?:\\.[0-9]+)?)\\s*GB/i',$gpu,$match))$vram=(float)$match[1];
   $accelerated=$vram>=8||in_array(strtolower($arch),['arm64','aarch64'],true);
-  $recommended=$gb>=24&&$accelerated?'qwen3:8b':($gb>=12?'qwen3:4b':($gb>=8?'qwen3:1.7b':'qwen3:0.6b'));
+  $recommended=$this->recommendedModel($gb,$accelerated);
   $result=['os'=>$os,'architecture'=>$arch,'cpu'=>$cpu,'ram_bytes'=>$ram,'ram_gb'=>$gb,'gpu'=>$gpu,'recommended'=>$recommended,'models'=>array_values(array_filter($this->catalog,fn($model)=>$gb>0&&$model['ram']<=$gb-2))];
   $cacheDir=dirname($cacheFile);if(!is_dir($cacheDir))@mkdir($cacheDir,0700,true);
   @file_put_contents($cacheFile,json_encode(['version'=>2,'data'=>$result],JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),LOCK_EX);
@@ -387,10 +394,10 @@ PS;
  }
 
  private function llamaModelProfiles():array {
-  return ['qwen3:0.6b'=>'unsloth/Qwen3-0.6B-GGUF:Q4_K_M','qwen3:1.7b'=>'tensorblock/Qwen_Qwen3-1.7B-GGUF:Q4_K_M','qwen3:4b'=>'Qwen/Qwen3-4B-GGUF:Q4_K_M','llama3.2:3b'=>'bartowski/Llama-3.2-3B-Instruct-GGUF:Q4_K_M'];
+  return ['qwen3:0.6b'=>'mradermacher/Qwen3-0.6B-GGUF:Q4_K_M','qwen3:1.7b'=>'tensorblock/Qwen_Qwen3-1.7B-GGUF:Q4_K_M','qwen3:4b'=>'Qwen/Qwen3-4B-GGUF:Q4_K_M','llama3.2:3b'=>'bartowski/Llama-3.2-3B-Instruct-GGUF:Q4_K_M'];
  }
  private function llamaModelFileName(string $model):string {
-  return ['qwen3:0.6b'=>'Qwen3-0.6B-Q4_K_M.gguf'][$model]??'';
+  return ['qwen3:0.6b'=>'Qwen3-0.6B.Q4_K_M.gguf'][$model]??'';
  }
  private function llamaModelArguments(string $model):array {
   $profiles=$this->llamaModelProfiles();$profile=$profiles[$model]??'';
@@ -408,8 +415,9 @@ PS;
   }
   return ['-hf',$profile];
  }
+ private function llamaPredictTokens(string $model):int {return $model==='qwen3:0.6b'?512:1024;}
  private function llamaContextSize(string $model):int {
-  return $model==='qwen3:0.6b'?8192:8192;
+  return 8192;
  }
  private function llamaCacheDirectory():string {
   // Respect an explicit operator override; otherwise keep downloaded GGUF/Hugging Face
@@ -438,8 +446,8 @@ PS;
   if($customEntry&&(!is_file($modelArgs[1])||is_link($modelArgs[1])||!hash_equals((string)$customEntry['sha256'],(string)hash_file('sha256',$modelArgs[1]))))throw new RuntimeException('Imported GGUF failed its stored SHA-256 check.');
   $chatTemplateArgs=[];
   $isQwen3=$model==='qwen3:0.6b'||($customEntry&&(stripos((string)($customEntry['name']??''),'qwen3')!==false||hash_equals('ac2d97712095a558e31573f62f466a3f9d93990898b0ec79d7c974c1780d524a',strtolower((string)($customEntry['sha256']??'')))));
-  if($isQwen3)$chatTemplateArgs=['--chat-template-kwargs','{"enable_thinking":false}'];
-  $args=array_merge($modelArgs,$chatTemplateArgs,['-c',(string)($customEntry?2048:$this->llamaContextSize($model)),'-ngl','0','--host','127.0.0.1','--port',(string)$port]);
+  if($isQwen3){if($os==='Windows')$chatTemplateArgs=['--reasoning','off'];else $chatTemplateArgs=['--chat-template-kwargs','{"enable_thinking":false}'];}
+  $args=array_merge($modelArgs,$chatTemplateArgs,['-c',(string)($customEntry?2048:$this->llamaContextSize($model)),'-n',(string)$this->llamaPredictTokens($model),'-ngl','0','--host','127.0.0.1','--port',(string)$port]);
   $taskName='';
   if($os==='Windows') {
    $taskName='DCP-Managed-Llama-'.$port;

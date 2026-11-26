@@ -14,7 +14,8 @@ $protected=$path!=='/v1/register'&&$path!=='/v1/login'&&$path!=='/v1/devices/ano
 if($protected&&!preg_match('/^Bearer\s+[a-f0-9]{64}$/i',$auth)){http_response_code(401);echo json_encode(['error'=>'unauthorized']);return;}
 if($path==='/v1/register'||$path==='/v1/login'){echo json_encode(['user_id'=>1,'access_token'=>$userToken,'token_expires_days'=>30]);return;}
 if($path==='/v1/devices/anonymous/register'){echo json_encode(['device_id'=>$deviceId,'device_token'=>$deviceToken,'identity'=>'anonymous']);return;}
-if($path==='/v1/devices/link-account'||$path==='/v1/devices/unlink-account'||$path==='/v1/devices/heartbeat'){echo json_encode(['ok'=>true,'device_id'=>$deviceId]);return;}
+if($path==='/v1/devices/link-account'||$path==='/v1/devices/unlink-account'){echo json_encode(['ok'=>true,'device_id'=>$deviceId]);return;}
+if($path==='/v1/devices/heartbeat'){echo json_encode(['ok'=>true,'device_id'=>$deviceId,'devices'=>[['id'=>$pairId,'label'=>'Mock Peer','platform'=>'Linux','presence_granted'=>true,'presence_paused'=>false,'presence_enabled'=>true,'online'=>1]],'pairing_requests'=>[]]);return;}
 if($path==='/v1/paired-devices'&&$method==='GET'){echo json_encode(['devices'=>[['id'=>$pairId,'label'=>'Mock Peer','platform'=>'Linux','presence_granted'=>true,'presence_paused'=>false,'presence_enabled'=>true,'online'=>1]]]);return;}
 if($path==='/v1/pairing-requests'&&$method==='GET'){echo json_encode(['requests'=>[]]);return;}
 if($path==='/v1/pairing-codes'){echo json_encode(['code'=>'DCP-MOCK-PAIR','expires_in'=>600]);return;}

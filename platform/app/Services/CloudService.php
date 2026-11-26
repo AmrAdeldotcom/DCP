@@ -31,18 +31,16 @@ final class CloudService implements CloudTerminalCloudClient {
     }
     private function secret(string $key):string {$v=$this->value($key);return $v===''?'':$this->crypto->decrypt($v);}
     private function saveSecret(string $key,string $value):void {$this->save($key,$value===''?'':$this->crypto->encrypt($value));}
-    private function request(string $method,string $path,?array $body=null,string $token='',bool $bestEffort=false):array {
+    private function request(string $method,string $path,?array $body=null,string $token=''):array {
         $headers=['Accept: application/json'];if($token!=='')$headers[]='Authorization: Bearer '.$token;if($body!==null)$headers[]='Content-Type: application/json';
         $opts=[CURLOPT_RETURNTRANSFER=>true,CURLOPT_CONNECTTIMEOUT=>6,CURLOPT_TIMEOUT=>18,CURLOPT_HTTPHEADER=>$headers,CURLOPT_CUSTOMREQUEST=>strtoupper($method),CURLOPT_FOLLOWLOCATION=>false,CURLOPT_SSL_VERIFYPEER=>true,CURLOPT_SSL_VERIFYHOST=>2];
+        if(PHP_OS_FAMILY==='Windows'){$caBundle=dirname(__DIR__,2).DIRECTORY_SEPARATOR.'resources'.DIRECTORY_SEPARATOR.'certs'.DIRECTORY_SEPARATOR.'cacert.pem';if(is_file($caBundle))$opts[CURLOPT_CAINFO]=$caBundle;}
         if($body!==null)$opts[CURLOPT_POSTFIELDS]=json_encode($body,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);
         $retryable=strtoupper($method)==='GET'||(strtoupper($method)==='POST'&&$path==='/devices/heartbeat');
-        // Optional status enrichment must never hold the primary heartbeat hostage.
-        // The device heartbeat keeps its bounded retry policy; paired-device and
-        // pairing-request lists are best-effort snapshots with one short attempt.
-        $attempts=$bestEffort?1:($retryable?3:1);$raw=false;$status=0;$err='';
+        $attempts=$retryable?2:1;$raw=false;$status=0;$err='';
         for($attempt=0;$attempt<$attempts;$attempt++){
             $ch=curl_init($this->baseUrl.$path);if($ch===false)throw new RuntimeException('Could not initialize the DCP Cloud connection.');
-            $attemptOpts=$opts;$attemptOpts[CURLOPT_CONNECTTIMEOUT]=$bestEffort?3:5;$attemptOpts[CURLOPT_TIMEOUT]=$bestEffort?5:12;
+            $attemptOpts=$opts;$attemptOpts[CURLOPT_CONNECTTIMEOUT]=8;$attemptOpts[CURLOPT_TIMEOUT]=20;
             curl_setopt_array($ch,$attemptOpts);$raw=curl_exec($ch);$status=(int)curl_getinfo($ch,CURLINFO_RESPONSE_CODE);$err=curl_error($ch);curl_close($ch);
             if($raw!==false)break;
             if($attempt+1<$attempts)usleep((int)(300000*(2**$attempt)));
@@ -96,11 +94,12 @@ final class CloudService implements CloudTerminalCloudClient {
         try {
             $device=$this->ensureDevice();
             $heartbeat=$this->request('POST','/devices/heartbeat',[],$device['device_token']);
-            $paired=[];$requests=[];$warnings=[];
-            try {$paired=$this->request('GET','/paired-devices',null,$device['device_token'],true);} catch(Throwable $e) {$warnings[]='Paired-device details are temporarily unavailable.';}
-            try {$requests=$this->request('GET','/pairing-requests',null,$device['device_token'],true);} catch(Throwable $e) {$warnings[]='Pairing-request details are temporarily unavailable.';}
+            // Heartbeat includes paired-device and pending-request snapshots. One
+            // HTTP request means one MySQL connection per poll, not three.
+            $paired=array_values($heartbeat['devices']??[]);$requests=array_values($heartbeat['pairing_requests']??[]);$warnings=[];
+            if(!array_key_exists('devices',$heartbeat)||!array_key_exists('pairing_requests',$heartbeat))$warnings[]='Cloud server needs the consolidated heartbeat update to provide pairing details.';
             $userToken=$this->secret('cloud.user_token_enc');
-            return ['configured'=>true,'connected'=>true,'account_linked'=>$userToken!=='','account'=>$this->value('cloud.account_email'),'device_id'=>$device['device_id'],'devices'=>array_values($paired['devices']??[]),'pairing_requests'=>array_values($requests['requests']??[]),'details_warning'=>$warnings,'message'=>$warnings?'DCP Cloud heartbeat verified. Some device details are temporarily unavailable.':'DCP Cloud device identity and heartbeat verified.','server_time'=>(string)($heartbeat['server_time']??'')];
+            return ['configured'=>true,'connected'=>true,'account_linked'=>$userToken!=='','account'=>$this->value('cloud.account_email'),'device_id'=>$device['device_id'],'devices'=>$paired,'pairing_requests'=>$requests,'details_warning'=>$warnings,'message'=>$warnings?'DCP Cloud heartbeat verified. Some device details are temporarily unavailable.':'DCP Cloud device identity and heartbeat verified.','server_time'=>(string)($heartbeat['server_time']??'')];
         } catch(Throwable $e) {
             return ['configured'=>$this->value('cloud.device_id')!=='','connected'=>false,'account_linked'=>$this->secret('cloud.user_token_enc')!=='','account'=>$this->value('cloud.account_email'),'device_id'=>$this->value('cloud.device_id'),'devices'=>[],'pairing_requests'=>[],'details_warning'=>[],'message'=>$e->getMessage()];
         }

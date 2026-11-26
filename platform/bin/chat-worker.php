@@ -36,7 +36,11 @@ try{
  $providers=new ProviderService($db,$crypto,$plugins);
  $chat=new ChatService($providers,$plugins);
  $reply='';
- if($chat->supportsToolCalls((string)$job['provider_id'])){
+ $providerRecord=$providers->get((string)$job['provider_id']);
+ $providerName=(string)($providerRecord['name']??'');
+ $isLocalEngine=(string)$job['provider_id']==='ollama'||stripos($providerName,'llama.cpp')!==false;
+ $isSmallLocalModel=$isLocalEngine&&preg_match('/qwen3.*(?:0\.6b|1\.7b)/i',(string)$job['model'].' '.$providerName)===1;
+ if($chat->supportsToolCalls((string)$job['provider_id'])&&!$isSmallLocalModel){
   $devices=new DeviceService($db);
   $terminal=new TerminalService($config);
   $registry=new DcpToolRegistry($config,$db,$providers,$devices,$terminal,$plugins,$crypto);
@@ -64,7 +68,9 @@ try{
    $reply=$result->content;
   }
  }else{
-  $reply=$chat->send((string)$job['provider_id'],(string)$job['model'],(string)$job['message'],$job['history']);
+  $history=$job['history'];
+  if($isSmallLocalModel)array_unshift($history,['role'=>'system','content'=>"You are DCP's local assistant. Answer clearly and concisely in the user's language. Do not claim to run commands or change files."]);
+  $reply=$chat->send((string)$job['provider_id'],(string)$job['model'],(string)$job['message'],$history);
  }
  if(trim($reply)==='')$reply='The provider returned no assistant content.';
  $jobs->complete($id,$reply);

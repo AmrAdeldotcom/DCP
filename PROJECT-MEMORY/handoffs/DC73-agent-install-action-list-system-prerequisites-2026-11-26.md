@@ -81,3 +81,16 @@ Date: 2026-11-26
 - Windows source synchronized, but DCP.exe was not running/listening at last check. Active interactive user is `amradeldotcom`; remote SSH account is `dcpadmin`, and no profile switch was made. Windows live Cloud heartbeat remains unverified.
 - Cloud relay remains false/signaling-only. Do not call this a relay success.
 - No system-level Node/DC/DSH install, no model migration, no stable app modification, no release/tag.
+
+
+## DC75 final VM acceptance — 2026-11-26
+
+- DCP Chat UI flex-height fix is deployed; CSS and JS both expose the chat-page-active layout contract.
+- Startup no longer awaits the heavy Local AI status probe before loading providers. The saved llama.cpp provider exposes the stable Qwen3 model alias without contacting a stopped server port.
+- Qwen3 0.6B and 1.7B on local engines use a compact chat-only request instead of the large DCP tool registry/memory pack. This reduced the Windows smoke prompt to 68 tokens; the prior tool-heavy prompt had stalled at 2048 tokens.
+- llama.cpp is configured for context 8192, `--reasoning off`, and bounded output (`-n 512` for Qwen3 0.6B, 1024 for larger models).
+- Windows PHP TLS: downloaded the official curl/Mozilla CA bundle, configured managed PHP `curl.cainfo` and `openssl.cafile`, and added source-level `CURLOPT_CAINFO` for Windows. Verification remains enabled. Bundle SHA-256 is recorded in `platform/resources/certs/README.md`.
+- Hostinger Cloud log identified `Unknown column p.presence_paused_at`. Applied `ALTER TABLE device_pairings ADD COLUMN presence_paused_at DATETIME NULL`, verified its type/nullability, and recorded the migration in `platform/cloud/DEPLOYMENT.md`.
+- Windows final7: DCP bootstrap pass; Cloud heartbeat connected; Qwen3 selector pass; Chat E2E completed and persisted expected reply; layout CSS/JS pass. Existing DCP DB/master key and Downloads model file preserved.
+- Ubuntu final7: DCP restarted; Cloud heartbeat connected; Ollama Qwen3 0.6B Chat E2E completed and persisted expected reply; layout CSS/JS pass. Existing `~/.ollama/models` preserved. A stale application log-session record was cleared only after confirming no DCP/PHP listener/process remained.
+- Cloud relay is still `false` / `signaling-only`; do not describe it as online. macOS visual test intentionally not performed.

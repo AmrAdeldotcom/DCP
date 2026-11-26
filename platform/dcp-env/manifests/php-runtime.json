@@ -51,5 +51,6 @@
     "zlib"
   ],
   "caBundle": "/etc/ssl/cert.pem",
-  "notes": "PHP 8.4.28 selected because StaticPHP v2.8.5 documents PHP 8.4 as stable. Both Intel and Apple Silicon require macOS 12.0+ because the pinned prebuilt ICU dependency contains objects built for macOS 12.0; CI verifies the final PHP minimum deployment target and HTTPS/TLS."
+  "notes": "PHP 8.4.28 selected because StaticPHP v2.8.5 documents PHP 8.4 as stable. Both Intel and Apple Silicon require macOS 12.0+ because the pinned prebuilt ICU dependency contains objects built for macOS 12.0; CI verifies the final PHP minimum deployment target and HTTPS/TLS.",
+  "caBundleWindows": "platform/resources/certs/cacert.pem"
 }
