@@ -4,7 +4,7 @@ final class SystemAgentRuntime {
  private static function home():string{return PHP_OS_FAMILY==='Windows'?(getenv('USERPROFILE')?:sys_get_temp_dir()):(getenv('HOME')?:sys_get_temp_dir());}
  private static function node():string {
   $home=self::home();$local=getenv('LOCALAPPDATA')?:'';
-  $paths=PHP_OS_FAMILY==='Windows'?[$local.'\\Programs\\nodejs-24.22.3\\node.exe','C:\\Program Files\\nodejs\\node.exe',$local.'\\Programs\\nodejs\\node.exe']:[$home.'/.local/share/dcp/runtimes/node-v24.22.3/bin/node',$home.'/.local/bin/node','/usr/local/bin/node','/opt/homebrew/bin/node','/usr/bin/node'];
+  $systemNode=glob('/usr/local/lib/nodejs/node-v24.22.3-*/bin/node')?:[];$paths=PHP_OS_FAMILY==='Windows'?['C:\\Program Files\\nodejs\\node.exe','C:\\Program Files (x86)\\nodejs\\node.exe']:array_merge($systemNode,['/usr/local/bin/node','/opt/homebrew/bin/node','/usr/bin/node','/opt/local/bin/node']);
   foreach($paths as $p)if($p!==''&&is_file($p)&&(PHP_OS_FAMILY==='Windows'||is_executable($p)))return $p;
   return '';
  }
@@ -12,6 +12,7 @@ final class SystemAgentRuntime {
  private static function nodeVersion():string{$n=self::node();if($n==='')return ''; $o=[];$c=1;exec(escapeshellarg($n).' --version 2>&1',$o,$c);return $c===0?trim(implode("\n",$o)):'';}
  private static function npmRoot():string {
   $home=self::nodeHome();if($home==='')return '';
+  if(PHP_OS_FAMILY==='Windows'){$systemRoot=(getenv('ProgramFiles')?:'C:\\Program Files').'\\nodejs\\node_modules';if(is_dir($systemRoot))return $systemRoot;}
   $npm=$home.(PHP_OS_FAMILY==='Windows'?'\\npm.cmd':'/npm');
   if(!is_file($npm))return '';
   $o=[];$c=1;
@@ -20,7 +21,7 @@ final class SystemAgentRuntime {
    $command='powershell.exe -NoLogo -NoProfile -NonInteractive -Command '.escapeshellarg($ps);
   } else {
    $binPath=$home.PATH_SEPARATOR.(self::home().'/.local/bin').PATH_SEPARATOR.(getenv('PATH')?:'/usr/bin:/bin');
-   $command='PATH='.escapeshellarg($binPath).' '.escapeshellarg($npm).' root --global';
+   $command='PATH='.escapeshellarg($binPath).' '.escapeshellarg($npm).' root --global --prefix /usr/local';
   }
   exec($command.' 2>&1',$o,$c);
   return $c===0?trim(implode("\n",$o)):'';
@@ -29,12 +30,7 @@ final class SystemAgentRuntime {
   $rel=$id==='desktop-commander'?'@wonderwhy-er/desktop-commander':'@deepseek-ai/dsh';
   $roots=[];$npmRoot=self::npmRoot();if($npmRoot!=='')$roots[]=$npmRoot;
   $home=self::home();
-  if(PHP_OS_FAMILY==='Windows') {
-   $roots[]=(getenv('APPDATA')?:'').'\\npm\\node_modules';
-   $roots[]=(getenv('LOCALAPPDATA')?:'').'\\npm-cache\\_npx';
-  } else {
-   $roots[]=$home.'/.npm/_npx';
-   $roots[]=$home.'/.local/lib/node_modules';
+  if(PHP_OS_FAMILY!=='Windows') {
    $roots[]='/usr/local/lib/node_modules';
    $roots[]='/opt/homebrew/lib/node_modules';
   }
@@ -70,7 +66,7 @@ final class SystemAgentRuntime {
  }
  public static function install(string $id):array {
   if(!in_array($id,['desktop-commander','deepseek-harness'],true))throw new InvalidArgumentException('Unsupported system agent.');
-  $s=self::status($id);if($s['installed'])return ['ok'=>true,'already_installed'=>true,'message'=>$s['name'].' is already installed and verified.'];if($s['installing'])return ['ok'=>true,'started'=>true,'message'=>'Installation is already running: '.$s['install_stage']];
+  $s=self::status($id);if($s['installed']&&($s['node']['version']??'')==='v24.22.3')return ['ok'=>true,'already_installed'=>true,'message'=>$s['name'].' and its system Node.js prerequisite are already installed and verified.'];if($s['installing'])return ['ok'=>true,'started'=>true,'message'=>'Installation is already running: '.$s['install_stage']];
   [$log,$state]=self::statePaths($id);$dir=dirname($log);if(!is_dir($dir)&&!mkdir($dir,0700,true)&&!is_dir($dir))throw new RuntimeException('Cannot create agent installer log directory.');
   $platform=dirname(__DIR__,2);$script=$platform.'/installers/agents/';
   if(PHP_OS_FAMILY==='Windows') {

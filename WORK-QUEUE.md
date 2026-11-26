@@ -779,3 +779,27 @@ Preserve static VM IPs: Ubuntu 192.168.8.88, Windows 192.168.8.99. Stable /Volum
 - [ ] No signed release until Q015 and release checks are complete.
 
 Static VM IPs: Ubuntu 192.168.8.88, Windows 192.168.8.99. Stable /Volumes/Data/DiGiPL/DCP v1.0.0 untouched. Do not stage PROJECT-MEMORY/NETWORK-RESUME-REQUEST.json.
+
+
+
+## DC73 checkpoint — 2026-11-26 — Agent installation assistant
+
+### Completed locally
+- [x] Install DC / Install DSH opens a combined modal with dependency list before execution.
+- [x] Modal includes live stage, transfer percentage when exposed by the platform downloader, installer log and post-install verification.
+- [x] Add an always-visible Install / Repair entry while preserving independent Start/Stop controls.
+- [x] Change Node.js prerequisite to a system-wide versioned install path on Unix and Program Files MSI on Windows; do not place Node inside DCP private runtime storage.
+- [x] Install DC/DSH packages in system global package directories; stop treating npm npx cache as proof of a global installation.
+- [x] Remove the Node.js 24.22.3 installation previously added by this work from Ubuntu 192.168.8.88 and Windows 192.168.8.99; verify absence on both VMs.
+- [x] Build and launch development DCP.app under /Volumes/Data/ChatGPT/DCP-Source; local API bootstrap and agent status endpoints respond.
+- [x] Full platform suite, PHP lint, JS syntax, Unix shell syntax, local AI UI contract and git diff checks pass.
+
+### Acceptance / remaining
+- [ ] User visually tests the Mac development app: Connections → Agent adapters → Install / Repair → modal; only click Install all if ready to authorize system-level installation.
+- [ ] Exercise privileged installation on macOS, Windows and Ubuntu; verify Node 24.22.3, npm, package paths and service health on each OS.
+- [ ] Deploy DC73 source files to the Ubuntu and Windows DCP app folders and verify their UI/API; not done in this checkpoint.
+- [ ] User requested model downloads in the device Downloads folder. Existing Ollama and llama.cpp model-store/cache behavior remains unchanged; design a safe path for future downloads without moving existing model assets.
+- [ ] No stable /Volumes/Data/DiGiPL/DCP modification, release, commit or push in this checkpoint.
+
+Handoff: PROJECT-MEMORY/handoffs/DC73-agent-install-action-list-system-prerequisites-2026-11-26.md
+Preserve static VM IPs Ubuntu 192.168.8.88 and Windows 192.168.8.99. Never stage PROJECT-MEMORY/NETWORK-RESUME-REQUEST.json. Keep Qwen3 GGUF and all DiGEMA model assets untouched.

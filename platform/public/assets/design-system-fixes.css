@@ -137,3 +137,23 @@ body.dark .model-fit{background:#173d2e;color:#91d5ad}
 #page-chat .chat-device-tabs{overflow-x:auto!important;scrollbar-width:none}
 #page-chat .chat-device-tabs::-webkit-scrollbar{display:none}
 @media(max-width:720px){#page-chat .chat-history{flex-basis:28%!important;width:28%!important;min-width:120px!important}#page-chat .composer-wrap{padding:8px!important}}
+
+/* Agent installation assistant */
+.agent-install-overlay{z-index:2100}
+.agent-install-card{width:min(680px,100%)!important}
+.agent-install-kicker{font-size:10px;letter-spacing:.16em;font-weight:800;color:var(--accent,#3985d6);margin-bottom:8px}
+.agent-install-intro{font-size:13px;color:var(--muted);line-height:1.6;margin:-10px 0 20px}
+.agent-install-list{display:grid;gap:9px}
+.agent-install-step{display:grid;grid-template-columns:30px minmax(0,1fr) auto;align-items:center;gap:12px;padding:13px;border:1px solid var(--border);border-radius:12px;background:var(--surface-2,rgba(127,127,127,.06))}
+.agent-step-mark{width:27px;height:27px;border-radius:50%;display:grid;place-items:center;background:var(--surface);border:1px solid var(--border);font-size:12px;font-weight:800}
+.agent-install-step b{display:block;font-size:13px}
+.agent-install-step small{display:block;color:var(--muted);font-size:11px;margin-top:3px;line-height:1.45}
+.agent-step-status{font-size:11px;color:var(--muted);white-space:nowrap}
+.agent-install-progress{margin-top:19px}
+.agent-install-progress-head{display:flex;justify-content:space-between;gap:12px;font-size:12px;margin-bottom:8px}
+.agent-install-progress-head span{color:var(--muted)}
+.agent-progress-track{height:8px;background:var(--surface-2,rgba(127,127,127,.13));border-radius:20px;overflow:hidden}
+.agent-progress-track span{display:block;height:100%;width:0;background:var(--accent,#3985d6);border-radius:20px;transition:width .35s ease}
+.agent-install-log{margin:14px 0 0;padding:12px;max-height:180px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;background:var(--surface-2,rgba(0,0,0,.06));border:1px solid var(--border);border-radius:10px;font:11px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--text)}
+.agent-install-actions{display:flex;justify-content:flex-end}
+@media(max-width:600px){.agent-install-step{grid-template-columns:27px minmax(0,1fr);}.agent-step-status{grid-column:2}.agent-install-log{max-height:145px}}
