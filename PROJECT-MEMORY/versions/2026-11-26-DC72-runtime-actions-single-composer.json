@@ -1,0 +1,38 @@
+{
+  "date": "2026-11-26",
+  "checkpoint": "DC72 runtime action pipeline and single chat composer",
+  "branch": "feature/local-ai-runtime-discovery",
+  "implementationCommit": "be12318",
+  "pushed": true,
+  "tests": "ALL PLATFORM TESTS PASSED",
+  "qwen3": {
+    "path": "/Volumes/Data/DiGiPL/DCP-Models/Qwen3-0.6B-Q4_K_M.gguf",
+    "sha256": "ac2d97712095a558e31573f62f466a3f9d93990898b0ec79d7c974c1780d524a",
+    "copies": [
+      "Mac",
+      "Ubuntu 192.168.8.88",
+      "Windows 192.168.8.99"
+    ]
+  },
+  "implemented": [
+    "verified Node.js 24.22.3 prerequisite installers",
+    "staged DC and DSH install workflows",
+    "single shared AI/Tasks composer",
+    "task_inbox target_agent metadata and migration",
+    "Windows Ollama separate stdout/stderr logging",
+    "runtime action and chat UX docs"
+  ],
+  "notAcceptedYet": [
+    "Windows Ollama installation and model pull UI acceptance",
+    "Windows/Ubuntu DC and DSH UI installation acceptance",
+    "visual layout acceptance on all three OSes",
+    "Cloud registration/heartbeat and three-device pairing"
+  ],
+  "cloudEvidence": "Mac public probe GET /api/v1/signing-key returned HTTP 404; this does not prove the registration or heartbeat routes work.",
+  "safety": [
+    "Qwen3 GGUF source preserved",
+    "DiGEMA models preserved",
+    "DCP user data and backups preserved",
+    "NETWORK-RESUME-REQUEST.json intentionally untracked"
+  ]
+}

@@ -5,7 +5,7 @@
   "session": "DC72",
   "repository": "/Volumes/Data/ChatGPT/DCP-Source",
   "branch": "feature/local-ai-runtime-discovery",
-  "headCommit": "36e14cd",
+  "headCommit": "be12318",
   "latestReleaseTag": "v1.0.0",
   "workingTree": "DC72: external OS-level engine install/detection, native model stores, optional GGUF import, bottom context dock, bounded history/8192 context, Ollama/llama.cpp service control, DC agent actions, VM cleanup, Windows shortcut/ACL/self-contained wrapper. Tests pass; final cross-VM source sync and commit pending.",
   "device": {
@@ -24,7 +24,7 @@
     "conversation": "DC72",
     "date": "2026-11-26",
     "branch": "feature/local-ai-runtime-discovery",
-    "branchHead": "36e14cd",
+    "branchHead": "be12318",
     "stage": "OS-level engine separation and model cleanup complete; Windows self-contained wrapper running on fixed port; final cross-VM sync and commit pending.",
     "completed": [
       "Moved Ollama/llama.cpp installer scripts to platform/installers/engines; removed bundled engine runtime/source tree from platform/dcp-env/engines.",
@@ -1002,13 +1002,13 @@
       }
     }
   },
-  "latestImplementationCommit": "36e14cd",
-  "latestPushedCommit": "36e14cd",
+  "latestImplementationCommit": "be12318",
+  "latestPushedCommit": "be12318",
   "folderSeparation": {
     "source": "DCP-Source",
     "sourcePath": "/Volumes/Data/ChatGPT/DCP-Source",
     "sourceBranch": "feature/local-ai-runtime-discovery",
-    "sourceHead": "36e14cd",
+    "sourceHead": "be12318",
     "sourceWorkingTree": "DC72 changes remain on feature/local-ai-runtime-discovery; stable /Volumes/Data/DiGiPL/DCP v1.0.0 untouched.",
     "releaseInstall": "DCP",
     "releaseInstallPath": "/Volumes/Data/DiGiPL/DCP",
@@ -1042,5 +1042,18 @@
     "pushDisabled": true,
     "dependenciesInstalled": false,
     "review": "platform/docs/research/desktop-commander-reference-review.md"
+  },
+  "dc72Checkpoint": {
+    "branch": "feature/local-ai-runtime-discovery",
+    "commit": "be12318",
+    "tests": "ALL PLATFORM TESTS PASSED",
+    "qwen3Source": "/Volumes/Data/DiGiPL/DCP-Models/Qwen3-0.6B-Q4_K_M.gguf",
+    "qwen3Sha256": "ac2d97712095a558e31573f62f466a3f9d93990898b0ec79d7c974c1780d524a",
+    "qwen3Copies": [
+      "/home/amr/Downloads/Qwen3-0.6B-Q4_K_M.gguf",
+      "C:/Users/amradeldotcom/Downloads/Qwen3-0.6B-Q4_K_M.gguf"
+    ],
+    "cloud": "Unresolved; verify anonymous registration and heartbeat routes. /api/v1/signing-key probe returned HTTP 404.",
+    "next": "Windows Ollama install/pull acceptance; DC/DSH UI install acceptance on Windows and Ubuntu; visual chat layout acceptance; Cloud heartbeat/pairing."
   }
 }

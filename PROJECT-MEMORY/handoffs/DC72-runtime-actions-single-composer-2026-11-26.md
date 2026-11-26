@@ -2,6 +2,7 @@
 
 Date: 2026-11-26
 Branch: feature/local-ai-runtime-discovery
+Implementation commit pushed: be12318
 
 ## User corrections and safety requirements
 
@@ -37,7 +38,7 @@ Branch: feature/local-ai-runtime-discovery
 - Windows machine-wide Node.js 24.22.3 MSI installation completed and node/npm version checks passed. The DCP user-scoped Node prerequisite remains the app-managed path.
 - Qwen3 GGUF SHA-256 matches across Mac, Ubuntu and Windows.
 - Mac SystemAgentRuntime detects DC and DSH packages in npm npx cache and confirms DSH HTTP service on 127.0.0.1:3080.
-- The full test suite reached task-inbox-ui-contract.php and failed because the old contract expected a second Task Inbox textarea. The test was updated to the new single-composer contract; rerun the full suite before commit/deploy.
+- The full platform test suite passed after updating the single-composer UI contract: ALL PLATFORM TESTS PASSED. Commit be12318 was pushed to origin/feature/local-ai-runtime-discovery.
 
 ## Still open — do not mark complete
 
