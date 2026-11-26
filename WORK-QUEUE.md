@@ -1,3 +1,13 @@
+## DC72 acceptance blockers — keep open until verified
+
+1. Diagnose and correct Cloud API registration/heartbeat reachability; a public probe of /api/v1/signing-key returned HTTP 404, so do not mark Cloud connected until the actual anonymous-register and heartbeat routes succeed on Mac, Ubuntu and Windows.
+2. Test Windows Ollama installation from the DCP UI: verify the actual executable path, ollama --version, service health and /api/tags.
+3. Test Ollama model pull from the DCP UI on Windows: verify separate stdout/stderr logs and confirm the model appears in Ollama's native inventory before enabling chat selection.
+4. Test DC and DSH install actions from DCP UI on Windows and Ubuntu, including Node prerequisite installation, live progress, package-path verification and actual process/session health.
+5. Visually verify the one-composer AI/Tasks/device-tab layout on all three operating systems; no second task textarea or context card above the message history.
+6. Pair all three devices only after Cloud heartbeat is verified, then test approved cross-device resource/task invocation.
+7. Preserve the Qwen3 source GGUF and all DiGEMA models; do not remove user models or DCP backups during engine cleanup.
+
 # DCP Work Queue
 
 This file is the durable resume point. Update status, evidence and next action after every completed task. Do not restart completed work after a context or connection interruption.

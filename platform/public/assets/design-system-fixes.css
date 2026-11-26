@@ -115,3 +115,25 @@ body.dark .model-fit{background:#173d2e;color:#91d5ad}
  .chat-context-tabs{flex-basis:38px!important;min-height:38px!important;padding:2px 5px!important}
  .task-inbox-panel{max-height:95px!important;margin:0 5px 3px!important}
 }
+
+/* DC72 chat correction: a single composer is shared by AI and Tasks. */
+#page-chat .chat-layout{display:flex!important;flex-direction:row!important;min-height:0!important;height:100%!important;gap:0!important}
+#page-chat .chat-history{flex:0 0 25%!important;width:25%!important;max-width:25%!important;min-width:190px!important;overflow:auto!important}
+#page-chat .chat-workspace{flex:1 1 75%!important;width:75%!important;min-width:0!important;min-height:0!important;display:flex!important;flex-direction:column!important;overflow:hidden!important}
+#page-chat .chat-toolbar{flex:0 0 auto!important}
+#page-chat .messages{order:1!important;flex:1 1 auto!important;min-height:120px!important;height:auto!important;max-height:none!important;overflow:auto!important}
+#page-chat .chat-context-panels{display:none!important}
+#page-chat .composer-wrap{order:2!important;flex:0 0 auto!important;width:100%!important;margin:0!important;padding:10px 16px 6px!important}
+#page-chat .composer{width:100%!important;max-width:none!important;margin:0!important}
+#page-chat .composer textarea{width:100%!important;min-height:72px!important;max-height:180px!important}
+#page-chat .composer-task-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:7px 0 2px}
+#page-chat .composer-task-controls[hidden]{display:none!important}
+#page-chat .composer-task-controls label{font-size:11px;color:var(--muted)}
+#page-chat .composer-task-controls #composer-task-hint{font-size:10px;color:var(--muted);flex:1 1 180px}
+#page-chat .composer-tools select[hidden]{display:none!important}
+#page-chat .chat-context-tabs{order:3!important;flex:0 0 44px!important;min-height:44px!important;width:100%!important;padding:4px 12px!important;border-top:1px solid var(--border)!important;border-bottom:0!important;overflow:hidden!important}
+#page-chat .chat-context-tabs .chat-device-strip{flex:1 1 auto!important;min-width:0!important}
+#page-chat .chat-context-tabs .chat-device-tabs{flex:1 1 auto!important;min-width:0!important}
+#page-chat .chat-device-tabs{overflow-x:auto!important;scrollbar-width:none}
+#page-chat .chat-device-tabs::-webkit-scrollbar{display:none}
+@media(max-width:720px){#page-chat .chat-history{flex-basis:28%!important;width:28%!important;min-width:120px!important}#page-chat .composer-wrap{padding:8px!important}}

@@ -235,7 +235,7 @@ PS;
  }
  private function tailLog():string {
   $out=[];
-  foreach(['local-ai-install.log','local-ai-pull.log','ollama-server.log','llama-server.log','llama-server.stdout.log','llama-server.stderr.log'] as $name) {
+  foreach(['local-ai-install.log','local-ai-pull.log','local-ai-pull.stdout.log','local-ai-pull.stderr.log','ollama-server.log','ollama-server.stderr.log','llama-server.log','llama-server.stdout.log','llama-server.stderr.log'] as $name) {
    $file=$this->storage.'/logs/'.$name;
    if(is_file($file)){$all=file($file)?:[];$all=array_values(array_filter($all,static function($line){$v=trim($line);return $v!==''&&!preg_match('/^[#O=\-]+\s*\d+(?:\.\d+)?%?\s*$/',$v);}));$lines=array_slice($all,-5);if($lines){$out[]='--- '.$name.' ---\n';$out=array_merge($out,$lines);}}
   }
@@ -261,17 +261,17 @@ PS;
   $log=$this->storage.'/logs/ollama-server.log';if(!is_dir(dirname($log)))mkdir(dirname($log),0700,true);file_put_contents($log,'',LOCK_EX);
   $managed=str_contains(str_replace('\\','/',$bin),'/dcp-env/');
   if(PHP_OS_FAMILY==='Windows') {
-   $script=$this->storage.'/start-ollama.ps1';$exe=str_replace("'","''",$bin);$logPath=str_replace("'","''",$log);
+   $script=$this->storage.'/start-ollama.ps1';$exe=str_replace("'","''",$bin);$logPath=str_replace("'","''",$log);$errPath=str_replace("'","''",$log.'.stderr.log');
    $models=dirname($this->storage).'\\models\\ollama';
    $body=<<<'PS'
 $ErrorActionPreference = 'Stop'
 $env:OLLAMA_HOST = '127.0.0.1:11434'
 __MODEL_ENV__
-$p = Start-Process -FilePath '__EXE__' -ArgumentList 'serve' -PassThru -WindowStyle Hidden -RedirectStandardOutput '__LOG__' -RedirectStandardError '__LOG__'
+$p = Start-Process -FilePath '__EXE__' -ArgumentList 'serve' -PassThru -WindowStyle Hidden -RedirectStandardOutput '__LOG__' -RedirectStandardError '__ERR__'
 Write-Output $p.Id
 PS;
    $modelEnv=$managed?'$env:OLLAMA_MODELS = ' . "'" . str_replace("'","''",$models) . "'\n":'';
-   $body=str_replace(['__MODEL_ENV__','__EXE__','__LOG__'],[$modelEnv,$exe,$logPath],$body);
+   $body=str_replace(['__MODEL_ENV__','__EXE__','__LOG__','__ERR__'],[$modelEnv,$exe,$logPath,$errPath],$body);
    file_put_contents($script,$body);
    $pid=(int)$this->runWindowsPowerShell(['-File',$script],8);
    if($pid<1)throw new RuntimeException('Windows could not start Ollama.');
@@ -489,14 +489,15 @@ PS;
   if(!$this->ollama()['online'])throw new RuntimeException('Ollama is installed but not running. Start Ollama before downloading a model.');
   $log=$this->storage.'/logs/local-ai-pull.log';if(!is_dir(dirname($log)))mkdir(dirname($log),0700,true);file_put_contents($log,'',LOCK_EX);$bin=$this->binary('ollama');
   if(PHP_OS_FAMILY==='Windows') {
-   $ps=$this->storage.'/local-ai-pull.ps1';$exe=str_replace("'","''",$bin);$name=str_replace("'","''",$model);$out=str_replace("'","''",$log);
+   $ps=$this->storage.'/local-ai-pull.ps1';$exe=str_replace("'","''",$bin);$name=str_replace("'","''",$model);$out=str_replace("'","''",$log.'.stdout.log');$err=str_replace("'","''",$log.'.stderr.log');
    $body=<<<'PS'
-$p = Start-Process -FilePath '__EXE__' -ArgumentList @('pull','__MODEL__') -PassThru -WindowStyle Hidden -RedirectStandardOutput '__OUT__' -RedirectStandardError '__OUT__'
+$p = Start-Process -FilePath '__EXE__' -ArgumentList @('pull','__MODEL__') -PassThru -WindowStyle Hidden -RedirectStandardOutput '__OUT__' -RedirectStandardError '__ERR__'
 Write-Output $p.Id
 PS;
-   file_put_contents($ps,str_replace(['__EXE__','__MODEL__','__OUT__'],[$exe,$name,$out],$body)."\n");
-   $this->run('powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File '.escapeshellarg($ps),5);
+   file_put_contents($ps,str_replace(['__EXE__','__MODEL__','__OUT__','__ERR__'],[$exe,$name,$out,$err],$body)."\n");
+   $pid=(int)$this->run('powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File '.escapeshellarg($ps),8);
+   if($pid<1)throw new RuntimeException('Windows could not start the Ollama model download. Check Engine activity logs.');
   } else $this->run('nohup '.escapeshellarg($bin).' pull '.escapeshellarg($model).' > '.escapeshellarg($log).' 2>&1 < /dev/null & echo $!',5);
-  return ['ok'=>true,'message'=>'Model download started.','model'=>$model];
+  return ['ok'=>true,'started'=>true,'pid'=>$pid??null,'message'=>'Ollama model download started. Progress and errors are written to Engine activity logs.','model'=>$model];
  }
 }

@@ -87,3 +87,9 @@ This folder is the durable continuity layer for ChatGPT and other authorized eng
 - Runtime installation contract: docs/architecture/LOCAL-RUNTIME-INSTALLATION.md.
 
 - DC72 version snapshot: PROJECT-MEMORY/versions/2026-11-26-DC72-os-level-runtimes.json — build 11, all three DCP local API ports, engine cleanup and remaining Cloud/Q015 acceptance.
+
+- Runtime installation pipeline: docs/architecture/RUNTIME-ACTION-PIPELINE.md — prerequisites, verified installs, progress/error reporting, and native model stores.
+
+- Chat composer UX: docs/architecture/CHAT-COMPOSER-UX.md — one shared AI/Tasks composer with bottom context tabs and device tabs.
+
+- DC72 handoff: PROJECT-MEMORY/handoffs/DC72-runtime-actions-single-composer-2026-11-26.md — Qwen3 source restore, implementation, test status and remaining acceptance work.

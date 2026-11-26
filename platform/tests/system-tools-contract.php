@@ -20,7 +20,7 @@ $checks = [
     'terminal API is disabled in web preview and runs the full shell as the current OS user' => str_contains($api, "if(\$method==='POST'&&\$path==='/api/terminal/run')") && str_contains($api, "'web-preview'") && str_contains($api, '$this->terminal->execute'),
     'terminal uses argument-array process execution without shell evaluation' => str_contains($terminal, 'proc_open($args') && !str_contains($terminal, 'shell_exec') && !str_contains($terminal, 'eval('),
     'Windows terminal pwd uses PowerShell Get-Location instead of cmd cd argument quoting' => str_contains($terminal, "['powershell.exe','-NoProfile','-NonInteractive','-Command','(Get-Location).Path']"),
-    'DeepSeek Harness process probing is restricted to macOS where its app can exist' => str_contains($dsh, "PHP_OS_FAMILY !== 'Darwin'") && str_contains($dsh, '/Applications/DeepSeek Harness.app'),
+    'DeepSeek Harness has a cross-platform OS-level runtime adapter' => str_contains($dsh, "SystemAgentRuntime::status('deepseek-harness')") && str_contains($dsh, "SystemAgentRuntime::install('deepseek-harness')"),
     'Desktop Commander process status uses PowerShell on Windows and pgrep on Unix' => str_contains($desktopCommander, "PHP_OS_FAMILY === 'Windows'") && str_contains($desktopCommander, 'Get-CimInstance Win32_Process') && str_contains($desktopCommander, '/usr/bin/pgrep'),
     'Ollama provider disables Qwen3 thinking so short chat responses are returned as content' => str_contains($ollamaDriver, "\$payload['think']=false") && str_contains($ollamaDriver, "preg_match('/^qwen3(?::|\$)/i',\$model)"),
     'notification panel and mark-all-read control are present' => str_contains($page, 'id="notification-panel"') && str_contains($page, 'id="notifications-read-all"'),
