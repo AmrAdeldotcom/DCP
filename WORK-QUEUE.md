@@ -803,3 +803,39 @@ Static VM IPs: Ubuntu 192.168.8.88, Windows 192.168.8.99. Stable /Volumes/Data/D
 
 Handoff: PROJECT-MEMORY/handoffs/DC73-agent-install-action-list-system-prerequisites-2026-11-26.md
 Preserve static VM IPs Ubuntu 192.168.8.88 and Windows 192.168.8.99. Never stage PROJECT-MEMORY/NETWORK-RESUME-REQUEST.json. Keep Qwen3 GGUF and all DiGEMA model assets untouched.
+
+
+## DC73 follow-up — model files in device Downloads
+- [x] Set llama.cpp/Hugging Face model cache default to `~/Downloads/DiGiPL/Models/llama.cpp`; preserve explicit `LLAMA_CACHE` override.
+- [x] Set DCP-launched Ollama service `OLLAMA_MODELS` to `~/Downloads/DiGiPL/Models/Ollama` on macOS/Linux and `%USERPROFILE%\\Downloads\\DiGiPL\\Models\\Ollama` on Windows.
+- [x] Block Ollama pulls through an external/unmanaged server so existing native model stores are not silently used or moved.
+- [x] Update Local AI page copy and add regression assertions; full platform suite passes.
+- [ ] Rebuild and launch development DCP.app; visually test Agent Installation Assistant modal.
+- [ ] Controlled real download test to verify both engine paths; do not move existing model assets.
+- [ ] Deploy current DC73 source to Windows `192.168.8.99` and Ubuntu `192.168.8.88`; validate installer UI and Downloads destinations.
+- [ ] Exercise privileged Node/npm + DC/DSH installation on each OS only after explicit user authorization.
+- No commit/push/release. Stable `/Volumes/Data/DiGiPL/DCP` remains untouched. Preserve untracked `PROJECT-MEMORY/NETWORK-RESUME-REQUEST.json`.
+
+
+## DC74 checkpoint — 2026-11-26 — Chat height + Cloud reconnect diagnosis
+
+### Completed locally
+- [x] Fixed the AI Chat height contract: when Chat is active, the main content becomes a bounded flex column, the Chat page fills the available space between topbar and footer, and the chat layout flexes instead of resolving `height:100%` against an auto-height page. This removes the large empty strip below the workspace and preserves the approved modal/design.
+- [x] Added a regression assertion for the full-height chat layout.
+- [x] Full platform suite: `ALL PLATFORM TESTS PASSED`.
+- [x] Local AI UI contract: `ALL LOCAL AI UI CONTRACT CHECKS PASSED`.
+- [x] PHP lint across `platform/app` and `platform/tests`, JS syntax, installer shell syntax, and `git diff --check` pass.
+- [x] DCP Cloud public health is reachable: database/schema `ok`; current Mac development app Cloud status returns `connected:true` and heartbeat verified.
+
+### Cloud findings
+- [x] Confirmed the Cloud API is alive and database/schema are healthy. Public health reports `relay:false` and `transport:signaling-only`; this is a missing relay capability, not an API outage.
+- [x] Current Mac development app reports a valid anonymous Guest device heartbeat; account is not linked on this isolated development profile.
+- [ ] Determine why the user's VM UI showed Offline. Ubuntu DCP app was not running/listening on 60776 when checked; its updater watcher and Ollama were running. The Windows VM also did not respond on 60776 during initial check.
+- [ ] Re-deploy updated shared source and start/verify DCP on both VMs; check `/api/cloud/status` on each, distinguish Guest/Account heartbeat from relay transport.
+- [ ] Investigate and deploy relay separately only after confirming the supported relay implementation and server credentials; do not claim relay online from the health check.
+
+### Deployment / GitHub
+- [ ] Commit and push feature branch after final review; do not include `PROJECT-MEMORY/NETWORK-RESUME-REQUEST.json`.
+- [ ] Deploy current platform source to Ubuntu 192.168.8.88 and Windows 192.168.8.99; validate `/api/bootstrap`, `/api/cloud/status`, chat UI and Downloads model paths.
+- [ ] Preserve both VM user-data databases and model directories; do not run system-wide Node/DC/DSH installers.
+- No stable `/Volumes/Data/DiGiPL/DCP` modification and no release/tag.

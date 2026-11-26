@@ -157,3 +157,12 @@ body.dark .model-fit{background:#173d2e;color:#91d5ad}
 .agent-install-log{margin:14px 0 0;padding:12px;max-height:180px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;background:var(--surface-2,rgba(0,0,0,.06));border:1px solid var(--border);border-radius:10px;font:11px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--text)}
 .agent-install-actions{display:flex;justify-content:flex-end}
 @media(max-width:600px){.agent-install-step{grid-template-columns:27px minmax(0,1fr);}.agent-step-status{grid-column:2}.agent-install-log{max-height:145px}}
+
+
+/* DC73: let the chat page participate in the main-shell flex layout.
+   The previous 100% height was resolving against an auto-height page,
+   leaving a large blank strip above the application footer. */
+.content.chat-page-active{display:flex!important;flex:1 1 auto!important;flex-direction:column!important;min-height:0!important;overflow:hidden!important;padding:12px 20px!important}
+#page-chat.active{display:flex!important;flex:1 1 auto!important;flex-direction:column!important;min-width:0!important;min-height:0!important;width:100%!important;max-width:none!important;margin:0!important}
+#page-chat .chat-layout{flex:1 1 auto!important;min-height:0!important;height:auto!important;max-height:none!important}
+@media(max-width:720px){.content.chat-page-active{padding:8px 8px 10px!important}#page-chat .chat-layout{min-height:0!important}}

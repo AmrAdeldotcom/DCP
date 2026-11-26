@@ -45,3 +45,21 @@ Date: 2026-11-26
 - User also asked that model downloads land in the device Downloads folder. Existing Ollama/native model store and llama.cpp cache behavior has not been changed in this DC73 pass; do not claim this requirement is complete. Any change must preserve existing model data and avoid silently moving it.
 - No commit/push/release or production deployment performed in this checkpoint.
 - Preserve PROJECT-MEMORY/NETWORK-RESUME-REQUEST.json as untracked and never stage it.
+
+## DC73 follow-up — model download destinations
+- Updated LocalAIService model destinations: llama.cpp/Hugging Face cache defaults to `~/Downloads/DiGiPL/Models/llama.cpp`; Ollama's `OLLAMA_MODELS` is set to `~/Downloads/DiGiPL/Models/Ollama` when DCP launches its own Ollama server. Windows uses `%USERPROFILE%\Downloads\DiGiPL\Models\Ollama`.
+- Existing explicit `LLAMA_CACHE` override remains supported. Existing Ollama model stores are never moved or copied.
+- Ollama model pulls are blocked unless the active server has a valid DCP-managed process record pointing at the Downloads model directory. If an external Ollama server is already running, user must stop it through DCP and start the DCP-managed service before pulling; this prevents silently downloading into an unknown/default model store.
+- UI copy now names the Downloads destinations rather than implying the native hidden cache.
+- `php platform/tests/local-ai-ui-contract.php` passes. Full platform suite `php platform/tests/run.php` passes, including new assertions for both Downloads destinations and the Ollama guard.
+- This change is source-only so far. No models were downloaded, no existing model data was moved, and no privileged agent install was run.
+- Remaining acceptance: rebuild and launch the development Mac app; user visually tests DC/DSH modal; verify the Downloads paths with a small controlled model download; then deploy updated source to Windows/Ubuntu VMs and validate their paths and installer UI.
+
+
+## DC74 — 2026-11-26 follow-up
+- Fixed chat vertical sizing at the correct layout level: `.content.chat-page-active` is a bounded flex container; `#page-chat.active` fills the flex space; `.chat-layout` grows to the available height. The old 100%-height child was resolving inside an auto-height page, causing the blank area below chat.
+- `showPage('chat')` toggles the parent content class; navigating away removes it. Added a contract test for this exact relationship.
+- Full platform suite and local AI UI contract pass; PHP lint for all app/tests files, JS and installer shell syntax, and diff check pass.
+- Live Cloud health: public `/api/v1/health` returns database/schema ok but relay=false and signaling-only. Mac development `/api/cloud/status` returns connected=true with heartbeat verified and anonymous Guest identity. Therefore public Cloud API is online; relay is not deployed/enabled.
+- VM reachability: Ubuntu and Windows SSH aliases work. Ubuntu DCP app was not running on port 60776 when inspected; updater watcher and Ollama processes were running. Windows DCP port 60776 was not responding at initial check. VM UI Offline likely reflects app process/source or per-device credentials, not a public Cloud outage.
+- Do not modify stable DCP install, do not alter VM user data/models, do not run privileged Node/DC/DSH installation. Preserve untracked NETWORK-RESUME-REQUEST.json.

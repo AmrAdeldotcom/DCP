@@ -8,7 +8,7 @@ final class LocalAIService {
  private string $root;
  private string $storage;
  private array $catalog=[
-  ['id'=>'qwen3:0.6b','name'=>'Qwen3 0.6B · GGUF Q4_K_M','ram'=>4,'min_ram_gb'=>2,'download'=>'Download through the selected engine','tier'=>'Starter · First suggestion','note'=>'Install Ollama or llama.cpp, then download this model into the engine native model store'],
+  ['id'=>'qwen3:0.6b','name'=>'Qwen3 0.6B · GGUF Q4_K_M','ram'=>4,'min_ram_gb'=>2,'download'=>'Download through the selected engine','tier'=>'Starter · First suggestion','note'=>'Install Ollama or llama.cpp, then download this model into Downloads/DiGiPL/Models'],
   ['id'=>'qwen3:1.7b','name'=>'Qwen3 1.7B','ram'=>8,'download'=>'~1.4 GB','tier'=>'Light','note'=>'Good balance for low-memory devices'],
   ['id'=>'qwen3:4b','name'=>'Qwen3 4B','ram'=>12,'download'=>'~2.5 GB','tier'=>'Balanced','note'=>'Recommended everyday assistant'],
   ['id'=>'qwen3:8b','name'=>'Qwen3 8B','ram'=>20,'download'=>'~5.2 GB','tier'=>'Powerful','note'=>'Better reasoning; needs more memory'],
@@ -41,6 +41,15 @@ final class LocalAIService {
  }
 
  private function enginePathFile():string{return $this->storage.'/runtime/engine-paths.json';}
+ private function ollamaStateFile():string{return $this->storage.'/runtime/ollama-server.json';}
+ private function downloadsModelDirectory(string $engine):string {
+  $home=PHP_OS_FAMILY==='Windows'?(getenv('USERPROFILE')?:''):(getenv('HOME')?:'');
+  if($home==='')throw new RuntimeException('Cannot resolve the current user home directory for model downloads.');
+  $downloads=rtrim($home,'\\/').DIRECTORY_SEPARATOR.'Downloads'.DIRECTORY_SEPARATOR.'DiGiPL'.DIRECTORY_SEPARATOR.'Models'.DIRECTORY_SEPARATOR.$engine;
+  if(!is_dir($downloads)&&!mkdir($downloads,0700,true)&&!is_dir($downloads))throw new RuntimeException('Cannot create the model download folder in the device Downloads directory: '.$downloads);
+  if(is_link($downloads)||!is_dir($downloads))throw new RuntimeException('The model download destination is not a safe directory.');
+  return $downloads;
+ }
  private function savedEnginePath(string $engine):string{
   $file=$this->enginePathFile();if(!is_file($file)||is_link($file))return '';
   $data=json_decode((string)file_get_contents($file),true);
@@ -259,10 +268,9 @@ PS;
   $bin=$this->binary('ollama');if($bin==='')throw new RuntimeException('Ollama is not installed.');
   if($this->port(11434))throw new RuntimeException('Port 11434 is occupied by another service. DCP will not replace or reconfigure it.');
   $log=$this->storage.'/logs/ollama-server.log';if(!is_dir(dirname($log)))mkdir(dirname($log),0700,true);file_put_contents($log,'',LOCK_EX);
-  $managed=str_contains(str_replace('\\','/',$bin),'/dcp-env/');
   if(PHP_OS_FAMILY==='Windows') {
    $script=$this->storage.'/start-ollama.ps1';$exe=str_replace("'","''",$bin);$logPath=str_replace("'","''",$log);$errPath=str_replace("'","''",$log.'.stderr.log');
-   $models=dirname($this->storage).'\\models\\ollama';
+   $models=$this->downloadsModelDirectory('Ollama');
    $body=<<<'PS'
 $ErrorActionPreference = 'Stop'
 $env:OLLAMA_HOST = '127.0.0.1:11434'
@@ -270,23 +278,24 @@ __MODEL_ENV__
 $p = Start-Process -FilePath '__EXE__' -ArgumentList 'serve' -PassThru -WindowStyle Hidden -RedirectStandardOutput '__LOG__' -RedirectStandardError '__ERR__'
 Write-Output $p.Id
 PS;
-   $modelEnv=$managed?'$env:OLLAMA_MODELS = ' . "'" . str_replace("'","''",$models) . "'\n":'';
+   $modelEnv='$env:OLLAMA_MODELS = ' . "'" . str_replace("'","''",$models) . "'\n";
    $body=str_replace(['__MODEL_ENV__','__EXE__','__LOG__','__ERR__'],[$modelEnv,$exe,$logPath,$errPath],$body);
    file_put_contents($script,$body);
    $pid=(int)$this->runWindowsPowerShell(['-File',$script],8);
    if($pid<1)throw new RuntimeException('Windows could not start Ollama.');
   } elseif(PHP_OS_FAMILY==='Darwin') {
-   $app=is_dir('/Applications/Ollama.app')?'/Applications/Ollama.app':((getenv('HOME')?:'').'/Applications/Ollama.app');
-   if(is_dir($app))$this->run('/usr/bin/open -a '.escapeshellarg($app),8);
-   else $this->run('nohup '.escapeshellarg($bin).' serve > '.escapeshellarg($log).' 2>&1 < /dev/null & echo $!',5);
-   $pid=(int)$this->run('pgrep -xo ollama',3);
+   $models=$this->downloadsModelDirectory('Ollama');
+   $pid=(int)$this->run('nohup env OLLAMA_HOST=127.0.0.1:11434 OLLAMA_MODELS='.escapeshellarg($models).' '.escapeshellarg($bin).' serve > '.escapeshellarg($log).' 2>&1 < /dev/null & echo $!',5);
   } else {
-   $unit=$this->run('systemctl list-unit-files ollama.service --no-legend 2>/dev/null',3);
-   if(str_contains($unit,'ollama.service')){$this->run('pkexec systemctl start ollama.service',30);$pid=(int)$this->run('pgrep -xo ollama',3);}
-   else {$envPrefix='OLLAMA_HOST=127.0.0.1:11434 ';$pid=(int)$this->run('nohup env '.$envPrefix.escapeshellarg($bin).' serve > '.escapeshellarg($log).' 2>&1 < /dev/null & echo $!',5);}
-   if($pid<1)throw new RuntimeException('Could not start Ollama. Check the operating system service and its permissions.');
+   $models=$this->downloadsModelDirectory('Ollama');
+   $pid=(int)$this->run('nohup env OLLAMA_HOST=127.0.0.1:11434 OLLAMA_MODELS='.escapeshellarg($models).' '.escapeshellarg($bin).' serve > '.escapeshellarg($log).' 2>&1 < /dev/null & echo $!',5);
+   if($pid<1)throw new RuntimeException('Could not start the DCP-managed Ollama service. Check Engine activity logs.');
   }
-  return ['ok'=>true,'started'=>true,'pid'=>$pid,'message'=>'Ollama start requested.'];
+  if($pid<1)throw new RuntimeException('Could not start the DCP-managed Ollama service. Check Engine activity logs.');
+  $state=['pid'=>$pid,'binary'=>$bin,'models_directory'=>$this->downloadsModelDirectory('Ollama'),'managed'=>true,'started_at'=>date(DATE_ATOM)];
+  $stateDir=dirname($this->ollamaStateFile());if(!is_dir($stateDir)&&!mkdir($stateDir,0700,true)&&!is_dir($stateDir))throw new RuntimeException('Could not create the Ollama runtime state directory.');
+  if(file_put_contents($this->ollamaStateFile(),json_encode($state,JSON_UNESCAPED_SLASHES),LOCK_EX)===false)throw new RuntimeException('Could not persist the DCP-managed Ollama process identity.');
+  return ['ok'=>true,'started'=>true,'pid'=>$pid,'models_directory'=>$state['models_directory'],'message'=>'Ollama started with its model store in the device Downloads folder.'];
  }
 
  public function stop(string $engine):array {
@@ -403,10 +412,10 @@ PS;
   return $model==='qwen3:0.6b'?8192:8192;
  }
  private function llamaCacheDirectory():string {
+  // Respect an explicit operator override; otherwise keep downloaded GGUF/Hugging Face
+  // model files in Downloads, never in DCP's private runtime tree or a hidden global cache.
   $configured=trim((string)(getenv('LLAMA_CACHE')?:''));
-  if($configured!=='')return $configured;
-  if(PHP_OS_FAMILY==='Windows')return (getenv('USERPROFILE')?:sys_get_temp_dir()).DIRECTORY_SEPARATOR.'.cache'.DIRECTORY_SEPARATOR.'huggingface'.DIRECTORY_SEPARATOR.'hub';
-  return (getenv('HOME')?:sys_get_temp_dir()).'/.cache/huggingface/hub';
+  return $configured!==''?$configured:$this->downloadsModelDirectory('llama.cpp');
  }
  private function isSameManagedLlamaModel(array $state,string $model):bool {
   return ($state['managed']??false)===true && hash_equals((string)($state['model']??''),$model);
@@ -487,6 +496,8 @@ PS;
   if($this->binary('ollama')==='')throw new RuntimeException('Install Ollama first.');
   foreach($this->ollama()['models'] as $existing)if(($existing['id']??'')===$model||($existing['id']??'')===$model.':latest')return ['ok'=>true,'already_installed'=>true,'message'=>'This model is already downloaded.','model'=>$model];
   if(!$this->ollama()['online'])throw new RuntimeException('Ollama is installed but not running. Start Ollama before downloading a model.');
+  $stateFile=$this->ollamaStateFile();$state=is_file($stateFile)&&!is_link($stateFile)?json_decode((string)file_get_contents($stateFile),true):null;
+  if(!is_array($state)||!($state['managed']??false)||!is_dir((string)($state['models_directory']??''))||!$this->processIdRunning((int)($state['pid']??0)))throw new RuntimeException('The running Ollama service is not using DCP Downloads storage. Stop the existing service, then start Ollama from DCP before downloading. Existing model stores will not be moved or modified.');
   $log=$this->storage.'/logs/local-ai-pull.log';if(!is_dir(dirname($log)))mkdir(dirname($log),0700,true);file_put_contents($log,'',LOCK_EX);$bin=$this->binary('ollama');
   if(PHP_OS_FAMILY==='Windows') {
    $ps=$this->storage.'/local-ai-pull.ps1';$exe=str_replace("'","''",$bin);$name=str_replace("'","''",$model);$out=str_replace("'","''",$log.'.stdout.log');$err=str_replace("'","''",$log.'.stderr.log');
