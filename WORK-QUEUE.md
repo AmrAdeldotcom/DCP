@@ -839,3 +839,15 @@ Preserve static VM IPs Ubuntu 192.168.8.88 and Windows 192.168.8.99. Never stage
 - [ ] Deploy current platform source to Ubuntu 192.168.8.88 and Windows 192.168.8.99; validate `/api/bootstrap`, `/api/cloud/status`, chat UI and Downloads model paths.
 - [ ] Preserve both VM user-data databases and model directories; do not run system-wide Node/DC/DSH installers.
 - No stable `/Volumes/Data/DiGiPL/DCP` modification and no release/tag.
+
+
+## DC74 follow-up — Cloud latency and VM deployment
+- [x] Shared chat height fix deployed to Ubuntu and Windows DCP source trees; CloudService best-effort status fix also synchronized to both VM source trees.
+- [x] Ubuntu DCP app started successfully on fixed port 60776 after identifying and clearing an orphaned Ollama runner listener that had occupied the DCP port. The existing `~/.ollama/models` directory was confirmed present and left untouched.
+- [x] Ubuntu `/api/bootstrap` returns HTTP 200; `/api/cloud/status` returned `connected:true`, anonymous Guest identity, heartbeat verified, HTTP 200. Public Cloud health also returned database/schema ok.
+- [x] Ubuntu public Cloud health connection took ~8.5s; status endpoint returned in ~11.5s. Paired-device details may be temporarily unavailable, but the heartbeat succeeds and status remains connected. Added bounded best-effort requests for optional pairing lists so they cannot hold up heartbeat status.
+- [ ] Restart Ollama safely on Ubuntu after DCP owns 60776; `systemctl start ollama` currently requires interactive authentication. The old Ollama process was stopped; model files remain on disk.
+- [ ] Start/verify Windows DCP in the logged-in `amradeldotcom` desktop session. Source files are synchronized to `C:\Users\amradeldotcom\Downloads\DCP-Windows-x64\windows`; app was not running at inspection. Do not launch as the SSH `dcpadmin` account because that would create/use a different user profile.
+- [ ] Confirm Mac package rebuild if needed; user explicitly requested VM acceptance rather than Mac visual testing.
+- [ ] Commit/push the Cloud status best-effort request change and its regression test.
+- Relay remains `false` / `signaling-only`; do not represent relay as online. Cloud heartbeat is separate from relay transport.

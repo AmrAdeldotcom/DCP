@@ -63,3 +63,11 @@ Date: 2026-11-26
 - Live Cloud health: public `/api/v1/health` returns database/schema ok but relay=false and signaling-only. Mac development `/api/cloud/status` returns connected=true with heartbeat verified and anonymous Guest identity. Therefore public Cloud API is online; relay is not deployed/enabled.
 - VM reachability: Ubuntu and Windows SSH aliases work. Ubuntu DCP app was not running on port 60776 when inspected; updater watcher and Ollama processes were running. Windows DCP port 60776 was not responding at initial check. VM UI Offline likely reflects app process/source or per-device credentials, not a public Cloud outage.
 - Do not modify stable DCP install, do not alter VM user data/models, do not run privileged Node/DC/DSH installation. Preserve untracked NETWORK-RESUME-REQUEST.json.
+
+
+## DC74 Cloud latency fix — 2026-11-26
+- `CloudService::status()` now treats paired-device and pairing-request lists as best-effort snapshots: one attempt, 3s connect / 5s total timeout. Primary heartbeat keeps its retry policy. This prevents optional UI detail calls from holding up the connection state. Regression assertion added to `platform/tests/run.php`; full suite passes.
+- Ubuntu VM: Ollama process had two listeners: 11434 (API) and 60776 (runner). DCP fixed-port startup refused to choose a random port. Gracefully stopped the orphaned Ollama process and system service to free 60776; existing `~/.ollama/models` directory remains present and untouched. Started DCP in the active GNOME/Wayland session. `/api/bootstrap` HTTP 200. `/api/cloud/status` HTTP 200 with connected=true, anonymous Guest identity and heartbeat verified. Cloud health endpoint returns DB/schema ok; public health connection from VM took ~8.5 seconds. Optional paired-device details may be unavailable; heartbeat remains verified.
+- The system Ollama service requires interactive authentication to start again; it remains stopped. No model files were moved/deleted.
+- Synced chat layout and CloudService source to Windows DCP package directory; Windows DCP process was not running. Do not launch as SSH account `dcpadmin` because user `amradeldotcom` has the active console session and different user data.
+- Cloud public health reports relay=false / signaling-only. Relay is not deployed/enabled.
